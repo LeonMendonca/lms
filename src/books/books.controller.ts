@@ -22,9 +22,8 @@ export class BookController {
 
     @Get('view-books')
     allBooks() {
-        // return this.bookService.allBooks
         try {
-            const fileData = fs.readFileSync(this.filePath, 'utf8');
+            const fileData = fse.readFileSync(this.filePath, 'utf8');
             const books = JSON.parse(fileData);
             return { books };
         } catch (error) {
@@ -33,22 +32,36 @@ export class BookController {
         }
     }
 
-
     @Post('edit-books')
-    editBooks(@Body() requestData: BookDTO) {
-        // return "Create a New Book"
-        const newBook: BookDTO = { ...requestData }
-        let books: BookDTO[] = []
-
-        if (fse.pathExists(this.filePath)) {
-            const fileData = fse.readJson(this.filePath)
+    async editBooks(@Body() newBook: BookDTO) {
+        try {
+            let books: BookDTO[] = []
+            if (await fse.pathExists(this.filePath)) {
+                const fileData = await fse.readFile(this.filePath, 'utf8')
+                books = fileData ? JSON.parse(fileData) : []
+            }
+            books.push(newBook)
+            await fse.writeFile(this.filePath, JSON.stringify(books, null, 2))
+            console.log("Book Added Successfully!")
+        } catch (error) {
+            console.error("Error Adding Book: ", error)
+            return { msg: "Error Adding Book", error: error.message }
         }
-        fse.writeJson(this.filePath, newBook, err => {
-            if (err) return console.error(err)
-            console.log("Successful!")
-        })
-        return { newBook }
     }
+    // editBooks(@Body() requestData: BookDTO) {
+    //     const newBook: BookDTO = { ...requestData }
+    //     let books: BookDTO[] = []
+
+    //     if (fse.pathExists(this.filePath)) {
+    //         const fileData = fse.readJson(this.filePath)
+    //     }
+    //     fse.writeJson(this.filePath, newBook, err => {
+    //         if (err) return console.error(err)
+    //         console.log("Successful!")
+    //     })
+    //     // fse.writeJsonSync(this.filePath, newBook)
+    //     return { newBook }
+    // }
 }
 
 
