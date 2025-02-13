@@ -1,0 +1,9 @@
+- Start nest app (nest new project_name)
+- Enter project directory (cd project_name)
+- Delete app.controller.ts app.service.ts app.controller.spec.ts
+- Now create the module (nest g module books)
+- Create books.controllers.ts and books.service.ts
+- Make the books.json in src/data directory
+- Install the npm i fs-extra
+- Added some code in the nest.cli file
+- Update the Get and Post request codes in the books.controllers
