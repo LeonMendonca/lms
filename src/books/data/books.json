@@ -1,0 +1,24 @@
+[
+  {
+    "book_id": 1,
+    "book_name": "Book 1",
+    "book_author": "Author 1",
+    "book_edition": "Edition 1",
+    "book_publisher": "Publisher 1",
+    "book_publish_year": "2020-02-15",
+    "book_borrowed": true,
+    "date_of_borrowing": "2025-01-28",
+    "department": "electrical"
+  },
+  {
+    "book_id": 2,
+    "book_name": "Book 2",
+    "book_author": "Author 2",
+    "book_edition": "Edition 2",
+    "book_publisher": "Publisher 2",
+    "book_publish_year": "2021-02-15",
+    "book_borrowed": false,
+    "date_of_borrowing": "2025-01-20",
+    "department": "math"
+  }
+]

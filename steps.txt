@@ -1,3 +1,4 @@
+-->COMMIT 01
 - Start nest app (nest new project_name)
 - Enter project directory (cd project_name)
 - Delete app.controller.ts app.service.ts app.controller.spec.ts
@@ -7,3 +8,13 @@
 - Install the npm i fs-extra
 - Added some code in the nest.cli file
 - Update the Get and Post request codes in the books.controllers
+
+
+-->COMMIT 02
+- Made the changes in the nest-cli.json to include the .json extension files
+- Installed class-validator and class-transformer
+- Create DTO for book validation
+- Make changes in the main.ts file
+- Made service based logic
+- Made the changes in the controllers
+- Test the API

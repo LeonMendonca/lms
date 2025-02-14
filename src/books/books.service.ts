@@ -1,11 +1,23 @@
 import { Injectable } from "@nestjs/common";
+import * as path from 'path'
+
+const fse = require('fs-extra')
 
 @Injectable({})
 export class BookService {
-    allBooks() {
-        return { msg: "Viewing all the books" }
+
+    private filePath = path.join(process.cwd(), 'src', 'books', 'data', 'books.json')
+
+    allBooks(): any {
+        const fileData = fse.readFileSync(this.filePath, 'utf8')
+        return JSON.parse(fileData)
+        // return { msg: "Viewing all the books" }
     }
-    editBooks() {
-        return { msg: "Create a new Book" }
+
+    addBook(newBook: any) {
+        const books = this.allBooks()
+        books.push(newBook)
+        fse.writeFileSync(this.filePath, JSON.stringify(books, null, 2), 'utf8')
+        return { msg: "Book Added Successfully!" }
     }
 }
