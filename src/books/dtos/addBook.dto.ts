@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString } from "class-validator";
+import { IsBoolean, IsInt, IsNotEmpty, IsString } from "class-validator";
 
 export class AddBookDTO {
     @IsInt()
@@ -26,9 +26,9 @@ export class AddBookDTO {
     @IsNotEmpty()
     book_publish_year: string;
 
-    @IsString()
+    @IsBoolean()
     @IsNotEmpty()
-    book_borrowed: string;
+    book_borrowed: boolean;
 
     @IsString()
     @IsNotEmpty()

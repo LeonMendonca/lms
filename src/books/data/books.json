@@ -20,5 +20,16 @@
     "book_borrowed": false,
     "date_of_borrowing": "2025-01-20",
     "department": "math"
+  },
+  {
+    "book_id": 3,
+    "book_name": "Book 3",
+    "book_author": "Author 3",
+    "book_edition": "Edition 3",
+    "book_publisher": "Publisher 3",
+    "book_publish_year": "2022-02-15",
+    "book_borrowed": true,
+    "date_of_borrowing": "2025-02-02",
+    "department": "evs"
   }
 ]

@@ -1,19 +1,19 @@
-import { Controller, Get, Post, Body } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query } from "@nestjs/common";
 import { BookService } from "./books.service";
-import * as path from "path"
 import { AddBookDTO } from "./dtos/addBook.dto";
-
-const fse = require('fs-extra')
 
 @Controller('books')
 export class BookController {
-    private readonly filePath = path.resolve(__dirname, '../data/books.json')
 
     constructor(private bookService: BookService) { }
 
     @Get('view-books')
-    allBooks() {
-        return this.bookService.allBooks()
+    allBooks(@Query() query: any) {
+        if (query.book_borrowed === "true") {
+            return this.bookService.allBooks().filter(b => b.book_borrowed === true)
+        } else {
+            return this.bookService.allBooks()
+        }
     }
 
     @Post('add-book')

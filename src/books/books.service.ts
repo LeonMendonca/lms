@@ -11,7 +11,6 @@ export class BookService {
     allBooks(): any {
         const fileData = fse.readFileSync(this.filePath, 'utf8')
         return JSON.parse(fileData)
-        // return { msg: "Viewing all the books" }
     }
 
     addBook(newBook: any) {

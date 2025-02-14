@@ -18,3 +18,8 @@
 - Made service based logic
 - Made the changes in the controllers
 - Test the API
+
+-->COMMIT 03
+- Create a DTO for query processing
+- Write the Query() for issued books 
+- Write the logic in the controller
