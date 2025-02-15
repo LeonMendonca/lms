@@ -23,3 +23,6 @@
 - Create a DTO for query processing
 - Write the Query() for issued books 
 - Write the logic in the controller
+
+-->COMMIT 04
+- Added cors in main.ts to help the API hit while integrating
