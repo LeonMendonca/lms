@@ -35,12 +35,16 @@ $ npm run start:dev
 - POST Request : http://localhost:3000/books/edit-books
  In Body select raw JSON and paste this in the Body
   {
-    "bid": 2,
-    "bname": "Clean Code",
-    "bauthor": "Robert C. Martin",
-    "bpublisher": "Prentice Hall",
-    "bpyear": "2008-08-13"
-  }
+    "book_name": "Book 3",
+    "book_author": "Author 3",
+    "book_edition": "Edition 3",
+    "book_publisher": "Publisher 3",
+    "book_publish_year": "2022",
+    "book_borrowed": true,
+    "date_of_borrowing": "2025-02-10",
+    "department": "Math"
+}
+
 ```
 
 ## Resources Used
