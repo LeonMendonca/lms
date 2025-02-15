@@ -26,3 +26,6 @@
 
 -->COMMIT 04
 - Added cors in main.ts to help the API hit while integrating
+
+-->COMMIT 05
+- Update books.service to add a unique id

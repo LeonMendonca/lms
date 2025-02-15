@@ -1,11 +1,14 @@
-import { Controller, Get, Post, Body, Query } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UsePipes, ValidationPipe } from "@nestjs/common";
 import { BookService } from "./books.service";
 import { AddBookDTO } from "./dtos/addBook.dto";
+
+const fse = require('fs-extra')
 
 @Controller('books')
 export class BookController {
 
     constructor(private bookService: BookService) { }
+
 
     @Get('view-books')
     allBooks(@Query() query: any) {
@@ -17,6 +20,7 @@ export class BookController {
     }
 
     @Post('add-book')
+    @UsePipes(new ValidationPipe())
     addBook(@Body() addBookDTO: AddBookDTO) {
         return this.bookService.addBook(addBookDTO)
     }

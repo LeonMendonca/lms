@@ -15,6 +15,10 @@ export class BookService {
 
     addBook(newBook: any) {
         const books = this.allBooks()
+
+        const maxId = books.length > 0 ? books.length : 0;
+        newBook.book_id = maxId + 1
+
         books.push(newBook)
         fse.writeFileSync(this.filePath, JSON.stringify(books, null, 2), 'utf8')
         return { msg: "Book Added Successfully!" }

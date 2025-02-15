@@ -1,9 +1,10 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsString } from "class-validator";
+import { IsBoolean, IsInt, IsNotEmpty, IsString, IsUUID, Validate } from "class-validator";
 
 export class AddBookDTO {
-    @IsInt()
-    @IsNotEmpty()
-    book_id: number;
+    // @IsInt()
+    // @IsNotEmpty()
+    // @IsUUID()
+    book_id: string;
 
     @IsString()
     @IsNotEmpty()
