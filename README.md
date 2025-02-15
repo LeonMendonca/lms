@@ -7,12 +7,12 @@
 
 ## Description
 
-<p>The src/books directory contains the books.module, books.controller, books.service</p>
-<p>The dist/data directory contains the books.json file which stores the static data</p>
+Master branch contains the backend of the Books Management Interface. The backend contains three routes:
+ - 'view-books' : This route hits the GET Request. This route is responsible for returning all the books in the database.
+ - 'view-books?book_borrowed=true' : This route hits the GET Request. This route is responsible for returning only the issued books from the database.
+ - 'edit-books' : This route hits the POST Request. This route is responsible for adding a new book in the database.
 
-Master branch contains the backend of the Books Management Interface. The backend contains two routes:
- - 'view-books' : This route hits the GET Request
- - 'edit-books' : This route hits the POST Request
+<p>The src/books directory contains the books.module, books.controller, books.service </br>It also contains books/data.json which is our current static database </br> It contains books/dtos which will hold all our DTO files</p>
 
 ## Project setup
 
@@ -37,6 +37,7 @@ $ npm run start:prod
 
 ```bash
 - GET Request : http://localhost:3000/books/view-books
+- GET Request : http://localhost:3000/books/view-books?book_borrowed=true
 - POST Request : http://localhost:3000/books/edit-books
  In Body select raw JSON and paste this in the Body
   {
