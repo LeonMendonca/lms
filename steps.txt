@@ -29,3 +29,6 @@
 
 -->COMMIT 05
 - Update books.service to add a unique id
+
+-->COMMIT 07
+- Add HttpCode in book.controller

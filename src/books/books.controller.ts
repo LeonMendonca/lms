@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UsePipes, ValidationPipe, HttpStatus, HttpCode } from "@nestjs/common";
 import { BookService } from "./books.service";
 import { AddBookDTO } from "./dtos/addBook.dto";
 
@@ -21,6 +21,7 @@ export class BookController {
 
     @Post('add-book')
     @UsePipes(new ValidationPipe())
+    @HttpCode(HttpStatus.CREATED)
     addBook(@Body() addBookDTO: AddBookDTO) {
         return this.bookService.addBook(addBookDTO)
     }
