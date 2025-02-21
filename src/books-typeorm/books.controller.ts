@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, UsePipes } from '@nestjs/common';
 import { BooksService } from 'src/books-typeorm/books.service';
 import { booksValidationPipe } from './books.pipe';
-import { createBookDTO } from './dto/createbooks-dto';
-import { createBookSchema } from './zod-validation/createbooks-zod';
+import {
+  CreateBookDTO,
+  createBookSchema,
+} from './zod-validation/createbooks-zod';
 
 @Controller('book')
 export class BooksController {
@@ -15,8 +17,7 @@ export class BooksController {
 
   @Post('create')
   @UsePipes(new booksValidationPipe(createBookSchema))
-  createBook(@Body() bookPayload: createBookDTO) {
-    console.log('transformed payload', bookPayload);
+  createBook(@Body() bookPayload: CreateBookDTO) {
     return this.bookService.createBook(bookPayload);
   }
 }
