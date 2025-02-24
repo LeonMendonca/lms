@@ -31,9 +31,9 @@ export class studentValidationPipe implements PipeTransform {
         }
         if (notExist) {
           throw new Error('email or phone_no or student_id required');
-        } 
+        }
         await this.zschema.parse(value);
-        if('phone_no' in value) {
+        if ('phone_no' in value) {
           value = { phone_no: Number(value.phone_no) };
         }
         return value;
