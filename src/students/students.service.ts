@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Students } from './students.entity';
-import { StudentQueryDTO } from './dto/student.query-dto';
+import { StudentQueryValidator } from './student.query-validator';
 import { isUUID } from 'class-validator';
 
 @Injectable()
@@ -18,11 +18,11 @@ export class StudentsService {
     )) as Students[];
   }
   async findStudentBy(query: object) {
-    let requiredKey: keyof typeof StudentQueryDTO | undefined = undefined;
+    let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
     let value: string | undefined = undefined;
-    for (const key in StudentQueryDTO) {
+    for (const key in StudentQueryValidator) {
       if (key in query) {
-        requiredKey = key as keyof typeof StudentQueryDTO;
+        requiredKey = key as keyof typeof StudentQueryValidator;
         value = query[key] as string;
         console.log('\nkeys is', requiredKey);
         break;
