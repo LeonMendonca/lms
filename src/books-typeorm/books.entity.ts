@@ -83,4 +83,9 @@ export class Books {
   itemType: string;
 
   // ----- //
+
+  //Institute
+  @Column({ name: 'institute_id', type: 'uuid', nullable: true })
+  instituteId: string;
+  // ----- //
 }

@@ -10,7 +10,7 @@ function customQueryHelper(payloadObject: object) {
   let queryArg = '';
   let queryParamNum = 0;
   const values: string[] = [];
-  for(let key in payloadObject) {
+  for (let key in payloadObject) {
     queryParamNum++;
     queryCol = queryCol.concat(`${key},`);
     queryArg = queryArg.concat(`$${queryParamNum},`);
@@ -32,7 +32,10 @@ export class BooksService {
   }
   async createBook(bookPayload: CreateBookDTO) {
     let queryData = customQueryHelper(bookPayload);
-    await this.booksRepository.query(`INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values);
+    await this.booksRepository.query(
+      `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+      queryData.values,
+    );
     //this.booksRepository.query(
     //  `INSERT INTO books_table (book_title, book_author, name_of_publisher, place_of_publication, year_of_publication, language, edition, isbn, no_of_pages, no_of_preliminary_pages, subject, department, call_number, author_mark, source_of_acquisition, date_of_acquisition, inventory_number, accession_number, barcode, item_type, bill_no ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
     //  [

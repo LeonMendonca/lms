@@ -8,9 +8,12 @@ import {
   Query,
   HttpException,
   HttpStatus,
+  UsePipes,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { StudentsService } from './students.service';
+import { studentValidationPipe, UnionUser } from './student.pipe';
+import { studentQuerySchema } from './zod-validation/studentquery-zod';
 
 @Controller('student')
 export class StudentsController {
@@ -21,7 +24,8 @@ export class StudentsController {
   }
 
   @Get('search')
-  async getStudentBy(@Query() query: object) {
+  @UsePipes(new studentValidationPipe(studentQuerySchema))
+  async getStudentBy(@Query() query: UnionUser) {
     const result = await this.studentsService.findStudentBy(query);
     if (result && result.length != 0) {
       return result[0];

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Students } from './students.entity';
 import { StudentQueryValidator } from './student.query-validator';
 import { isUUID } from 'class-validator';
+import { UnionUser } from './student.pipe';
 
 @Injectable()
 export class StudentsService {
@@ -17,30 +18,22 @@ export class StudentsService {
       'SELECT * from students_table',
     )) as Students[];
   }
-  async findStudentBy(query: object) {
+  async findStudentBy(query: UnionUser) {
     let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
     let value: string | undefined = undefined;
-    for (const key in StudentQueryValidator) {
-      if (key in query) {
-        requiredKey = key as keyof typeof StudentQueryValidator;
-        value = query[key] as string;
-        console.log('\nkeys is', requiredKey);
-        break;
-      }
-    }
-    if (requiredKey && value) {
-      if (requiredKey === 'student_id' && !isUUID(value)) {
-        throw new HttpException('Not a valid UUID!', HttpStatus.BAD_REQUEST);
-      }
-      return (await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE ${requiredKey} = $1`,
-        [value],
-      )) as Students[];
+    if ('student_id' in query) {
+      requiredKey = 'student_id';
+      value = query.student_id;
+    } else if ('email' in query) {
+      requiredKey = 'email';
+      value = query.email;
     } else {
-      throw new HttpException(
-        `Search parameter email or student_id or phone_no required`,
-        HttpStatus.BAD_REQUEST,
-      );
+      requiredKey = 'phone_no';
+      value = query.phone_no;
     }
+    return (await this.studentsRepository.query(
+      `SELECT * FROM students_table WHERE ${requiredKey} = $1`,
+      [value],
+    )) as Students[];
   }
 }
