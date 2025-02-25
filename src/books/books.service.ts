@@ -5,23 +5,8 @@ import { Books } from './books.entity';
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import type { UnionBook } from './book.types';
 import { BookQueryValidator } from './book.query-validator';
+import { customQueryHelper } from "../custom-query-helper";
 
-//creates Columns (col1, col2, ....), Arguments ($1, $2, ....) and Array of values [val1, val2, ....]
-function customQueryHelper(payloadObject: object) {
-  let queryCol = '';
-  let queryArg = '';
-  let queryParamNum = 0;
-  const values: string[] = [];
-  for (let key in payloadObject) {
-    queryParamNum++;
-    queryCol = queryCol.concat(`${key},`);
-    queryArg = queryArg.concat(`$${queryParamNum},`);
-    values.push(payloadObject[key]);
-  }
-  queryArg = queryArg.slice(0, -1);
-  queryCol = queryCol.slice(0, -1);
-  return { queryArg, queryCol, values };
-}
 
 @Injectable()
 export class BooksService {
@@ -57,37 +42,41 @@ export class BooksService {
   }
 
   async createBook(bookPayload: TCreateBookDTO) {
-    let queryData = customQueryHelper(bookPayload);
-    await this.booksRepository.query(
-      `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-      queryData.values,
-    );
-    //this.booksRepository.query(
-    //  `INSERT INTO books_table (book_title, book_author, name_of_publisher, place_of_publication, year_of_publication, language, edition, isbn, no_of_pages, no_of_preliminary_pages, subject, department, call_number, author_mark, source_of_acquisition, date_of_acquisition, inventory_number, accession_number, barcode, item_type, bill_no ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
-    //  [
-    //    bookPayload.book_title,
-    //    bookPayload.book_author,
-    //    bookPayload.name_of_publisher,
-    //    bookPayload.place_of_publication,
-    //    bookPayload.year_of_publication,
-    //    bookPayload.language,
-    //    bookPayload.edition,
-    //    bookPayload.isbn,
-    //    bookPayload.no_of_pages,
-    //    bookPayload.no_of_preliminary_pages,
-    //    bookPayload.subject,
-    //    bookPayload.department,
-    //    bookPayload.call_number,
-    //    bookPayload.author_mark,
-    //    bookPayload.source_of_acquisition,
-    //    bookPayload.date_of_acquisition,
-    //    bookPayload.inventory_number,
-    //    bookPayload.accession_number,
-    //    bookPayload.barcode,
-    //    bookPayload.item_type,
-    //    bookPayload.bill_no
-    //  ],
-    //);
-    return 'Inserted!!';
+    try {
+      let queryData = customQueryHelper(bookPayload);
+      await this.booksRepository.query(
+        `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+        queryData.values,
+      );
+      return 'Inserted!!';
+    } catch (error) {
+      throw error;
+    }
   }
 }
+
+//INSERT TRIAL DATA
+// {
+//   "book_title": "Introduction to Machine Learning",
+//   "book_author": "aaaa",
+//   "name_of_publisher": "Oxford University Press",
+//   "place_of_publication": "Oxford, United Kingdom",
+//   "year_of_publication": "2023-05-09",
+//   "language": "English",
+//   "edition": "3rd Edition",
+//   "isbn": "978-0198831023",
+//   "no_of_pages": 450,
+//   "no_of_preliminary_pages": 15,
+//   "subject": "Computer Science",
+//   "department": "Computer Science and Engineering",
+//   "call_number": "1234567890",
+//   "author_mark": "A1",
+//   "source_of_acquisition": "University Bookstore",
+//   "date_of_acquisition": "2023-06-09",
+//   "bill_no": 1001,
+//   "inventory_number": 57824,
+//   "accession_number": 1003,
+//   "barcode": "1234567890123",
+//   "item_type": "Textbook",
+//   "institute_id": "47ec109e-7100-4a0f-91d7-4a3da36d3dc6"
+// }

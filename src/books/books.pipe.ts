@@ -5,20 +5,22 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { z, ZodSchema, ZodError, ZodType, ZodTypeAny } from 'zod';
+
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
-import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
-export class booksValidationPipe
-  implements PipeTransform<unknown, TCreateBookDTO | undefined>
-{
+export class booksValidationPipe implements PipeTransform {
   constructor(private schema: ZodSchema) {}
+
   transform(value: unknown, metadata: ArgumentMetadata) {
     try {
       if (metadata.type === 'body') {
         //validation logic with zod
-        const parsedValue = this.schema.parse(value) as TCreateBookDTO;
+        const parsedValue = this.schema.parse(value);
         return parsedValue;
+      } else {
+        throw new Error('Body required');
       }
     } catch (error) {
       if (error instanceof ZodError) {
@@ -26,6 +28,11 @@ export class booksValidationPipe
           return { field: errorItem.path[0], message: errorItem.message };
         });
         throw new HttpException(modifiedZodError, HttpStatus.NOT_ACCEPTABLE);
+      } else {
+        throw new HttpException(
+          'Undefined Error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }

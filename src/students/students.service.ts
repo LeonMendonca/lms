@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Students } from './students.entity';
 import { StudentQueryValidator } from './student.query-validator';
 import type { UnionUser } from './students.types';
+import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
+import { customQueryHelper } from '../custom-query-helper';
 
 @Injectable()
 export class StudentsService {
@@ -34,5 +36,14 @@ export class StudentsService {
       `SELECT * FROM students_table WHERE ${requiredKey} = $1`,
       [value],
     )) as Students[];
+  }
+  async createStudent(studentPayload: TCreateStudentDTO) {
+    try {
+      let queryData = customQueryHelper(studentPayload)
+      await this.studentsRepository.query(`INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values)
+      return "Inserted!!";
+    } catch (error) {
+      throw error;
+    }
   }
 }

@@ -16,6 +16,11 @@ import { QueryValidationPipe } from '../query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
 import { StudentQueryValidator } from './student.query-validator';
 import type { UnionUser } from './students.types';
+import { booksValidationPipe } from 'src/books/books.pipe';
+import {
+  createStudentSchema,
+  TCreateStudentDTO,
+} from './zod-validation/createstudents-zod';
 
 @Controller('student')
 export class StudentsController {
@@ -37,8 +42,9 @@ export class StudentsController {
   }
 
   @Post('create')
-  createStudent(@Body() studentPayload: any, @Req() request: Request) {
-    return `${request.method} from ${request.ip} data : ${{ ...studentPayload }}`;
+  @UsePipes(new booksValidationPipe(createStudentSchema))
+  createStudent(@Body() studentPayload: TCreateStudentDTO) {
+    return this.studentsService.createStudent(studentPayload);
   }
 
   @Patch('edit')

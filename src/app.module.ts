@@ -12,7 +12,7 @@ config({ path: '.env' });
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DB_URL,      
+      url: process.env.DB_URL,
       entities: [Students, Books],
       ssl: true,
       synchronize: true,
