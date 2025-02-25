@@ -3,54 +3,45 @@ import {
   Get,
   Post,
   Body,
-  Put,
   Query,
   UsePipes,
-  ValidationPipe,
-  HttpStatus,
-  HttpCode,
   HttpException,
+  HttpStatus,
 } from '@nestjs/common';
-import { BookService } from './books.service';
-import { AddBookDTO } from './dtos/addBook.dto';
-import { EditBookDTO } from './dtos/editBook.dto';
-@Controller('books')
-export class BookController {
-  constructor(private bookService: BookService) {}
+import { BooksService } from 'src/books/books.service';
+import { booksValidationPipe } from './books.pipe';
+import {
+  TCreateBookDTO,
+  createBookSchema,
+} from './zod-validation/createbooks-zod';
+import { QueryValidationPipe } from 'src/query-validation.pipe';
+import { BookQueryValidator } from 'src/books/book.query-validator';
+import { bookQuerySchema } from './zod-validation/bookquery-zod';
+import type { UnionBook } from './book.types';
 
-  @Get('view-books')
-  async allBooks(@Query('book_borrowed') query: string) {
-    try {
-      if (query) {
-        const queryBoolean = JSON.parse(query) as boolean;
-        return await this.bookService.allBooks(queryBoolean);
-      } else {
-        return await this.bookService.allBooks();
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-      }
+@Controller('book')
+export class BooksController {
+  constructor(private bookService: BooksService) {}
+
+  @Get('all')
+  async getAllBooks() {
+    return this.bookService.getBooks();
+  }
+
+  @Get('search')
+  @UsePipes(new QueryValidationPipe(bookQuerySchema, BookQueryValidator))
+  async getBookBy(@Query() query: UnionBook) {
+    const result = await this.bookService.findBookBy(query);
+    if (result.length != 0) {
+      return result[0];
+    } else {
+      throw new HttpException('No user found', HttpStatus.NOT_FOUND);
     }
   }
 
-  @Post('add-book')
-  @UsePipes(new ValidationPipe())
-  @HttpCode(HttpStatus.CREATED)
-  addBook(@Body() addBookDTO: AddBookDTO) {
-    return this.bookService.addBook(addBookDTO);
-  }
-
-  @Put('update-book')
-  updateBook(@Query('id') id: string, @Body() bookPayload: typeof EditBookDTO) {
-    if (!id) {
-      throw new HttpException('id is required!', HttpStatus.BAD_REQUEST);
-    }
-    if (!bookPayload) {
-      throw new HttpException('Payload is required!', HttpStatus.BAD_REQUEST);
-    }
-    {
-      return this.bookService.updateBook(id, bookPayload);
-    }
+  @Post('create')
+  @UsePipes(new booksValidationPipe(createBookSchema))
+  createBook(@Body() bookPayload: TCreateBookDTO) {
+    return this.bookService.createBook(bookPayload);
   }
 }
