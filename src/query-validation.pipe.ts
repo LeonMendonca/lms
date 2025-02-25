@@ -5,37 +5,34 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { StudentQueryValidator } from './student.query-validator';
 import { ZodError, ZodSchema } from 'zod';
 
-export type UnionUser = {
-  [key in keyof typeof StudentQueryValidator]: Pick<
-    typeof StudentQueryValidator,
-    key
-  >;
-}[keyof typeof StudentQueryValidator];
-
 @Injectable()
-export class studentValidationPipe implements PipeTransform {
-  constructor(private readonly zschema: ZodSchema) {}
+export class QueryValidationPipe implements PipeTransform {
+  constructor(
+    private readonly zschema: ZodSchema,
+    private readonly validatorObject: object,
+  ) {}
   async transform(value: object, metadata: ArgumentMetadata) {
     try {
       if (metadata.type === 'query') {
         //Check is any one field exists
         let notExist: boolean = true;
-        for (let key in StudentQueryValidator) {
+        let requiredKeyText = '';
+        for (let key in this.validatorObject) {
+          requiredKeyText = requiredKeyText.concat(`${key} or `);
           if (key in value) {
+            console.log(requiredKeyText);
             notExist = false;
             break;
           }
         }
         if (notExist) {
-          throw new Error('email or phone_no or student_id required');
+          requiredKeyText = requiredKeyText.slice(0, -3);
+          throw new Error(requiredKeyText.concat('required'));
         }
+        //validate with Zod
         await this.zschema.parse(value);
-        if ('phone_no' in value) {
-          value = { phone_no: Number(value.phone_no) };
-        }
         return value;
       } else {
         throw new HttpException('Expected a query', HttpStatus.NOT_ACCEPTABLE);

@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Books } from './books.entity';
-import { CreateBookDTO } from './zod-validation/createbooks-zod';
+import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
+import type { UnionBook } from './book.types';
+import { BookQueryValidator } from './book.query-validator';
 
 //creates Columns (col1, col2, ....), Arguments ($1, $2, ....) and Array of values [val1, val2, ....]
 function customQueryHelper(payloadObject: object) {
@@ -30,7 +32,31 @@ export class BooksService {
   async getBooks() {
     return await this.booksRepository.query('SELECT * from books_table');
   }
-  async createBook(bookPayload: CreateBookDTO) {
+
+  async findBookBy(query: UnionBook) {
+    let requiredKey: keyof typeof BookQueryValidator | undefined = undefined;
+    let value: string | number | undefined = undefined;
+    if ('book_id' in query) {
+      requiredKey = 'book_id';
+      value = query.book_id;
+    } else if ('book_title' in query) {
+      requiredKey = 'book_title';
+      value = query.book_title;
+    } else if ('book_author' in query) {
+      requiredKey = 'book_author';
+      value = query.book_author;
+    } else {
+      //error if NaN
+      requiredKey = 'bill_no';
+      value = query.bill_no;
+    }
+    return (await this.booksRepository.query(
+      `SELECT * FROM books_table WHERE ${requiredKey} = $1`,
+      [value],
+    )) as Books[];
+  }
+
+  async createBook(bookPayload: TCreateBookDTO) {
     let queryData = customQueryHelper(bookPayload);
     await this.booksRepository.query(
       `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,

@@ -47,7 +47,7 @@ export class Books {
 
   //Catologing and Classification
 
-  @Column({ name: 'call_number', type: 'numeric', precision: 10, scale: 0 })
+  @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
   callNumber: number;
 
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
@@ -70,7 +70,7 @@ export class Books {
 
   //Inventory and Identification
 
-  @Column({ name: 'inventory_number', type: 'int' })
+  @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
   inventoryNumber: number;
 
   @Column({ name: 'accession_number', type: 'int' })

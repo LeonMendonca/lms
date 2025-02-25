@@ -1,10 +1,23 @@
-import { Controller, Get, Post, Body, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UsePipes,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { BooksService } from 'src/books-typeorm/books.service';
 import { booksValidationPipe } from './books.pipe';
 import {
-  CreateBookDTO,
+  TCreateBookDTO,
   createBookSchema,
 } from './zod-validation/createbooks-zod';
+import { QueryValidationPipe } from 'src/query-validation.pipe';
+import { BookQueryValidator } from 'src/books-typeorm/book.query-validator';
+import { bookQuerySchema } from './zod-validation/bookquery-zod';
+import type { UnionBook } from './book.types';
 
 @Controller('book')
 export class BooksController {
@@ -15,9 +28,20 @@ export class BooksController {
     return this.bookService.getBooks();
   }
 
+  @Get('search')
+  @UsePipes(new QueryValidationPipe(bookQuerySchema, BookQueryValidator))
+  async getBookBy(@Query() query: UnionBook) {
+    const result = await this.bookService.findBookBy(query);
+    if (result.length != 0) {
+      return result[0];
+    } else {
+      throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+    }
+  }
+
   @Post('create')
   @UsePipes(new booksValidationPipe(createBookSchema))
-  createBook(@Body() bookPayload: CreateBookDTO) {
+  createBook(@Body() bookPayload: TCreateBookDTO) {
     return this.bookService.createBook(bookPayload);
   }
 }

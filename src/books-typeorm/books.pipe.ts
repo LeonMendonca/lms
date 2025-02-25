@@ -5,19 +5,19 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { CreateBookDTO } from './zod-validation/createbooks-zod';
+import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
 export class booksValidationPipe
-  implements PipeTransform<unknown, CreateBookDTO | undefined>
+  implements PipeTransform<unknown, TCreateBookDTO | undefined>
 {
   constructor(private schema: ZodSchema) {}
   transform(value: unknown, metadata: ArgumentMetadata) {
     try {
       if (metadata.type === 'body') {
         //validation logic with zod
-        const parsedValue = this.schema.parse(value) as CreateBookDTO;
+        const parsedValue = this.schema.parse(value) as TCreateBookDTO;
         return parsedValue;
       }
     } catch (error) {

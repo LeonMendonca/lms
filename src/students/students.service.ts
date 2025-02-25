@@ -3,8 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Students } from './students.entity';
 import { StudentQueryValidator } from './student.query-validator';
-import { isUUID } from 'class-validator';
-import { UnionUser } from './student.pipe';
+import type { UnionUser } from './students.types';
 
 @Injectable()
 export class StudentsService {
