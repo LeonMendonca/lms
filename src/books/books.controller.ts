@@ -41,7 +41,13 @@ export class BooksController {
 
   @Post('create')
   @UsePipes(new booksValidationPipe(createBookSchema))
-  createBook(@Body() bookPayload: TCreateBookDTO) {
-    return this.bookService.createBook(bookPayload);
+  async createBook(@Body() bookPayload: TCreateBookDTO) {
+    try { 
+      return await this.bookService.createBook(bookPayload);
+    } catch (error) {
+      if(error instanceof Error) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+    } 
   }
 }

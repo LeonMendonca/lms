@@ -43,8 +43,14 @@ export class StudentsController {
 
   @Post('create')
   @UsePipes(new booksValidationPipe(createStudentSchema))
-  createStudent(@Body() studentPayload: TCreateStudentDTO) {
-    return this.studentsService.createStudent(studentPayload);
+  async createStudent(@Body() studentPayload: TCreateStudentDTO) {
+    try { 
+      return await this.studentsService.createStudent(studentPayload);
+    } catch (error) {
+      if(error instanceof Error) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+    }
   }
 
   @Patch('edit')

@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import { z, ZodSchema, ZodError, ZodType, ZodTypeAny } from 'zod';
 
-import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
-
 @Injectable()
 export class booksValidationPipe implements PipeTransform {
   constructor(private schema: ZodSchema) {}
