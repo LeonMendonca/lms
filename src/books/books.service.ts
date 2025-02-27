@@ -5,7 +5,7 @@ import { Books } from './books.entity';
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import type { UnionBook } from './book.types';
 import { BookQueryValidator } from './book.query-validator';
-import { customQueryHelper } from '../custom-query-helper';
+import { insertQueryHelper } from '../custom-query-helper';
 
 @Injectable()
 export class BooksService {
@@ -42,7 +42,7 @@ export class BooksService {
 
   async createBook(bookPayload: TCreateBookDTO) {
     try {
-      let queryData = customQueryHelper(bookPayload);
+      let queryData = insertQueryHelper(bookPayload);
       await this.booksRepository.query(
         `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
         queryData.values,

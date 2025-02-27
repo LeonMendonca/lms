@@ -9,12 +9,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from 'src/books/books.service';
-import { booksValidationPipe } from '../body-validation.pipe';
+import { bodyValidationPipe } from '../pipes/body-validation.pipe';
 import {
   TCreateBookDTO,
   createBookSchema,
 } from './zod-validation/createbooks-zod';
-import { QueryValidationPipe } from 'src/query-validation.pipe';
+import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
 import { BookQueryValidator } from 'src/books/book.query-validator';
 import { bookQuerySchema } from './zod-validation/bookquery-zod';
 import type { UnionBook } from './book.types';
@@ -40,7 +40,7 @@ export class BooksController {
   }
 
   @Post('create')
-  @UsePipes(new booksValidationPipe(createBookSchema))
+  @UsePipes(new bodyValidationPipe(createBookSchema))
   async createBook(@Body() bookPayload: TCreateBookDTO) {
     try {
       return await this.bookService.createBook(bookPayload);

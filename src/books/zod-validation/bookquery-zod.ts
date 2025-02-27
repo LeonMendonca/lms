@@ -9,7 +9,8 @@ export const bookQuerySchema = z.object({
     .min(1, { message: 'No bill no provided' })
     .refine((z) => !isNaN(Number(z)), {
       message: 'Not a valid Bill number',
-    }).optional(),
+    })
+    .optional(),
 });
 
 export type TbookQueryValidator = z.infer<typeof bookQuerySchema>;
