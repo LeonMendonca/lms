@@ -7,6 +7,9 @@ import {
   UsePipes,
   HttpException,
   HttpStatus,
+  Put,
+  Param,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { BooksService } from 'src/books/books.service';
 import { bodyValidationPipe } from '../pipes/body-validation.pipe';
@@ -18,7 +21,13 @@ import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
 import { BookQueryValidator } from 'src/books/book.query-validator';
 import { bookQuerySchema } from './zod-validation/bookquery-zod';
 import type { UnionBook } from './book.types';
-
+import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
+import {
+  editStudentSchema,
+  TEditStudentDTO,
+} from 'src/students/zod-validation/putstudent-zod';
+import { string } from 'zod';
+import { editBookSchema, TEditBookDTO } from './zod-validation/putbook-zod';
 @Controller('book')
 export class BooksController {
   constructor(private bookService: BooksService) {}
@@ -48,6 +57,31 @@ export class BooksController {
       if (error instanceof Error) {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
+    }
+  }
+
+  @Put('edit/:book_id')
+  @UsePipes(new putBodyValidationPipe(editBookSchema))
+  async updateBook(
+    @Param(
+      'book_id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
+    )
+    bookId: string,
+    @Body() bookPayload: TEditBookDTO,
+  ) {
+    try {
+      const result = await this.bookService.updateBook(bookId, bookPayload);
+      if (result[1]) {
+        return {
+          statusCode: HttpStatus.OK,
+          message: `Book id ${bookId} updated successfully!`,
+        };
+      } else {
+        throw new Error(`Book with id ${bookId} not found`);
+      }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
     }
   }
 }

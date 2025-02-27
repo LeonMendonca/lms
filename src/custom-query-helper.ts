@@ -19,7 +19,7 @@ export function updateQueryHelper(payloadObject: object) {
   let queryCol = '';
   let queryParamNum = 0;
   const values: string[] = [];
-  for(let key in payloadObject) {
+  for (let key in payloadObject) {
     queryParamNum++;
     queryCol = queryCol.concat(`${key} = $${queryParamNum},`);
     values.push(payloadObject[key]);
