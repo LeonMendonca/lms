@@ -21,7 +21,7 @@ export const createStudentSchema = z.object({
       message: 'Not a valid Phone number number',
     },
   ),
-  department: z.enum(['it', 'electrical'], {message:"Department requires it or electrical"}),
+  department: z.string({ message: 'Department requires it or electrical' }),
 
   institute_id: z.string().uuid(),
 });

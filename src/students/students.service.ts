@@ -39,9 +39,12 @@ export class StudentsService {
   }
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      let queryData = customQueryHelper(studentPayload)
-      await this.studentsRepository.query(`INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values)
-      return "Inserted!!";
+      let queryData = customQueryHelper(studentPayload);
+      await this.studentsRepository.query(
+        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+        queryData.values,
+      );
+      return 'Inserted!!';
     } catch (error) {
       throw error;
     }

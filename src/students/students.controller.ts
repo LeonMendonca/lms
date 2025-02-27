@@ -16,7 +16,7 @@ import { QueryValidationPipe } from '../query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
 import { StudentQueryValidator } from './student.query-validator';
 import type { UnionUser } from './students.types';
-import { booksValidationPipe } from 'src/books/books.pipe';
+import { booksValidationPipe } from 'src/body-validation.pipe';
 import {
   createStudentSchema,
   TCreateStudentDTO,
@@ -44,10 +44,10 @@ export class StudentsController {
   @Post('create')
   @UsePipes(new booksValidationPipe(createStudentSchema))
   async createStudent(@Body() studentPayload: TCreateStudentDTO) {
-    try { 
+    try {
       return await this.studentsService.createStudent(studentPayload);
     } catch (error) {
-      if(error instanceof Error) {
+      if (error instanceof Error) {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
     }

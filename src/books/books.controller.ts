@@ -9,7 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from 'src/books/books.service';
-import { booksValidationPipe } from './books.pipe';
+import { booksValidationPipe } from '../body-validation.pipe';
 import {
   TCreateBookDTO,
   createBookSchema,
@@ -42,12 +42,12 @@ export class BooksController {
   @Post('create')
   @UsePipes(new booksValidationPipe(createBookSchema))
   async createBook(@Body() bookPayload: TCreateBookDTO) {
-    try { 
+    try {
       return await this.bookService.createBook(bookPayload);
     } catch (error) {
-      if(error instanceof Error) {
+      if (error instanceof Error) {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
-    } 
+    }
   }
 }
