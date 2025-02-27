@@ -70,11 +70,17 @@ export class StudentsController {
     @Body() studentPayload: TEditStudentDTO,
   ) {
     try {
-      const result = await this.studentsService.editStudent(studentId, studentPayload)
-      if(result[1]) {
-        return { statusCode: HttpStatus.OK, message: `User id ${studentId} updated successfully!`}
+      const result = await this.studentsService.editStudent(
+        studentId,
+        studentPayload,
+      );
+      if (result[1]) {
+        return {
+          statusCode: HttpStatus.OK,
+          message: `User id ${studentId} updated successfully!`,
+        };
       } else {
-        throw new Error(`User with id ${studentId} not found`)
+        throw new Error(`User with id ${studentId} not found`);
       }
     } catch (error) {
       if (error instanceof Error) {

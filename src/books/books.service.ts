@@ -5,7 +5,9 @@ import { Books } from './books.entity';
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import type { UnionBook } from './book.types';
 import { BookQueryValidator } from './book.query-validator';
-import { insertQueryHelper } from '../custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
+import { TEditStudentDTO } from 'src/students/zod-validation/putstudent-zod';
+import { TEditBookDTO } from './zod-validation/putbook-zod';
 
 @Injectable()
 export class BooksService {
@@ -48,6 +50,22 @@ export class BooksService {
         queryData.values,
       );
       return 'Inserted!!';
+    } catch (error) {
+      throw error;
+    }
+  }
+  async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
+    try {
+      console.log(editBookPayload)
+      let queryData = updateQueryHelper(editBookPayload);
+      console.log(queryData);
+      const result = await this.booksRepository.query(
+        `
+      UPDATE books_table SET ${queryData.queryCol} WHERE book_id = '${bookId}'
+    `,
+        queryData.values,
+      );
+      return result as [[], number];
     } catch (error) {
       throw error;
     }
