@@ -4,21 +4,22 @@ import {
   ArgumentMetadata,
   HttpException,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { z, ZodSchema, ZodError, ZodType, ZodTypeAny } from 'zod';
+import { TEditStudentDTO } from 'src/students/zod-validation/putstudent-zod';
+import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
-export class booksValidationPipe implements PipeTransform {
-  constructor(private schema: ZodSchema) {}
-
+export class putBodyValidationPipe implements PipeTransform {
+  constructor(private zschema: ZodSchema) {}
   transform(value: unknown, metadata: ArgumentMetadata) {
     try {
       if (metadata.type === 'body') {
-        //validation logic with zod
-        const parsedValue = this.schema.parse(value);
-        return parsedValue;
+        return this.zschema.parse(value) as TEditStudentDTO;
+      } else if (metadata.type === 'param') {
+        return value;
       } else {
-        throw new Error('Body required');
+        throw new Error('Body & Param required');
       }
     } catch (error) {
       if (error instanceof ZodError) {
@@ -28,7 +29,7 @@ export class booksValidationPipe implements PipeTransform {
         throw new HttpException(modifiedZodError, HttpStatus.NOT_ACCEPTABLE);
       } else {
         throw new HttpException(
-          'Undefined Error',
+          error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }

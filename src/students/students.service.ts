@@ -5,7 +5,8 @@ import { Students } from './students.entity';
 import { StudentQueryValidator } from './student.query-validator';
 import type { UnionUser } from './students.types';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
-import { customQueryHelper } from '../custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
+import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 
 @Injectable()
 export class StudentsService {
@@ -39,13 +40,30 @@ export class StudentsService {
   }
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      let queryData = customQueryHelper(studentPayload);
+      let queryData = insertQueryHelper(studentPayload);
       await this.studentsRepository.query(
         `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
         queryData.values,
       );
       return 'Inserted!!';
     } catch (error) {
+      throw error;
+    }
+  }
+
+  async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
+    try {
+      let queryData = updateQueryHelper(editStudentPayload);
+      const result = await this.studentsRepository.query(
+        `
+        UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}'
+      `,
+        queryData.values,
+      );
+      //Asserted a type as UPDATE returns it
+      return result as [[], number];
+    } catch (error) {
+      console.error(error.message);
       throw error;
     }
   }
