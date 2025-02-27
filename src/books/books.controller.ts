@@ -35,7 +35,7 @@ export class BooksController {
     if (result.length != 0) {
       return result[0];
     } else {
-      throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+      throw new HttpException('No book found', HttpStatus.NOT_FOUND);
     }
   }
 
