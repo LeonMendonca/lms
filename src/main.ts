@@ -9,7 +9,7 @@ async function bootstrap() {
     origin: '*',
     methods: 'GET,PUT,PATCH,POST,DELETE',
   });
-  await app.listen(PORT, () => {
+  await app.listen(PORT, '0.0.0.0', () => {
     console.log(`Listening on port ${PORT}`);
   });
 }
