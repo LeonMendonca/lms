@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UsePipes,
   Put,
+  Delete,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { StudentsService } from './students.service';
@@ -86,6 +87,24 @@ export class StudentsController {
       if (error instanceof Error) {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
+    }
+  }
+  @Delete('delete/:student_id')
+  async deleteStudent(
+    @Param('student_id', new ParseUUIDPipe()) studentId: string,
+  ) {
+    try {
+      const result = await this.studentsService.deleteStudent(studentId);
+      if (result[1]) {
+        return {
+          statusCode: HttpStatus.OK,
+          message: `User id ${studentId} deleted successfully!`,
+        };
+      } else {
+        throw new Error(`User with id ${studentId} not found`);
+      }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 }

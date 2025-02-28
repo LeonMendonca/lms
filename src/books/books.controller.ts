@@ -86,7 +86,7 @@ export class BooksController {
     }
   }
   @Delete('delete/:book_id')
-  async deletebook(
+  async deleteBook(
     @Param(
       'book_id',
       new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),

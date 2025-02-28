@@ -37,12 +37,22 @@ export class Students {
 
   @Column({
     name: 'department',
-    type: 'enum',
-    enum: Department,
+    //type: 'enum'
+    //enum: Department,
+    type: 'varchar',
+    length: 255,
     nullable: true,
   })
   department: string;
 
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
   instituteId: string;
+
+  @Column({
+    name: 'is_archived',
+    type: 'boolean',
+    nullable: true,
+    default: false,
+  })
+  isArchived: boolean;
 }

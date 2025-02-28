@@ -17,9 +17,10 @@ export class StudentsService {
 
   async findAllStudents() {
     return (await this.studentsRepository.query(
-      'SELECT * from students_table',
+      'SELECT * from students_table WHERE is_archived = false',
     )) as Students[];
   }
+
   async findStudentBy(query: UnionUser) {
     let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
     let value: string | undefined = undefined;
@@ -34,10 +35,11 @@ export class StudentsService {
       value = query.phone_no;
     }
     return (await this.studentsRepository.query(
-      `SELECT * FROM students_table WHERE ${requiredKey} = $1`,
+      `SELECT * FROM students_table WHERE ${requiredKey} = $1 AND is_archived = false`,
       [value],
     )) as Students[];
   }
+
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
       let queryData = insertQueryHelper(studentPayload);
@@ -64,6 +66,18 @@ export class StudentsService {
       return result as [[], number];
     } catch (error) {
       console.error(error.message);
+      throw error;
+    }
+  }
+
+  async deleteStudent(studentId: string) {
+    try {
+      const result = await this.studentsRepository.query(
+        `UPDATE students_table SET is_archived = true WHERE student_id = '${studentId}' AND is_archived = false`,
+      );
+      //Asserted a type as UPDATE returns it
+      return result as [[], number];
+    } catch (error) {
       throw error;
     }
   }
