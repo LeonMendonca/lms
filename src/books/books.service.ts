@@ -16,7 +16,9 @@ export class BooksService {
     private booksRepository: Repository<Books>,
   ) {}
   async getBooks() {
-    return await this.booksRepository.query('SELECT * from books_table WHERE is_archived = false');
+    return await this.booksRepository.query(
+      'SELECT * from books_table WHERE is_archived = false',
+    );
   }
 
   async findBookBy(query: UnionBook) {
@@ -44,11 +46,16 @@ export class BooksService {
 
   async createBook(bookPayload: TCreateBookDTO) {
     try {
-      let queryData = insertQueryHelper(bookPayload);
-      await this.booksRepository.query(
-        `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-        queryData.values,
+      const result: [[], number] = await this.booksRepository.query(
+        `UPDATE books_table SET book_count = book_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}'`,
       );
+      if (!result[1]) {
+        let queryData = insertQueryHelper(bookPayload);
+        await this.booksRepository.query(
+          `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+          queryData.values,
+        );
+      }
       return 'Inserted!!';
     } catch (error) {
       throw error;
