@@ -97,6 +97,7 @@ export class Books {
     nullable: true,
   })
   isArchived: boolean;
+
   @Column({ name: 'book_count', type: 'int', nullable: true })
   book_count: number;
 }
