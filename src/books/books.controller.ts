@@ -81,7 +81,7 @@ export class BooksController {
         throw new Error(`Book with id ${bookId} not found`);
       }
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 }

@@ -56,7 +56,7 @@ export class BooksService {
   }
   async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
     try {
-      console.log(editBookPayload)
+      console.log(editBookPayload);
       let queryData = updateQueryHelper(editBookPayload);
       console.log(queryData);
       const result = await this.booksRepository.query(
