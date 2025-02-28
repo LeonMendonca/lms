@@ -75,7 +75,7 @@ export class BooksService {
     try {
       const result = await this.booksRepository.query(
         `
-      UPDATE books_table SET is_archived = true WHERE book_id = '${bookId}'
+      UPDATE books_table SET is_archived = true WHERE book_id = '${bookId}' AND is_archived = false
     `,
       );
       return result as [[], number];
