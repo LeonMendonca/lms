@@ -1,5 +1,4 @@
 import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
-import { number } from 'zod';
 
 @Entity('books_table')
 export class Books {
