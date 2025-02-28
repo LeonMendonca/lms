@@ -16,7 +16,7 @@ export class BooksService {
     private booksRepository: Repository<Books>,
   ) {}
   async getBooks() {
-    return await this.booksRepository.query('SELECT * from books_table');
+    return await this.booksRepository.query('SELECT * from books_table WHERE is_archived = false');
   }
 
   async findBookBy(query: UnionBook) {
@@ -37,7 +37,7 @@ export class BooksService {
       value = query.bill_no;
     }
     return (await this.booksRepository.query(
-      `SELECT * FROM books_table WHERE ${requiredKey} = $1`,
+      `SELECT * FROM books_table WHERE ${requiredKey} = $1 AND is_archived = false`,
       [value],
     )) as Books[];
   }
@@ -56,7 +56,7 @@ export class BooksService {
   }
   async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
     try {
-      console.log(editBookPayload)
+      console.log(editBookPayload);
       let queryData = updateQueryHelper(editBookPayload);
       console.log(queryData);
       const result = await this.booksRepository.query(
@@ -70,8 +70,20 @@ export class BooksService {
       throw error;
     }
   }
-}
 
+  async deleteBook(bookId: string) {
+    try {
+      const result = await this.booksRepository.query(
+        `
+      UPDATE books_table SET is_archived = true WHERE book_id = '${bookId}'
+    `,
+      );
+      return result as [[], number];
+    } catch (error) {
+      throw error;
+    }
+  }
+}
 //INSERT TRIAL DATA
 // {
 //   "book_title": "Introduction to Machine Learning",

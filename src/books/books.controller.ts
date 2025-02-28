@@ -10,6 +10,7 @@ import {
   Put,
   Param,
   ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 import { BooksService } from 'src/books/books.service';
 import { bodyValidationPipe } from '../pipes/body-validation.pipe';
@@ -81,7 +82,29 @@ export class BooksController {
         throw new Error(`Book with id ${bookId} not found`);
       }
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+  @Delete('delete/:book_id')
+  async deletebook(
+    @Param(
+      'book_id',
+      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
+    )
+    bookId: string,
+  ) {
+    try {
+      const result = await this.bookService.deleteBook(bookId);
+      if (result[1]) {
+        return {
+          statusCode: HttpStatus.OK,
+          message: `Book id ${bookId} deleted successfully!`,
+        };
+      } else {
+        throw new Error(`Book with id ${bookId} not found`);
+      }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 }

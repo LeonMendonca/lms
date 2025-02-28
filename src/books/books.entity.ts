@@ -1,4 +1,5 @@
 import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
+import { number } from 'zod';
 
 @Entity('books_table')
 export class Books {
@@ -88,4 +89,14 @@ export class Books {
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
   instituteId: string;
   // ----- //
+
+  @Column({
+    name: 'is_archived',
+    default: false,
+    type: 'boolean',
+    nullable: true,
+  })
+  isArchived: boolean;
+  @Column({ name: 'book_count', type: 'int', nullable: true })
+  book_count: number;
 }
