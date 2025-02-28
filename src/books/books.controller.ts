@@ -23,11 +23,6 @@ import { BookQueryValidator } from 'src/books/book.query-validator';
 import { bookQuerySchema } from './zod-validation/bookquery-zod';
 import type { UnionBook } from './book.types';
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
-import {
-  editStudentSchema,
-  TEditStudentDTO,
-} from 'src/students/zod-validation/putstudent-zod';
-import { string } from 'zod';
 import { editBookSchema, TEditBookDTO } from './zod-validation/putbook-zod';
 @Controller('book')
 export class BooksController {
