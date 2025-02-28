@@ -97,6 +97,8 @@ export class Books {
   })
   isArchived: boolean;
 
-  @Column({ name: 'book_count', type: 'int', nullable: true, default: 1 })
-  book_count: number;
+  @Column({ name: 'available_books', type: 'int', nullable: true, default: 1 })
+  availableBooks: number;
+  @Column({ name: 'total_books', type: 'int', nullable: true, default: 1 })
+  totalBooks: number;
 }

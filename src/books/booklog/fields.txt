@@ -1,0 +1,10 @@
+
+
+books log 
+books uuid 
+Book Title	
+student uuid 
+Issue Date
+Due Date
+Return Date
+department

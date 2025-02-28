@@ -15,7 +15,7 @@ export function insertQueryHelper(payloadObject: object) {
   return { queryArg, queryCol, values };
 }
 
-//creates Columns with Query Arguement (col1 = $1, col2 = $2, ....) and Array of values [val1, val2, ....] 
+//creates Columns with Query Arguement (col1 = $1, col2 = $2, ....) and Array of values [val1, val2, ....]
 export function updateQueryHelper(payloadObject: object) {
   let queryCol = '';
   let queryParamNum = 0;
