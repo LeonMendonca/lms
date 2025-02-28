@@ -6,7 +6,6 @@ import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import type { UnionBook } from './book.types';
 import { BookQueryValidator } from './book.query-validator';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
-import { TEditStudentDTO } from 'src/students/zod-validation/putstudent-zod';
 import { TEditBookDTO } from './zod-validation/putbook-zod';
 
 @Injectable()

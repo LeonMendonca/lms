@@ -12,7 +12,6 @@ import {
   Put,
   Delete,
 } from '@nestjs/common';
-import type { Request } from 'express';
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
