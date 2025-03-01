@@ -7,7 +7,7 @@ import type { UnionUser } from './students.types';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
-import { createStudentId } from "./create-student-id";
+import { createStudentId } from './create-student-id';
 import { max } from 'class-validator';
 
 @Injectable()
@@ -44,25 +44,35 @@ export class StudentsService {
 
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      type TCreateStudentDTOWithID = TCreateStudentDTO & { student_id: string; count: number };
+      type TCreateStudentDTOWithID = TCreateStudentDTO & {
+        student_id: string;
+        count: number;
+      };
       //Get Maximum Student Count
-      const maxCountColumn: [{ max: null | number}] = await this.studentsRepository.query(`SELECT MAX(count) from students_table`);
+      const maxCountColumn: [{ max: null | number }] =
+        await this.studentsRepository.query(
+          `SELECT MAX(count) from students_table`,
+        );
       let studentId: string = '';
-      let queryResult: { student_id: string, count: number }[] = [];
+      let queryResult: { student_id: string; count: number }[] = [];
       let count: number = 0;
-      console.log("max column is", maxCountColumn);
-      if(maxCountColumn[0].max) {
-        studentId = createStudentId(maxCountColumn[0].max, studentPayload.institute_name);
+      console.log('max column is', maxCountColumn);
+      if (maxCountColumn[0].max) {
+        studentId = createStudentId(
+          maxCountColumn[0].max,
+          studentPayload.institute_name,
+        );
         queryResult = await this.studentsRepository.query(
-          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`
+          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
         );
         count = queryResult[0].count;
       } else {
         studentId = createStudentId(null, studentPayload.institute_name);
       }
-      let queryData = insertQueryHelper<TCreateStudentDTOWithID>({ ...studentPayload, student_id: studentId, count: ++count }, [
-        'confirm_password',
-      ]);
+      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+        { ...studentPayload, student_id: studentId, count: ++count },
+        ['confirm_password'],
+      );
       await this.studentsRepository.query(
         `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
         queryData.values,
@@ -78,7 +88,18 @@ export class StudentsService {
 
   async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
-      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, ['confirm_password', 'current_password']);
+      if (editStudentPayload.current_password) {
+        const result: [{ password: string }] = await this.studentsRepository.query(
+          `SELECT password from students_table WHERE password = $1 AND is_archived = false`, [editStudentPayload.current_password],
+        );
+        if(!result.length) {
+          throw new Error('Invalid Password');
+        }
+      }
+      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, [
+        'confirm_password',
+        'current_password',
+      ]);
       const result = await this.studentsRepository.query(
         `
         UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentId}'
@@ -88,7 +109,6 @@ export class StudentsService {
       //Asserted a type as UPDATE returns it
       return result as [[], number];
     } catch (error) {
-      console.error(error.message);
       throw error;
     }
   }

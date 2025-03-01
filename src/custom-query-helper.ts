@@ -22,12 +22,15 @@ export function insertQueryHelper<T extends object>(
 }
 
 //creates Columns with Query Arguement (col1 = $1, col2 = $2, ....) and Array of values [val1, val2, ....]
-export function updateQueryHelper<T extends object>(payloadObject: T, ignoreField: (keyof T)[]) {
+export function updateQueryHelper<T extends object>(
+  payloadObject: T,
+  ignoreField: (keyof T)[],
+) {
   let queryCol = '';
   let queryParamNum = 0;
   const values: string[] = [];
   for (let key in payloadObject) {
-    if(ignoreField.includes(key)) {
+    if (ignoreField.includes(key)) {
       continue;
     }
     queryParamNum++;

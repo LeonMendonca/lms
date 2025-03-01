@@ -54,7 +54,10 @@ export class StudentsController {
       return await this.studentsService.createStudent(studentPayload);
     } catch (error) {
       if (error instanceof Error) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }
@@ -84,7 +87,10 @@ export class StudentsController {
       }
     } catch (error) {
       if (error instanceof Error) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }
