@@ -49,7 +49,7 @@ export class BooksService {
         `UPDATE books_table SET book_count = book_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}'`,
       );
       if (!result[1]) {
-        let queryData = insertQueryHelper(bookPayload);
+        let queryData = insertQueryHelper(bookPayload, []);
         await this.booksRepository.query(
           `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
           queryData.values,
@@ -63,7 +63,7 @@ export class BooksService {
   async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
     try {
       console.log(editBookPayload);
-      let queryData = updateQueryHelper(editBookPayload);
+      let queryData = updateQueryHelper<TEditBookDTO>(editBookPayload, []);
       console.log(queryData);
       const result = await this.booksRepository.query(
         `

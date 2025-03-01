@@ -9,7 +9,7 @@ export const editStudentSchema = z.object({
     .max(200, 'Address must be less than 200 characters')
     .optional(),
 
-  full_name: z
+  student_name: z
     .string()
     .min(1)
     .trim()
@@ -31,6 +31,37 @@ export const editStudentSchema = z.object({
     .string({ message: 'Department requires it or electrical' })
     .min(1)
     .optional(),
+
+  current_password: z.string().optional(),
+
+  //new password
+  password: z.string().optional(),
+
+  //confirm new password
+  confirm_password: z.string().optional(),
+
+  roll_no: z.number().refine(
+      (r_num) => {
+        return r_num > 0 && r_num <= 10000;
+      },
+      {
+        message: 'Not a valid RollNo',
+      },
+    ),
+
+  date_of_birth: z.string().date(),
+
+  gender: z.enum(['male', 'female']),
+
+  year_of_admission: z.coerce
+    .number()
+    .min(1999)
+    .max(new Date().getFullYear()),
+
+}).refine((zod) => {
+  return zod.password === zod.confirm_password;
+}, {
+  message: "Password doesn't match"
 });
 
 export type TEditStudentDTO = z.infer<typeof editStudentSchema>;
