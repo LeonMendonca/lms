@@ -22,7 +22,6 @@ export class QueryValidationPipe implements PipeTransform {
         for (let key in this.validatorObject) {
           requiredKeyText = requiredKeyText.concat(`${key} or `);
           if (key in value) {
-            console.log(requiredKeyText);
             notExist = false;
             break;
           }

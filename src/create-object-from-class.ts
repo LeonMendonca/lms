@@ -1,5 +1,5 @@
 //I didn't use any AI, believe me!
-export function createObject<T extends object, E extends (keyof T)[]>(
+export function createObjectOmitProperties<T extends object, E extends (keyof T)[]>(
   classObject: T,
   ignoreFields: E,
 ) {
@@ -7,5 +7,16 @@ export function createObject<T extends object, E extends (keyof T)[]>(
   ignoreFields.map((key) => {
     delete classObject[key];
   });
+  return classObject as NewType;
+}
+
+export function createObjectIncludeProperties<T extends object, E extends (keyof T)[]>(classObject: T, requiredFields: E) {
+  type NewType = Pick<T, typeof requiredFields[number]>
+  for(let key in classObject) {
+      if(requiredFields.includes(key)) {
+          continue
+      }
+      delete classObject[key]
+  }
   return classObject as NewType;
 }

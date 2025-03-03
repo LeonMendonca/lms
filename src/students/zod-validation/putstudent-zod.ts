@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { createObject } from '../../create-object-from-class';
+import { createObjectOmitProperties } from '../../create-object-from-class';
 import { Students } from '../students.entity';
 
-let studentUpdateObject = createObject(new Students(), [
+let studentUpdateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
   'count',
