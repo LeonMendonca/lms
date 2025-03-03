@@ -75,7 +75,11 @@ export const editStudentSchema = z
   })
   .refine(
     (zod) => {
-      return zod.password === zod.confirm_password;
+      if(zod.current_password && zod.password) {
+        return zod.password === zod.confirm_password;
+      } else {
+        throw new Error("current_password and password fields required!")
+      }
     },
     {
       message: "Password doesn't match",
