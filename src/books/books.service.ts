@@ -46,7 +46,7 @@ export class BooksService {
   async createBook(bookPayload: TCreateBookDTO) {
     try {
       const result: [[], number] = await this.booksRepository.query(
-        `UPDATE books_table SET total_count = total_count + 1, available_count = available_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}' && is_archived = false`,
+        `UPDATE books_table SET total_count = total_count + 1, available_count = available_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}' AND is_archived = false`,
       );
       if (!result[1]) {
         let queryData = insertQueryHelper(bookPayload, []);
