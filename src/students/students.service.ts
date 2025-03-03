@@ -99,6 +99,7 @@ export class StudentsService {
       }
       let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, [
         'confirm_password',
+        'password',
         'current_password',
       ]);
       const result = await this.studentsRepository.query(
