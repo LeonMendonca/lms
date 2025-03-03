@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Books } from './books.entity';
@@ -16,7 +16,7 @@ export class BooksService {
   ) {}
   async getBooks() {
     return await this.booksRepository.query(
-      'SELECT * from books_table WHERE is_archived = false',
+      'SELECT * from books_table WHERE is_archived = false AND available_count > 0',
     );
   }
 
@@ -33,12 +33,11 @@ export class BooksService {
       requiredKey = 'book_author';
       value = query.book_author;
     } else {
-      //error if NaN
-      requiredKey = 'bill_no';
-      value = query.bill_no;
+      requiredKey = 'isbn';
+      value = query.isbn;
     }
     return (await this.booksRepository.query(
-      `SELECT * FROM books_table WHERE ${requiredKey} = $1 AND is_archived = false`,
+      `SELECT * FROM books_table WHERE ${requiredKey} = $1 AND is_archived = false AND available_count > 0`,
       [value],
     )) as Books[];
   }
@@ -55,7 +54,11 @@ export class BooksService {
           queryData.values,
         );
       }
-      return 'Inserted!!';
+      return {
+        statusCode: HttpStatus.CREATED,
+        isbn: bookPayload.isbn,
+        title: bookPayload.book_title
+      };
     } catch (error) {
       throw error;
     }
@@ -65,7 +68,7 @@ export class BooksService {
       let queryData = updateQueryHelper<TEditBookDTO>(editBookPayload, []);
       const result = await this.booksRepository.query(
         `
-      UPDATE books_table SET ${queryData.queryCol} WHERE book_id = '${bookId}' AND is_archived = false
+      UPDATE books_table SET ${queryData.queryCol} WHERE book_id = '${bookId}' AND is_archived = false AND available_count > 0
     `,
         queryData.values,
       );

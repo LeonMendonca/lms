@@ -2,7 +2,7 @@ import { createObjectIncludeProperties } from 'src/create-object-from-class';
 import { z } from 'zod';
 import { Students } from '../students.entity';
 
-const createStudentQuery = createObjectIncludeProperties(new Students(), ['studentId', 'email', 'phoneNo'])
+export const createStudentQuery = createObjectIncludeProperties(new Students(), ['studentId', 'email', 'phoneNo'])
 
 export const studentQuerySchema = z.object({
   [createStudentQuery.studentId]: z.string().optional(),

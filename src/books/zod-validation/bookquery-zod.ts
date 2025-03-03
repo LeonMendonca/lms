@@ -1,15 +1,20 @@
+import { createObjectIncludeProperties } from 'src/create-object-from-class';
 import { z } from 'zod';
+import { Books } from '../books.entity';
+
+export const createBookQuery = createObjectIncludeProperties(new Books(), ['bookUUID', 'bookTitle', 'bookAuthor', 'isbn'])
 
 export const bookQuerySchema = z.object({
-  book_id: z.string().uuid().optional(),
-  book_title: z.string().min(1, { message: 'No title provided' }).optional(),
-  book_author: z.string().min(1, { message: 'No author provided' }).optional(),
-  bill_no: z
+  [createBookQuery.bookUUID]: z.string().uuid().optional(),
+  [createBookQuery.bookTitle]: z.string().min(1, { message: 'No title provided' }).optional(),
+  [createBookQuery.bookAuthor]: z.string().min(1, { message: 'No author provided' }).optional(),
+  [createBookQuery.isbn]: z
     .string()
-    .min(1, { message: 'No bill no provided' })
-    .refine((z) => !isNaN(Number(z)), {
-      message: 'Not a valid Bill number',
-    })
+    .min(1, { message: 'No ISBN provided' })
+    //ISBN format not known
+    //.refine((z) => !isNaN(Number(z)), {
+    //  message: 'Not a valid Bill number',
+    //})
     .optional(),
 });
 

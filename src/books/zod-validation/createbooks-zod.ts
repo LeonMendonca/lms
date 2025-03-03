@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { createObject } from '../../create-object-from-class';
+import { createObjectOmitProperties } from '../../create-object-from-class';
 import { Books } from '../books.entity';
 
-const createBookObject = createObject(new Books(), ['bookUUID']);
+const createBookObject = createObjectOmitProperties(new Books(), ['bookUUID']);
 
 export const createBookSchema = z.object({
   [createBookObject.bookTitle]: z.string(),

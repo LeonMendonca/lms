@@ -2,91 +2,91 @@ import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 
 @Entity('books_table')
 export class Books {
-  @PrimaryGeneratedColumn('uuid', { name: 'book_id' })
-  bookUUID: 'book_uuid' = 'book_uuid';
+  @PrimaryGeneratedColumn('uuid', { name: 'book_uuid' })
+  bookUUID: "book_uuid" = "book_uuid";
 
   // Bibliographic information
 
   @Column({ name: 'book_title', type: 'varchar', length: 255 })
-  bookTitle: 'book_title' = 'book_title';
+  bookTitle: "book_title" = "book_title";
 
   @Column({ name: 'book_author', type: 'varchar', length: 255 })
-  bookAuthor: 'book_author' = 'book_author';
+  bookAuthor: "book_author" = "book_author";
 
   @Column({ name: 'name_of_publisher', type: 'varchar', length: 255 })
-  nameOfPublisher: 'name_of_publisher' = 'name_of_publisher';
+  nameOfPublisher: "name_of_publisher" = "name_of_publisher";
 
   @Column({ name: 'place_of_publication', type: 'varchar', length: 255 })
-  placeOfPublication: 'place_of_publication' = 'place_of_publication';
+  placeOfPublication: "place_of_publication" = "place_of_publication";
 
   @Column({ name: 'year_of_publication', type: 'date' })
-  yearOfPublication: 'year_of_publication' = 'year_of_publication';
+  yearOfPublication: "year_of_publication" = "year_of_publication";
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
-  language: 'language' = 'language';
+  language: "language" = "language";
 
   @Column({ name: 'edition', type: 'varchar', length: 255 })
-  edition: 'edition' = 'edition';
+  edition: "edition" = "edition";
 
   @Column({ name: 'isbn', type: 'varchar', length: 255 })
-  isbn: 'isbn' = 'isbn';
+  isbn: "isbn" = "isbn";
 
   @Column({ name: 'no_of_pages', type: 'int' })
-  noOfPages: 'no_of_pages' = 'no_of_pages';
+  noOfPages: "no_of_pages" = "no_of_pages";
 
   @Column({ name: 'no_of_preliminary_pages', type: 'int' })
-  noOfPreliminaryPages: 'no_of_preliminary_pages' = 'no_of_preliminary_pages';
+  noOfPreliminaryPages: "no_of_preliminary_pages" = "no_of_preliminary_pages";
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
-  subject: 'subject' = 'subject';
+  subject: "subject" = "subject";
 
   @Column({ name: 'department', type: 'varchar', length: 255 })
-  department: 'department' = 'department';
+  department: "department" = "department";
 
   // ----- //
 
   // Cataloging and Classification
 
   @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
-  callNumber: 'call_number' = 'call_number';
+  callNumber: "call_number" = "call_number";
 
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  authorMark: 'author_mark' = 'author_mark';
+  authorMark: "author_mark" = "author_mark";
 
   // ----- //
 
   // Acquisition Details
 
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
-  sourceOfAcquisition: 'source_of_acquisition' = 'source_of_acquisition';
+  sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
 
   @Column({ name: 'date_of_acquisition', type: 'date' })
-  dateOfAcquisition: 'date_of_acquisition' = 'date_of_acquisition';
+  dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
   @Column({ name: 'bill_no', type: 'int' })
-  billNo: 'bill_no' = 'bill_no';
+  billNo: "bill_no" = "bill_no";
 
   // ----- //
 
   // Inventory and Identification
 
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
-  inventoryNumber: 'inventory_number' = 'inventory_number';
+  inventoryNumber: "inventory_number" = "inventory_number";
 
   @Column({ name: 'accession_number', type: 'int' })
-  accessionNumber: 'accession_number' = 'accession_number';
+  accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
-  barcode: 'barcode' = 'barcode';
+  barcode: "barcode" = "barcode";
 
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
-  itemType: 'item_type' = 'item_type';
+  itemType: "item_type" = "item_type";
 
   // ----- //
 
   // Institute
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: 'institute_id' = 'institute_id';
+  instituteId: "institute_id" = "institute_id";
 
   // ----- //
 
@@ -96,11 +96,11 @@ export class Books {
     type: 'boolean',
     nullable: true,
   })
-  isArchived: 'is_archived' = 'is_archived';
+  isArchived: "is_archived" = "is_archived";
 
   @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
-  totalCount: 'total_count' = 'total_count';
+  totalCount: "total_count" = "total_count";
 
   @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
-  availableCount: 'available_count' = 'available_count';
+  availableCount: "available_count" = "available_count";
 }

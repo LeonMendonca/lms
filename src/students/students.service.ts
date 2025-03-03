@@ -101,6 +101,7 @@ export class StudentsService {
         'confirm_password',
         'current_password',
       ]);
+      console.log("query data is", queryData);
       const result = await this.studentsRepository.query(
         `
         UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentId}'

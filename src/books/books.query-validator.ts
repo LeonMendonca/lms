@@ -1,8 +1,10 @@
+import { createBookQuery } from "./zod-validation/bookquery-zod";
+
 export const BookQueryValidator = {
-  book_uuid: '',
-  book_title: '',
-  book_author: '',
-  bill_no: 0,
+  [createBookQuery.bookUUID]: '',
+  [createBookQuery.bookTitle]: '',
+  [createBookQuery.bookAuthor]: '',
+  [createBookQuery.isbn]: 0,
 };
 
 export type UnionBook = {

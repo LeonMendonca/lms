@@ -1,7 +1,9 @@
+import { createStudentQuery } from "./zod-validation/studentquery-zod";
+
 export const StudentQueryValidator = {
-  student_id: '',
-  email: '',
-  phone_no: '',
+  [createStudentQuery.studentId]: '',
+  [createStudentQuery.email]: '',
+  [createStudentQuery.phoneNo]: '',
 };
 
 export type UnionUser = {
