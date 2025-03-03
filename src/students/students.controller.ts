@@ -15,8 +15,8 @@ import {
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
-import { StudentQueryValidator } from './student.query-validator';
-import type { UnionUser } from './students.types';
+import type { UnionUser } from './students.query-validator';
+import { StudentQueryValidator } from './students.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import {
   createStudentSchema,

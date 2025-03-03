@@ -8,7 +8,7 @@ let studentCreateObject = createObject(new Students(), [
   'count',
   'isArchived',
 ]);
-console.log(studentCreateObject);
+
 export const createStudentSchema = z
   .object({
     [studentCreateObject.email]: z.string().email(),

@@ -5,8 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { TEditStudentDTO } from 'src/students/zod-validation/putstudent-zod';
-import { z, ZodSchema, ZodError, ZodType, ZodTypeAny } from 'zod';
+import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
 export class bodyValidationPipe implements PipeTransform {

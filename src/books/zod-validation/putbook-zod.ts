@@ -1,19 +1,23 @@
 import { z } from 'zod';
+import { createObject } from 'src/create-object-from-class';
+import { Books } from '../books.entity';
+
+const updateBookObject = createObject(new Books(), ['bookUUID']);
 
 export const editBookSchema = z.object({
-  book_title: z.string().optional(),
-  book_author: z.string().optional(),
-  name_of_publisher: z.string().optional(),
-  place_of_publication: z.string().optional(),
-  year_of_publication: z.string().date().optional(),
-  language: z.string().optional(),
-  edition: z.string().optional(),
-  isbn: z.string().optional(),
-  no_of_pages: z.number().optional(),
-  no_of_preliminary_pages: z.number().optional(),
-  subject: z.string().optional(),
-  department: z.string().optional(),
-  call_number: z
+  [updateBookObject.bookTitle]: z.string().optional(),
+  [updateBookObject.bookAuthor]: z.string().optional(),
+  [updateBookObject.nameOfPublisher]: z.string().optional(),
+  [updateBookObject.placeOfPublication]: z.string().optional(),
+  [updateBookObject.yearOfPublication]: z.string().date().optional(),
+  [updateBookObject.language]: z.string().optional(),
+  [updateBookObject.edition]: z.string().optional(),
+  [updateBookObject.isbn]: z.string().optional(),
+  [updateBookObject.noOfPages]: z.number().optional(),
+  [updateBookObject.noOfPreliminaryPages]: z.number().optional(),
+  [updateBookObject.subject]: z.string().optional(),
+  [updateBookObject.department]: z.string().optional(),
+  [updateBookObject.callNumber]: z
     .string()
     .refine(
       (call_number) => {
@@ -22,15 +26,14 @@ export const editBookSchema = z.object({
       { message: 'Not a valid phone number' },
     )
     .optional(),
-  author_mark: z.string().optional(),
-  source_of_acquisition: z.string().optional(),
-  date_of_acquisition: z.string().date().optional(),
-  bill_no: z.number().optional(),
-  inventory_number: z.number().optional(),
-  accession_number: z.number().optional(),
-  barcode: z.string().optional(),
-  item_type: z.string().optional(),
-  //   institute_id: z.string().uuid(),
+  [updateBookObject.authorMark]: z.string().optional(),
+  [updateBookObject.sourceOfAcquisition]: z.string().optional(),
+  [updateBookObject.dateOfAcquisition]: z.string().date().optional(),
+  [updateBookObject.billNo]: z.number().optional(),
+  [updateBookObject.inventoryNumber]: z.number().optional(),
+  [updateBookObject.accessionNumber]: z.number().optional(),
+  [updateBookObject.barcode]: z.string().optional(),
+  [updateBookObject.itemType]: z.string().optional(),
 });
 
 export type TEditBookDTO = z.infer<typeof editBookSchema>;

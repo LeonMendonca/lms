@@ -3,90 +3,91 @@ import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 @Entity('books_table')
 export class Books {
   @PrimaryGeneratedColumn('uuid', { name: 'book_id' })
-  bookId: string;
+  bookUUID: 'book_uuid' = 'book_uuid';
 
-  //Bibliographic information
+  // Bibliographic information
 
   @Column({ name: 'book_title', type: 'varchar', length: 255 })
-  bookTitle: string;
+  bookTitle: 'book_title' = 'book_title';
 
   @Column({ name: 'book_author', type: 'varchar', length: 255 })
-  bookAuthor: string;
+  bookAuthor: 'book_author' = 'book_author';
 
   @Column({ name: 'name_of_publisher', type: 'varchar', length: 255 })
-  nameOfPublisher: string;
+  nameOfPublisher: 'name_of_publisher' = 'name_of_publisher';
 
   @Column({ name: 'place_of_publication', type: 'varchar', length: 255 })
-  placeOfPublication: string;
+  placeOfPublication: 'place_of_publication' = 'place_of_publication';
 
   @Column({ name: 'year_of_publication', type: 'date' })
-  yearOfPublication: Date;
+  yearOfPublication: 'year_of_publication' = 'year_of_publication';
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
-  language: string;
+  language: 'language' = 'language';
 
   @Column({ name: 'edition', type: 'varchar', length: 255 })
-  edition: string;
+  edition: 'edition' = 'edition';
 
   @Column({ name: 'isbn', type: 'varchar', length: 255 })
-  ISBN: string;
+  isbn: 'isbn' = 'isbn';
 
   @Column({ name: 'no_of_pages', type: 'int' })
-  noOfPages: number;
+  noOfPages: 'no_of_pages' = 'no_of_pages';
 
   @Column({ name: 'no_of_preliminary_pages', type: 'int' })
-  noOfPreliminaryPages: number;
+  noOfPreliminaryPages: 'no_of_preliminary_pages' = 'no_of_preliminary_pages';
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
-  subject: string;
+  subject: 'subject' = 'subject';
 
   @Column({ name: 'department', type: 'varchar', length: 255 })
-  department: string;
+  department: 'department' = 'department';
 
   // ----- //
 
-  //Catologing and Classification
+  // Cataloging and Classification
 
   @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
-  callNumber: number;
+  callNumber: 'call_number' = 'call_number';
 
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  authorMark: `#${string}`;
+  authorMark: 'author_mark' = 'author_mark';
 
   // ----- //
 
   // Acquisition Details
 
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
-  sourceOfAcquisition: string;
+  sourceOfAcquisition: 'source_of_acquisition' = 'source_of_acquisition';
 
   @Column({ name: 'date_of_acquisition', type: 'date' })
-  dateOfAcquisition: Date;
+  dateOfAcquisition: 'date_of_acquisition' = 'date_of_acquisition';
 
   @Column({ name: 'bill_no', type: 'int' })
-  billNo: number;
+  billNo: 'bill_no' = 'bill_no';
 
   // ----- //
 
-  //Inventory and Identification
+  // Inventory and Identification
 
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
-  inventoryNumber: number;
+  inventoryNumber: 'inventory_number' = 'inventory_number';
 
   @Column({ name: 'accession_number', type: 'int' })
-  accessionNumber: number;
+  accessionNumber: 'accession_number' = 'accession_number';
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
-  barcode: string;
+  barcode: 'barcode' = 'barcode';
 
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
-  itemType: string;
+  itemType: 'item_type' = 'item_type';
 
   // ----- //
 
-  //Institute
+  // Institute
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: string;
+  instituteId: 'institute_id' = 'institute_id';
+
   // ----- //
 
   @Column({
@@ -95,8 +96,11 @@ export class Books {
     type: 'boolean',
     nullable: true,
   })
-  isArchived: boolean;
+  isArchived: 'is_archived' = 'is_archived';
 
-  @Column({ name: 'book_count', type: 'int', nullable: true, default: 1 })
-  book_count: number;
+  @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
+  totalCount: 'total_count' = 'total_count';
+
+  @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
+  availableCount: 'available_count' = 'available_count';
 }

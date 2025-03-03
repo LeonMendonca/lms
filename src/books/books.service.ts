@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Books } from './books.entity';
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
-import type { UnionBook } from './book.types';
-import { BookQueryValidator } from './book.query-validator';
+import type { UnionBook } from './books.query-validator';
+import { BookQueryValidator } from './books.query-validator';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditBookDTO } from './zod-validation/putbook-zod';
 
@@ -23,9 +23,9 @@ export class BooksService {
   async findBookBy(query: UnionBook) {
     let requiredKey: keyof typeof BookQueryValidator | undefined = undefined;
     let value: string | number | undefined = undefined;
-    if ('book_id' in query) {
-      requiredKey = 'book_id';
-      value = query.book_id;
+    if ('book_uuid' in query) {
+      requiredKey = 'book_uuid';
+      value = query.book_uuid;
     } else if ('book_title' in query) {
       requiredKey = 'book_title';
       value = query.book_title;
@@ -46,7 +46,7 @@ export class BooksService {
   async createBook(bookPayload: TCreateBookDTO) {
     try {
       const result: [[], number] = await this.booksRepository.query(
-        `UPDATE books_table SET book_count = book_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}'`,
+        `UPDATE books_table SET total_count = total_count + 1, available_count = available_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}' && is_archived = false`,
       );
       if (!result[1]) {
         let queryData = insertQueryHelper(bookPayload, []);
@@ -62,12 +62,10 @@ export class BooksService {
   }
   async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
     try {
-      console.log(editBookPayload);
       let queryData = updateQueryHelper<TEditBookDTO>(editBookPayload, []);
-      console.log(queryData);
       const result = await this.booksRepository.query(
         `
-      UPDATE books_table SET ${queryData.queryCol} WHERE book_id = '${bookId}'
+      UPDATE books_table SET ${queryData.queryCol} WHERE book_id = '${bookId}' AND is_archived = false
     `,
         queryData.values,
       );

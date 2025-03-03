@@ -1,33 +1,37 @@
 import { z } from 'zod';
+import { createObject } from '../../create-object-from-class';
+import { Books } from '../books.entity';
+
+const createBookObject = createObject(new Books(), ['bookUUID']);
 
 export const createBookSchema = z.object({
-  book_title: z.string(),
-  book_author: z.string(),
-  name_of_publisher: z.string(),
-  place_of_publication: z.string(),
-  year_of_publication: z.string().date(),
-  language: z.string(),
-  edition: z.string(),
-  isbn: z.string(),
-  no_of_pages: z.number(),
-  no_of_preliminary_pages: z.number(),
-  subject: z.string(),
-  department: z.string(),
-  call_number: z.string().refine(
+  [createBookObject.bookTitle]: z.string(),
+  [createBookObject.bookAuthor]: z.string(),
+  [createBookObject.nameOfPublisher]: z.string(),
+  [createBookObject.placeOfPublication]: z.string(),
+  [createBookObject.yearOfPublication]: z.string().date(),
+  [createBookObject.language]: z.string(),
+  [createBookObject.edition]: z.string(),
+  [createBookObject.isbn]: z.string(),
+  [createBookObject.noOfPages]: z.number(),
+  [createBookObject.noOfPreliminaryPages]: z.number(),
+  [createBookObject.subject]: z.string(),
+  [createBookObject.department]: z.string(),
+  [createBookObject.callNumber]: z.string().refine(
     (call_number) => {
       return !isNaN(Number(call_number)) && call_number.length === 10;
     },
     { message: 'Not a valid phone number' },
   ),
-  author_mark: z.string(),
-  source_of_acquisition: z.string(),
-  date_of_acquisition: z.string().date(),
-  bill_no: z.number(),
-  inventory_number: z.number(),
-  accession_number: z.number(),
-  barcode: z.string(),
-  item_type: z.string(),
-  institute_id: z.string().uuid(),
+  [createBookObject.authorMark]: z.string(),
+  [createBookObject.sourceOfAcquisition]: z.string(),
+  [createBookObject.dateOfAcquisition]: z.string().date(),
+  [createBookObject.billNo]: z.number(),
+  [createBookObject.inventoryNumber]: z.number(),
+  [createBookObject.accessionNumber]: z.number(),
+  [createBookObject.barcode]: z.string(),
+  [createBookObject.itemType]: z.string(),
+  [createBookObject.instituteId]: z.string().uuid(),
 });
 
 export type TCreateBookDTO = z.infer<typeof createBookSchema>;
