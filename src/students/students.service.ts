@@ -8,7 +8,6 @@ import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
-import { max } from 'class-validator';
 
 @Injectable()
 export class StudentsService {
@@ -89,10 +88,12 @@ export class StudentsService {
   async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
       if (editStudentPayload.current_password) {
-        const result: [{ password: string }] = await this.studentsRepository.query(
-          `SELECT password from students_table WHERE password = $1 AND is_archived = false`, [editStudentPayload.current_password],
-        );
-        if(!result.length) {
+        const result: [{ password: string }] =
+          await this.studentsRepository.query(
+            `SELECT password from students_table WHERE password = $1 AND is_archived = false`,
+            [editStudentPayload.current_password],
+          );
+        if (!result.length) {
           throw new Error('Invalid Password');
         }
       }

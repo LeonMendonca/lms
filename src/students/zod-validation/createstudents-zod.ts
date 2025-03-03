@@ -1,9 +1,14 @@
 import { z } from 'zod';
 import { Students } from '../students.entity';
-import { createObject } from "../../create-object-from-class";
+import { createObject } from '../../create-object-from-class';
 
-let studentCreateObject = createObject(new Students(), ['studentUUID', 'studentId', 'count', 'isArchived'])
-
+let studentCreateObject = createObject(new Students(), [
+  'studentUUID',
+  'studentId',
+  'count',
+  'isArchived',
+]);
+console.log(studentCreateObject);
 export const createStudentSchema = z
   .object({
     [studentCreateObject.email]: z.string().email(),
@@ -49,7 +54,9 @@ export const createStudentSchema = z
         message: 'Not a valid Phone number number',
       },
     ),
-    [studentCreateObject.department]: z.string({ message: 'Department requires it or electrical' }),
+    [studentCreateObject.department]: z.string({
+      message: 'Department requires it or electrical',
+    }),
 
     [studentCreateObject.instituteName]: z.string().min(2),
 
