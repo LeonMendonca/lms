@@ -1,12 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Students } from './students.entity';
-import { StudentQueryValidator } from './student.query-validator';
-import type { UnionUser } from './students.types';
+import { StudentQueryValidator } from './students.query-validator';
+import type { UnionUser } from './students.query-validator';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
+import { createStudentId } from './create-student-id';
 
 @Injectable()
 export class StudentsService {
@@ -42,12 +43,43 @@ export class StudentsService {
 
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      let queryData = insertQueryHelper(studentPayload);
+      type TCreateStudentDTOWithID = TCreateStudentDTO & {
+        student_id: string;
+        count: number;
+      };
+      //Get Maximum Student Count
+      const maxCountColumn: [{ max: null | number }] =
+        await this.studentsRepository.query(
+          `SELECT MAX(count) from students_table`,
+        );
+      let studentId: string = '';
+      let queryResult: { student_id: string; count: number }[] = [];
+      let count: number = 0;
+      console.log('max column is', maxCountColumn);
+      if (maxCountColumn[0].max) {
+        studentId = createStudentId(
+          maxCountColumn[0].max,
+          studentPayload.institute_name,
+        );
+        queryResult = await this.studentsRepository.query(
+          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
+        );
+        count = queryResult[0].count;
+      } else {
+        studentId = createStudentId(null, studentPayload.institute_name);
+      }
+      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+        { ...studentPayload, student_id: studentId, count: ++count },
+        ['confirm_password'],
+      );
       await this.studentsRepository.query(
         `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
         queryData.values,
       );
-      return 'Inserted!!';
+      return {
+        statusCode: HttpStatus.CREATED,
+        studentId: studentId,
+      };
     } catch (error) {
       throw error;
     }
@@ -55,17 +87,29 @@ export class StudentsService {
 
   async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
-      let queryData = updateQueryHelper(editStudentPayload);
+      if (editStudentPayload.current_password) {
+        const result: [{ password: string }] =
+          await this.studentsRepository.query(
+            `SELECT password from students_table WHERE password = $1 AND is_archived = false`,
+            [editStudentPayload.current_password],
+          );
+        if (!result.length) {
+          throw new Error('Invalid Password');
+        }
+      }
+      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, [
+        'confirm_password',
+        'current_password',
+      ]);
       const result = await this.studentsRepository.query(
         `
-        UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}'
+        UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentId}'
       `,
         queryData.values,
       );
       //Asserted a type as UPDATE returns it
       return result as [[], number];
     } catch (error) {
-      console.error(error.message);
       throw error;
     }
   }
@@ -73,7 +117,7 @@ export class StudentsService {
   async deleteStudent(studentId: string) {
     try {
       const result = await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = true WHERE student_id = '${studentId}' AND is_archived = false`,
+        `UPDATE students_table SET is_archived = true WHERE student_uuid = '${studentId}' AND is_archived = false`,
       );
       //Asserted a type as UPDATE returns it
       return result as [[], number];

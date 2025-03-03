@@ -19,9 +19,9 @@ import {
   createBookSchema,
 } from './zod-validation/createbooks-zod';
 import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
-import { BookQueryValidator } from 'src/books/book.query-validator';
+import { BookQueryValidator } from 'src/books/books.query-validator';
 import { bookQuerySchema } from './zod-validation/bookquery-zod';
-import type { UnionBook } from './book.types';
+import type { UnionBook } from './books.query-validator';
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import { editBookSchema, TEditBookDTO } from './zod-validation/putbook-zod';
 @Controller('book')

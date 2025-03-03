@@ -1,15 +1,26 @@
 import { Entity, Column, PrimaryGeneratedColumn, Check } from 'typeorm';
 
-export enum Department {
-  ELECTRICAL = 'electrical',
-  IT = 'it',
-}
+export const Department = {
+  ELECTRICAL: 'electrical',
+  IT: 'it',
+} as const;
+
+export const Gender = {
+  MALE: 'male',
+  FEMALE: 'female',
+} as const;
 
 @Entity('students_table')
 //@Check(`"email" ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$'`)
 export class Students {
-  @PrimaryGeneratedColumn('uuid', { name: 'student_id' })
-  studentId: number;
+  @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
+  studentUUID = 'student_uuid';
+
+  @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
+  studentId: 'student_id' = 'student_id';
+
+  @Column({ name: 'count', type: 'int', nullable: true })
+  count: 'count' = 'count';
 
   @Column({
     name: 'email',
@@ -18,10 +29,30 @@ export class Students {
     nullable: true,
     unique: true,
   })
-  email: string;
+  email: 'email' = 'email';
 
-  @Column({ name: 'full_name', type: 'varchar', length: 255, nullable: true })
-  fullName: string;
+  @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
+  password: 'password' = 'password';
+
+  @Column({
+    name: 'student_name',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  studentName: 'student_name' = 'student_name';
+
+  @Column({ name: 'date_of_birth', type: 'date', nullable: true })
+  dateOfBirth: 'date_of_birth' = 'date_of_birth';
+
+  @Column({ name: 'gender', type: 'enum', enum: Gender, nullable: true })
+  gender: 'gender' = 'gender';
+
+  @Column({ name: 'roll_no', type: 'int', nullable: true })
+  rollNo: 'roll_no' = 'roll_no';
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: 'institute_name' = 'institute_name';
 
   @Column({
     name: 'phone_no',
@@ -30,10 +61,10 @@ export class Students {
     nullable: true,
     unique: true,
   })
-  phoneNo: number;
+  phoneNo: 'phone_no' = 'phone_no';
 
   @Column({ name: 'address', type: 'text', nullable: true })
-  address: string;
+  address: 'address' = 'address';
 
   @Column({
     name: 'department',
@@ -43,10 +74,18 @@ export class Students {
     length: 255,
     nullable: true,
   })
-  department: string;
+  department: 'department' = 'department';
 
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: string;
+  instituteId: 'institute_id' = 'institute_id';
+
+  @Column({
+    name: 'year_of_admission',
+    type: 'char',
+    length: 4,
+    nullable: true,
+  })
+  yearOfAdmission: 'year_of_admission' = 'year_of_admission';
 
   @Column({
     name: 'is_archived',
@@ -54,5 +93,5 @@ export class Students {
     nullable: true,
     default: false,
   })
-  isArchived: boolean;
+  isArchived: 'is_archived' = 'is_archived';
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const studentQuerySchema = z.object({
-  student_id: z.string().uuid().optional(),
+  student_id: z.string().optional(),
   email: z.string().email().optional(),
   phone_no: z
     .string()

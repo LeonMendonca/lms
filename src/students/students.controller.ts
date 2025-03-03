@@ -15,8 +15,8 @@ import {
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
-import { StudentQueryValidator } from './student.query-validator';
-import type { UnionUser } from './students.types';
+import type { UnionUser } from './students.query-validator';
+import { StudentQueryValidator } from './students.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import {
   createStudentSchema,
@@ -54,16 +54,19 @@ export class StudentsController {
       return await this.studentsService.createStudent(studentPayload);
     } catch (error) {
       if (error instanceof Error) {
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }
 
-  @Put('edit/:student_id')
+  @Put('edit/:student_uuid')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
     @Param(
-      'student_id',
+      'student_uuid',
       new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
     )
     studentId: string,
@@ -84,13 +87,16 @@ export class StudentsController {
       }
     } catch (error) {
       if (error instanceof Error) {
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
     }
   }
-  @Delete('delete/:student_id')
+  @Delete('delete/:student_uuid')
   async deleteStudent(
-    @Param('student_id', new ParseUUIDPipe()) studentId: string,
+    @Param('student_uuid', new ParseUUIDPipe()) studentId: string,
   ) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
@@ -103,7 +109,7 @@ export class StudentsController {
         throw new Error(`User with id ${studentId} not found`);
       }
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

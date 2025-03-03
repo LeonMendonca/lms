@@ -6,16 +6,20 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { TEditStudentDTO } from 'src/students/zod-validation/putstudent-zod';
+import { isEmptyObject } from 'src/check-empty-object';
 import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
 export class putBodyValidationPipe implements PipeTransform {
   constructor(private zschema: ZodSchema) {}
-  transform(value: unknown, metadata: ArgumentMetadata) {
+  transform(value: object, metadata: ArgumentMetadata) {
     try {
       if (metadata.type === 'body') {
-        return this.zschema.parse(value) as TEditStudentDTO;
+        const parsedObject = this.zschema.parse(value);
+        if (isEmptyObject(parsedObject)) {
+          throw new Error('No body provided or Invalid body');
+        }
+        return parsedObject;
       } else if (metadata.type === 'param') {
         return value;
       } else {
