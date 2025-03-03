@@ -43,13 +43,13 @@ export const editStudentSchema = z
       .optional(),
 
     //doesn't include in Class, but required for Existing password valiation
-    current_password: z.string().optional(),
+    current_password: z.string().min(8).optional(),
 
     //password field in PG Database will be updated, if current_password is true
-    [studentUpdateObject.password]: z.string().optional(),
+    [studentUpdateObject.password]: z.string().min(8).optional(),
 
     //doesn't include in Class, but required for New Password confirmation
-    confirm_password: z.string().optional(),
+    confirm_password: z.string().min(8).optional(),
 
     [studentUpdateObject.rollNo]: z
       .number()
