@@ -14,13 +14,13 @@ export const Gender = {
 //@Check(`"email" ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$'`)
 export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
-  studentUUID: number;
+  studentUUID: "student_uuid";
 
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
-  studentId: number;
+  studentId: "student_id";
 
   @Column({ name: 'count', type: 'int', nullable: true })
-  count: number;
+  count: "count";
 
   @Column({
     name: 'email',
@@ -29,10 +29,10 @@ export class Students {
     nullable: true,
     unique: true,
   })
-  email: string;
+  email: "email";
 
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
-  password: string;
+  password: "password";
 
   @Column({
     name: 'student_name',
@@ -40,19 +40,19 @@ export class Students {
     length: 255,
     nullable: true,
   })
-  fullName: string;
+  studentName: "student_name";
 
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
-  dateOfBirth: Date;
+  dateOfBirth: "date_of_birth";
 
   @Column({ name: 'gender', type: 'enum', enum: Gender, nullable: true })
-  gender: keyof typeof Gender | '';
+  gender: "gender";
 
   @Column({ name: 'roll_no', type: 'int', nullable: true })
-  rollNo: number;
+  rollNo: "roll_no";
 
   @Column({ name: 'institute_name', type: 'varchar', nullable: true })
-  institute_name: string;
+  instituteName: "institute_name";
 
   @Column({
     name: 'phone_no',
@@ -61,10 +61,10 @@ export class Students {
     nullable: true,
     unique: true,
   })
-  phoneNo: number;
+  phoneNo: "phone_no";
 
   @Column({ name: 'address', type: 'text', nullable: true })
-  address: string;
+  address: "address";
 
   @Column({
     name: 'department',
@@ -74,10 +74,10 @@ export class Students {
     length: 255,
     nullable: true,
   })
-  department: string;
+  department: "department";
 
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: string;
+  instituteId: "institute_id";
 
   @Column({
     name: 'year_of_admission',
@@ -85,7 +85,7 @@ export class Students {
     length: 4,
     nullable: true,
   })
-  yearOfAdmission: string;
+  yearOfAdmission: "year_of_admission";
 
   @Column({
     name: 'is_archived',
@@ -93,5 +93,5 @@ export class Students {
     nullable: true,
     default: false,
   })
-  isArchived: boolean;
+  isArchived: "is_archived";
 }
