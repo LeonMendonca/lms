@@ -7,6 +7,8 @@ import type { UnionBook } from './books.query-validator';
 import { BookQueryValidator } from './books.query-validator';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditBookDTO } from './zod-validation/putbook-zod';
+import { genBookId } from "./create-book-id";
+import { createObjectIncludeProperties } from 'src/create-object-from-class';
 
 @Injectable()
 export class BooksService {
@@ -44,20 +46,18 @@ export class BooksService {
 
   async createBook(bookPayload: TCreateBookDTO) {
     try {
-      const result: [[], number] = await this.booksRepository.query(
-        `UPDATE books_table SET total_count = total_count + 1, available_count = available_count + 1 WHERE book_title = '${bookPayload.book_title}' AND book_author = '${bookPayload.book_author}' AND is_archived = false`,
-      );
-      if (!result[1]) {
-        let queryData = insertQueryHelper(bookPayload, []);
-        await this.booksRepository.query(
-          `INSERT INTO books_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-          queryData.values,
-        );
-      }
+      type TBookMiniDTOWithID = TCreateBookDTO & { book_id: string };
+      const resultMax: { max: string | null }[] = await this.booksRepository.query(`SELECT MAX(book_id) from books_table`);
+      let bookId = genBookId(resultMax[0].max)
+      //get the exact key from the Class Entity
+      const createObjectInsert = createObjectIncludeProperties(new Books(), ['bookId']);
+      //it creates an object with snake case with exact required fields
+      let insertObject = { [createObjectInsert.bookId]: bookId, ...bookPayload } as TBookMiniDTOWithID;
+      let querData = insertQueryHelper(insertObject, []);
+      await this.booksRepository.query(`INSERT INTO books_table (${querData.queryCol}) values (${querData.queryArg})`, querData.values)
       return {
         statusCode: HttpStatus.CREATED,
-        isbn: bookPayload.isbn,
-        title: bookPayload.book_title
+        bookId: bookId 
       };
     } catch (error) {
       throw error;

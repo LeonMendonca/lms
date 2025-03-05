@@ -5,6 +5,9 @@ export class Books {
   @PrimaryGeneratedColumn('uuid', { name: 'book_uuid' })
   bookUUID: "book_uuid" = "book_uuid";
 
+  @Column({ name: 'book_id', type: 'varchar', length: 255, unique: true })
+  bookId: "book_id" = "book_id";
+
   // Bibliographic information
 
   @Column({ name: 'book_title', type: 'varchar', length: 255 })
@@ -98,9 +101,6 @@ export class Books {
   })
   isArchived: "is_archived" = "is_archived";
 
-  @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
-  totalCount: "total_count" = "total_count";
-
-  @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
-  availableCount: "available_count" = "available_count";
+  @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
+  isAvailable: "is_available" = "is_available";
 }
