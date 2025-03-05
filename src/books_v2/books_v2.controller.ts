@@ -16,16 +16,16 @@ export class BooksV2Controller {
     return this.booksService.getBooks();
   }
 
-    @Get('search')
-  @UsePipes(new QueryValidationPipe(bookQuerySchema, BookQueryValidator))
+  @Get('search')
+  //@UsePipes(new QueryValidationPipe(bookQuerySchema)) // Ensure the schema is passed correctly
   async getBookBy(@Query() query: UnionBook) {
     const result = await this.booksService.findBookBy(query);
-    if (result.length != 0) {
-      return result[0];
+
+    if (result) {
+      return result;
     } else {
       throw new HttpException('No book found', HttpStatus.NOT_FOUND);
-    }
-  }
+    }}
 
   // Create new book
   @Post('create')

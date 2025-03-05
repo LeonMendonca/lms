@@ -5,6 +5,7 @@ import { BookCopy } from './entity/books_v2.copies.entity'
 import { BookTitle } from './entity/books_v2.title.entity';
 import { CreateBookTitleDTO } from './dto/createbookdto';
 import { UpdateBookTitleDTO } from './dto/updatebookdto';
+import { UnionBook } from 'src/books/books.query-validator';
 
 @Injectable()
 export class BooksV2Service {
@@ -18,20 +19,25 @@ export class BooksV2Service {
   // Find all books
   async getBooks(){
     try {
-      return await this.bookcopyRepository.find();
+      return await this.booktitleRepository.query('select * from book_titles')
+        
     } catch (error) {
       throw new HttpException('Error fetching books', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   // Find a single book by ID
-  async findBookBy(createBookpayload:CreateBookTitleDTO){
+  async findBookBy(query: UnionBook) {
     try {
-      return await this.bookcopyRepository.findOne(id);
+      const book = await this.booktitleRepository.findOne({
+        where: query,  // Use the query as the condition for findOne
+      });
+
+      return book;  // return the found book or null
     } catch (error) {
       throw new HttpException('Error fetching book', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-  }
+
 
   // Create a new book
   async createBook(createBookpayload:CreateBookTitleDTO) {
