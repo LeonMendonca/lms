@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BookCopy } from './entity/books_v2.copies.entity'
 import { BookTitle } from './entity/books_v2.title.entity';
-import { CreateBookTitleDTO } from './createbookdto';
+import { CreateBookTitleDTO } from './dto/createbookdto';
+import { UpdateBookTitleDTO } from './dto/updatebookdto';
 
 @Injectable()
 export class BooksV2Service {
@@ -34,7 +35,7 @@ export class BooksV2Service {
 
   // Create a new book
   async create(createBookpayload:CreateBookTitleDTO) {
-    const book = this.bookcopyRepository.create(createBookDTO); // Create a new Book instance with the provided DTO
+    const book = this.bookcopyRepository.create(createBookpayload); // Create a new Book instance with the provided DTO
 
     try {
       return await this.bookcopyRepository.save(book); // Save the book to the database
@@ -44,7 +45,7 @@ export class BooksV2Service {
   }
 
   // Update an existing book
-  async update(id: string, updateBookDTO: UpdateBookDTO): {
+  async update(id: string, updatebookpayload:UpdateBookTitleDTO): {
     const book = await this.bookcopyRepository.findOne(id);
 
     if (!book) {
@@ -98,7 +99,7 @@ export class BooksV2Service {
       }
     
       // Create a new book title
-      async create(createBookTitleDTO: CreateBookTitleDTO) {
+      async create(createbookpayload: CreateBookTitleDTO) {
         const bookTitle = this.bookTitleRepository.create(createBookTitleDTO);
     
         try {
