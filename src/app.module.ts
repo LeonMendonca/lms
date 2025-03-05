@@ -6,6 +6,8 @@ import { Students } from './students/students.entity';
 import { StudentsModule } from './students/students.module';
 import { BooksModule } from './books/books.module';
 import { Books } from './books/books.entity';
+import { Booklog } from './book_log/book_log.entity';
+import { BooklogModule } from './book_log/booklog.module';
 
 config({ path: '.env' });
 @Module({
@@ -13,12 +15,13 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books],
+      entities: [Students, Books,Booklog],
       ssl: true,
       synchronize: true,
     }),
     StudentsModule,
     BooksModule,
+    BooklogModule
   ],
 })
 export class AppModule {
