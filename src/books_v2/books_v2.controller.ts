@@ -1,10 +1,5 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, Query, UsePipes, HttpException, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
-import { CreateBookDTO } from './dto/create-book.dto';
-import { UpdateBookDTO } from './dto/update-book.dto';
-import { Book } from './entities/book.entity';
-import { CreateBookValidationPipe } from './pipes/create-book-validation.pipe';
-import { UpdateBookValidationPipe } from './pipes/update-book-validation.pipe';
 import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
 import { bookQuerySchema } from 'src/books/zod-validation/bookquery-zod';
 import { BookQueryValidator, UnionBook } from 'src/books/books.query-validator';
