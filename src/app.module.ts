@@ -8,6 +8,7 @@ import { BooksModule } from './books/books.module';
 import { Books } from './books/books.entity';
 import { BookMini } from './books/book-mini/bookm.entity';
 import { BookMiniModule } from './books/book-mini/bookm.module';
+import { BooksV2Module } from './books_v2/books_v2.module';
 
 config({ path: '.env' });
 @Module({
@@ -21,7 +22,8 @@ config({ path: '.env' });
     }),
     StudentsModule,
     BooksModule,
-    BookMiniModule
+    BookMiniModule,
+    BooksV2Module
   ],
 })
 export class AppModule {
