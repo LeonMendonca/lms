@@ -4,50 +4,50 @@ import { BookTitle } from './books_v2.title.entity';
 @Entity('book_copies')
 export class BookCopy {
   @PrimaryGeneratedColumn('uuid', { name: 'book_copy_uuid' })
-  bookCopyUUID: string;
+  bookCopyUUID: "book_copy_uuid" = "book_copy_uuid";
 
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: 'book_uuid' })
-  bookTitle: BookTitle;
+  bookTitle: "book_title" = "book_title";
 
   @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
-  callNumber: string;
+  callNumber: "call_number" = "call_number";
 
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  authorMark: string;
+  authorMark: "author_mark" = "author_mark";
 
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
-  sourceOfAcquisition: string;
+  sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
 
   @Column({ name: 'date_of_acquisition', type: 'date' })
-  dateOfAcquisition: string;
+  dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
   @Column({ name: 'bill_no', type: 'int' })
-  billNo: number;
+  billNo: "bill_no" = "bill_no";
 
   @Column({ name: 'no_of_pages', type: 'int' })
-  noOfPages: number;
+  noOfPages: "no_of_pages" = "no_of_pages";
 
   @Column({ name: 'no_of_preliminary_pages', type: 'int' })
-  noOfPreliminaryPages: number;
+  noOfPreliminaryPages: "no_of_preliminary_pages" = "no_of_preliminary_pages";
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
-  language: string;
+  language: "language" = "language";
 
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
-  inventoryNumber: number;
+  inventoryNumber: "inventory_number" = "inventory_number";
 
   @Column({ name: 'accession_number', type: 'int' })
-  accessionNumber: number;
+  accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
-  barcode: string;
+  barcode: "barcode" = "barcode";
 
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
-  itemType: string;
+  itemType: "item_type" = "item_type";
 
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: string;
+  instituteId: "institute_id" = "institute_id";
 
   @Column({
     name: 'is_archived',
@@ -55,29 +55,29 @@ export class BookCopy {
     type: 'boolean',
     nullable: true,
   })
-  isArchived: boolean;
+  isArchived: "is_archived" = "is_archived";
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt: "created_at" = "created_at";
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt: "updated_at" = "updated_at";
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
-  createdBy: string;
+  createdBy: "created_by" = "created_by";
 
   @Column({ name: 'remarks', type: 'simple-array', nullable: true })
-  remarks: string[];
+  remarks: "remarks" = "remarks";
 
   @Column({ name: 'images', type: 'simple-array', nullable: true })
-  images: string[];
+  images: "images" = "images";
 
   @Column({ name: 'additional_fields', type: 'json', nullable: true })
-  additionalFields: any;
+  additionalFields: "additional_fields" = "additional_fields";
   
   @Column({ name: 'description', type: 'text', nullable: true })
-  description: string;
+  description: "description" = "description";
 
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
-  isAvailable: boolean;
+  isAvailable: "is_available" = "is_available";
 }
