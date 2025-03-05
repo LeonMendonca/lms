@@ -50,11 +50,6 @@ export class Books {
 
   // Cataloging and Classification
 
-  @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
-  callNumber: "call_number" = "call_number";
-
-  @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  authorMark: "author_mark" = "author_mark";
 
   // ----- //
 
@@ -93,14 +88,5 @@ export class Books {
 
   // ----- //
 
-  @Column({
-    name: 'is_archived',
-    default: false,
-    type: 'boolean',
-    nullable: true,
-  })
-  isArchived: "is_archived" = "is_archived";
-
-  @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
-  isAvailable: "is_available" = "is_available";
+  
 }
