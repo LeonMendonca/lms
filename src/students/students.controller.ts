@@ -27,6 +27,8 @@ import {
   editStudentSchema,
   TEditStudentDTO,
 } from './zod-validation/putstudent-zod';
+import { arrBodyValidationPipe } from 'src/pipes/arr-body-validation.pipe';
+import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
 
 @Controller('student')
 export class StudentsController {
@@ -111,5 +113,11 @@ export class StudentsController {
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  @Post('bulk-create')
+  @UsePipes(new arrBodyValidationPipe(createStudentSchema))
+  async bulkCreateStudent(@Body() arrOfStudentPayload: TCreateBookDTO[]) {
+    return arrOfStudentPayload;
   }
 }
