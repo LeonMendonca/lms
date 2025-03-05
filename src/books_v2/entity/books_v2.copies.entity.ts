@@ -1,10 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { CreateDateColumn, UpdateDateColumn, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
 
 @Entity('book_copies')
 export class BookCopy {
-  @PrimaryGeneratedColumn('uuid', { name: 'copy_uuid' })
-  copyUUID: string;
+  @PrimaryGeneratedColumn('uuid', { name: 'book_copy_uuid' })
+  bookCopyUUID: string;
 
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: 'book_uuid' })
@@ -24,6 +24,15 @@ export class BookCopy {
 
   @Column({ name: 'bill_no', type: 'int' })
   billNo: number;
+
+  @Column({ name: 'no_of_pages', type: 'int' })
+  noOfPages: number;
+
+  @Column({ name: 'no_of_preliminary_pages', type: 'int' })
+  noOfPreliminaryPages: number;
+
+  @Column({ name: 'language', type: 'varchar', length: 255 })
+  language: string;
 
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
   inventoryNumber: number;
@@ -47,6 +56,27 @@ export class BookCopy {
     nullable: true,
   })
   isArchived: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string;
+
+  @Column({ name: 'remarks', type: 'simple-array', nullable: true })
+  remarks: string[];
+
+  @Column({ name: 'images', type: 'simple-array', nullable: true })
+  images: string[];
+
+  @Column({ name: 'additional_fields', type: 'json', nullable: true })
+  additionalFields: any;
+  
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: string;
 
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
   isAvailable: boolean;
