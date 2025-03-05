@@ -16,7 +16,7 @@ export class BooksV2Service {
 ) {}
 
   // Find all books
-  async findAll(createBookpayload:CreateBookTitleDTO){
+  async getBooks(){
     try {
       return await this.bookcopyRepository.find();
     } catch (error) {
@@ -25,7 +25,7 @@ export class BooksV2Service {
   }
 
   // Find a single book by ID
-  async findOne(createBookpayload:CreateBookTitleDTO){
+  async findBookBy(createBookpayload:CreateBookTitleDTO){
     try {
       return await this.bookcopyRepository.findOne(id);
     } catch (error) {
@@ -34,7 +34,7 @@ export class BooksV2Service {
   }
 
   // Create a new book
-  async create(createBookpayload:CreateBookTitleDTO) {
+  async createBook(createBookpayload:CreateBookTitleDTO) {
     const book = this.bookcopyRepository.create(createBookpayload); // Create a new Book instance with the provided DTO
 
     try {
@@ -44,104 +44,10 @@ export class BooksV2Service {
     }
   }
 
-  // Update an existing book
-  async update(id: string, updatebookpayload:UpdateBookTitleDTO): {
-    const book = await this.bookcopyRepository.findOne(id);
-
-    if (!book) {
-      throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
-    }
-
-    // Update the book with new data
-    const updatedBook = Object.assign(book, updateBookDTO);
-
-    try {
-      return await this.bookcopyRepository.save(updatedBook);
-    } catch (error) {
-      throw new HttpException('Error updating book', HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  // Delete a book by ID
-  async remove(id: string) {
-    const book = await this.bookcopyRepository.findOne(id);
-
-    if (!book) {
-      throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
-    }
-
-    try {
-      await this.bookcopyRepository.remove(book);
-      return book; // Return the removed book (or you could just return a success message)
-    } catch (error) {
-      throw new HttpException('Error deleting book', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-   
-    
-    async findAllbooktitle() {
-        try {
-          return await this.bookTitleRepository.find({ relations: ['bookCopies'] }); // Including the bookCopies relation
-        } catch (error) {
-          throw new HttpException('Error fetching book titles', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-      }
-
-      async findOne(bookUUID: string) {
-        try {
-          const bookTitle = await this.bookTitleRepository.findOne(bookUUID, { relations: ['bookCopies'] });
-          if (!bookTitle) {
-            throw new HttpException('Book title not found', HttpStatus.NOT_FOUND);
-          }
-          return bookTitle;
-        } catch (error) {
-          throw new HttpException('Error fetching book title', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
       }
     
-      // Create a new book title
-      async create(createbookpayload: CreateBookTitleDTO) {
-        const bookTitle = this.bookTitleRepository.create(createBookTitleDTO);
-    
-        try {
-          return await this.bookTitleRepository.save(bookTitle);
-        } catch (error) {
-          throw new HttpException('Error creating book title', HttpStatus.BAD_REQUEST);
-        }
-      }
-    
-      // Update a book title
-      async update(bookUUID: string, updateBookTitleDTO: UpdateBookTitleDTO) {
-        const bookTitle = await this.bookTitleRepository.findOne(bookUUID);
-        if (!bookTitle) {
-          throw new HttpException('Book title not found', HttpStatus.NOT_FOUND);
-        }
-    
-        const updatedBookTitle = Object.assign(bookTitle, updateBookTitleDTO);
-    
-        try {
-          return await this.bookTitleRepository.save(updatedBookTitle);
-        } catch (error) {
-          throw new HttpException('Error updating book title', HttpStatus.BAD_REQUEST);
-        }
-      }
-    
-      // Delete a book title
-      async remove(bookUUID: string) {
-        const bookTitle = await this.bookTitleRepository.findOne(bookUUID);
-        if (!bookTitle) {
-          throw new HttpException('Book title not found', HttpStatus.NOT_FOUND);
-        }
-    
-        try {
-          await this.bookTitleRepository.remove(bookTitle);
-          return bookTitle;
-        } catch (error) {
-          throw new HttpException('Error deleting book title', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-      }
-    }
 
     
     
-  }
-}
+  
+
