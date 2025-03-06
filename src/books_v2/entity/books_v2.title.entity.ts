@@ -1,10 +1,10 @@
-import { 
-  Entity, 
-  PrimaryGeneratedColumn, 
-  Column, 
-  OneToMany, 
-  CreateDateColumn, 
-  UpdateDateColumn 
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { BookCopy } from './books_v2.copies.entity';
 
@@ -50,7 +50,12 @@ export class BookTitle {
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
   authorMark: string;
 
-  @Column({ name: 'is_archived', type: 'boolean', default: false, nullable: true })
+  @Column({
+    name: 'is_archived',
+    type: 'boolean',
+    default: false,
+    nullable: true,
+  })
   isArchived?: boolean;
 
   @Column({ name: 'total_count', type: 'int' })
@@ -79,6 +84,14 @@ export class BookTitle {
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;
+
+  @Column({
+    name: 'current_status',
+    type: 'enum',
+    enum: ['AVAILABLE', 'BORROWED'],
+    default: 'AVAILABLE',
+  })
+  currentStatus: 'AVAILABLE' | 'BORROWED';
 
   // Relationships
   @OneToMany(() => BookCopy, (bookCopy) => bookCopy.bookTitle)

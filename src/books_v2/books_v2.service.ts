@@ -38,12 +38,23 @@ export class BooksV2Service {
 
   async getBookTitleByISBN(isbn: string) {
     try {
-      const whereConditions: any = { isArchived: false };
-      if (isbn) {
-        whereConditions.isbn = isbn;
-      }
-      return await this.booktitleRepository.find({
-        where: whereConditions,
+      return await this.booktitleRepository.findOne({
+        where: { isbn },
+      });
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getBookTitleByUUID(bookUUID: string) {
+    try {
+      return await this.booktitleRepository.findOne({
+        where: { bookUUID },
+        relations: ['bookCopies'],
       });
     } catch (error) {
       console.error('Error fetching books:', error);
