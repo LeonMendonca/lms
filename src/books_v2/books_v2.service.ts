@@ -1,10 +1,10 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { BookCopy } from './entity/books_v2.copies.entity';
 import { BookTitle } from './entity/books_v2.title.entity';
 // import { CreateBookTitleDTO } from './dto/createbookdto';
-import { UpdateBookTitleDTO } from './dto/updatebookdto';
+import { UpdateBookCopyDTO, UpdateBookTitleDTO } from './dto/updatebookdto';
 import { UnionBook } from 'src/books/books.query-validator';
 import { CreateBookCopyDTO } from './dto/createbookv2dto';
 
@@ -18,10 +18,32 @@ export class BooksV2Service {
   ) {}
 
   // Find all books
-  async getBooks() {
+  async getBooks(searchQuery: string) {
     try {
+      const whereConditions: any = { isArchived: false };
+      if (searchQuery) {
+        whereConditions.bookTitle = ILike(`%${searchQuery}%`);
+      }
       return await this.booktitleRepository.find({
-        where: { isArchived: false },
+        where: whereConditions,
+      });
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getBookTitleByISBN(isbn: string) {
+    try {
+      const whereConditions: any = { isArchived: false };
+      if (isbn) {
+        whereConditions.isbn = isbn;
+      }
+      return await this.booktitleRepository.find({
+        where: whereConditions,
       });
     } catch (error) {
       console.error('Error fetching books:', error);
@@ -36,10 +58,9 @@ export class BooksV2Service {
   async findBookBy(query: UnionBook) {
     try {
       const book = await this.booktitleRepository.findOne({
-        where: query as any, // Use the query as the condition for findOne
+        where: query as any,
       });
-
-      return book; // return the found book or null
+      return book;
     } catch (error) {
       throw new HttpException(
         'Error fetching book',
@@ -119,6 +140,141 @@ export class BooksV2Service {
     } catch (error) {
       console.error('Error creating book:', error);
       throw new HttpException('Error creating book', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async archiveBookTitle(id: string) {
+    try {
+      const book = await this.booktitleRepository.findOne({
+        where: { bookId: id },
+      });
+
+      if (!book) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+
+      book.isArchived = true;
+      await this.booktitleRepository.save(book);
+
+      return { message: 'Book archived successfully' };
+    } catch (error) {
+      throw new HttpException('Error archiving book', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getArchivedBookTitle() {
+    try {
+      return await this.booktitleRepository.find({
+        where: { isArchived: true },
+      });
+    } catch (error) {
+      throw new HttpException(
+        'Error fetching archived books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async restoreBookTitle(id: string) {
+    try {
+      const book = await this.booktitleRepository.findOne({
+        where: { bookId: id, isArchived: true },
+      });
+
+      if (!book) {
+        throw new HttpException(
+          'Archived book not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      book.isArchived = false;
+      await this.booktitleRepository.save(book);
+
+      return { message: 'Book restored successfully' };
+    } catch (error) {
+      throw new HttpException('Error restoring book', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async updateBookTitle(id: string, updateBookPayload: UpdateBookTitleDTO) {
+    try {
+      const book = await this.booktitleRepository.findOne({
+        where: { bookId: id },
+      });
+
+      if (!book) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+
+      await this.booktitleRepository.update(id, updateBookPayload);
+
+      return { message: 'Book updated successfully' };
+    } catch (error) {
+      throw new HttpException('Error updating book', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getBookCopyDetails(id: string, searchQuery: string) {
+    try {
+      // Base condition to filter book copies (not archived)
+      const whereConditions: any = { isArchived: false };
+
+      // If an ID is provided, add it to the filter
+      if (id) {
+        whereConditions.bookCopyUUID = id;
+      }
+
+      // If a search query is provided, search in relevant fields
+      if (searchQuery) {
+        whereConditions.bookTitle = ILike(`%${searchQuery}%`);
+      }
+
+      const bookCopy = await this.bookcopyRepository.findOne({
+        where: whereConditions,
+      });
+
+      if (!bookCopy) {
+        throw new HttpException('Book copy not found', HttpStatus.NOT_FOUND);
+      }
+
+      return bookCopy;
+    } catch (error) {
+      console.error('Error fetching book copy details:', error);
+      throw new HttpException(
+        'Error fetching book copy details',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async updateBookCopyDetails(id: string, updatePayload: UpdateBookCopyDTO) {
+    try {
+      // Find the existing book copy
+      const existingBookCopy = await this.bookcopyRepository.findOne({
+        where: { bookCopyUUID: id, isArchived: false }, // Ensure it's not archived
+      });
+
+      if (!existingBookCopy) {
+        throw new HttpException(
+          'Book copy not found or archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Update the book copy
+      await this.bookcopyRepository.update(id, updatePayload);
+
+      // Return updated book copy
+      return await this.bookcopyRepository.findOne({
+        where: { bookCopyUUID: id },
+      });
+    } catch (error) {
+      console.error('Error updating book copy:', error);
+      throw new HttpException(
+        'Error updating book copy',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 }
