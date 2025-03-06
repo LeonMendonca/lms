@@ -5,7 +5,6 @@ import { Students } from '../students.entity';
 let studentUpdateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
-  'count',
   'isArchived',
 ]);
 

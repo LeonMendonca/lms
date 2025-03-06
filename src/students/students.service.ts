@@ -41,6 +41,32 @@ export class StudentsService {
     )) as Students[];
   }
 
+  async createStudent2(sp: TCreateStudentDTO) {
+    try {
+      type TCreateStudentDTOWithID = TCreateStudentDTO & {
+        student_id: string;
+      };
+      const max: [{ max: null | string }] = await this.studentsRepository.query(
+        `SELECT MAX(student_id) from students_table`,
+      );
+      let studentId = createStudentId(max[0].max, sp.institute_name)
+      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+        { ...sp, student_id: studentId },
+        ['confirm_password'],
+      );
+      await this.studentsRepository.query(
+        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+        queryData.values,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        studentId: studentId,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
       type TCreateStudentDTOWithID = TCreateStudentDTO & {
@@ -57,10 +83,10 @@ export class StudentsService {
       let count: number = 0;
       console.log('max column is', maxCountColumn);
       if (maxCountColumn[0].max) {
-        studentId = createStudentId(
-          maxCountColumn[0].max,
-          studentPayload.institute_name,
-        );
+        //studentId = createStudentId(
+        //  maxCountColumn[0].max,
+        //  studentPayload.institute_name,
+        //);
         queryResult = await this.studentsRepository.query(
           `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
         );

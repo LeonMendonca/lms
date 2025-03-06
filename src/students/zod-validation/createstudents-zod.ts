@@ -1,12 +1,15 @@
 import { z } from 'zod';
-import { Students } from '../students.entity';
+import { Gender, Students } from '../students.entity';
 import { createObjectOmitProperties } from '../../create-object-from-class';
+
+let GenderArr: readonly string[] = Object.keys(Gender)
 
 let studentCreateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
-  'count',
   'isArchived',
+  'createdAt',
+  'updatedAt'
 ]);
 
 export const createStudentSchema = z
@@ -20,7 +23,7 @@ export const createStudentSchema = z
 
     [studentCreateObject.dateOfBirth]: z.string().date(),
 
-    [studentCreateObject.gender]: z.enum(['male', 'female']),
+    [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
 
     [studentCreateObject.address]: z
       .string()

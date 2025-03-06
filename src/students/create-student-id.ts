@@ -1,10 +1,16 @@
 export function createStudentId(
-  maxCountId: number | null,
+  maxId: string | null,
   instituteName: string,
 ) {
-  if (!maxCountId) {
-    return `${instituteName}-00001-${new Date().getFullYear()}`;
+  if (!maxId) {
+    return `00000-${instituteName}-${new Date().getFullYear()}`;
   }
-
-  return `${instituteName}-${(Number(maxCountId) + 1).toString().padStart(5, '0')}-${new Date().getFullYear()}`;
+  let getFullYear = new Date().getFullYear();
+  const splitMaxId = maxId.split('-');
+  let maxIdToNumber = Number(splitMaxId[0]);
+  let maxYearToNumber = Number(splitMaxId[2]);
+  if(maxYearToNumber < getFullYear) {
+    return `00000-${instituteName}-${getFullYear}`
+  }
+  return `${(maxIdToNumber + 1).toString().padStart(5, '0')}-${instituteName}-${new Date().getFullYear()}`;
 }

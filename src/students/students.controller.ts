@@ -51,7 +51,7 @@ export class StudentsController {
   @UsePipes(new bodyValidationPipe(createStudentSchema))
   async createStudent(@Body() studentPayload: TCreateStudentDTO) {
     try {
-      return await this.studentsService.createStudent(studentPayload);
+      return await this.studentsService.createStudent2(studentPayload);
     } catch (error) {
       if (error instanceof Error) {
         throw new HttpException(
