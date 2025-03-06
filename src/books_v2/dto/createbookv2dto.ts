@@ -1,34 +1,99 @@
-import { z } from 'zod';
-import { createObjectOmitProperties } from '../../create-object-from-class';
-import { BookTitle } from '../entity/books_v2.title.entity';
-import { BookCopy } from '../entity/books_v2.copies.entity';
+import { IsString, IsUUID, IsDateString, IsInt, IsBoolean, IsOptional, IsArray } from 'class-validator';
 
-const createBookTitleObject = createObjectOmitProperties(new BookTitle(), ['bookUUID', 'bookId', 'createdAt', 'updatedAt', 'bookCopies', 'availableCount', 'totalCount', 'isArchived']);
-const createBookCopyObject = createObjectOmitProperties(new BookCopy(), ['bookCopyUUID', 'updatedAt', 'createdAt'])
+export class CreateBookCopyDTO {
+  @IsString()
+  bookId: string;
 
-const createBookZodSchemaV2 = z.object({
-    [createBookTitleObject.bookTitle]: z.string(),
-    [createBookTitleObject.bookAuthor]: z.string(),
-    [createBookTitleObject.authorMark]: z.string(),
-    [createBookTitleObject.edition]: z.string(),
-    [createBookTitleObject.nameOfPublisher]: z.string(),
-    [createBookTitleObject.placeOfPublication]: z.string(),
-    [createBookTitleObject.yearOfPublication]: z.string(),
-    [createBookTitleObject.department]: z.string(),
-    [createBookTitleObject.isbn]: z.string(),
-    [createBookTitleObject.remarks]: z.string(),
-    [createBookTitleObject.subject]: z.string(),
-    [createBookTitleObject.description]: z.string(),
-    [createBookTitleObject.createdBy]: z.string(),
-    [createBookTitleObject.callNumber]: z.string(),
-    [createBookTitleObject.images]: z.string(),
-    [createBookTitleObject.additionalFields]: z.string(),
+  @IsString()
+  bookTitle: string;
 
-    [createBookCopyObject.accessionNumber]: z.string(),
-    [createBookCopyObject.barcode]: z.string(),
-    [createBookCopyObject.billNo]: z.string(),
-    //[createBookCopyObject.]
-})
+  @IsString()
+  bookAuthor: string;
 
-//createBookObject.
-//createBookObject2.d
+  @IsString()
+  nameOfPublisher: string;
+
+  @IsString()
+  placeOfPublication: string;
+
+  @IsDateString()
+  yearOfPublication: Date;
+
+  @IsString()
+  edition: string;
+
+  @IsString()
+  isbn: string;
+
+  @IsString()
+  subject: string;
+
+  @IsString()
+  department: string;
+
+  @IsString()
+  @IsOptional()
+  callNumber?: string;
+
+  @IsString()
+  authorMark: string;
+
+  @IsInt()
+  totalCount: number;
+
+  @IsInt()
+  availableCount: number;
+
+  @IsString()
+  sourceOfAcquisition: string;
+
+  @IsDateString()
+  dateOfAcquisition: Date;
+
+  @IsInt()
+  billNo: number;
+
+  @IsInt()
+  noOfPages: number;
+
+  @IsInt()
+  noOfPreliminaryPages: number;
+
+  @IsString()
+  language: string;
+
+  @IsOptional()
+  @IsInt()
+  inventoryNumber?: number;
+
+  @IsInt()
+  accessionNumber: number;
+
+  @IsString()
+  barcode: string;
+
+  @IsString()
+  itemType: string;
+
+  @IsUUID()
+  @IsOptional()
+  instituteId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  createdBy?: string;
+
+  @IsArray()
+  @IsOptional()
+  remarks?: string[];
+
+  @IsArray()
+  @IsOptional()
+  images?: string[];
+
+  @IsOptional()
+  additionalFields?: any;
+
+  @IsOptional()
+  description?: string;
+}

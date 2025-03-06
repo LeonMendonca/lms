@@ -1,10 +1,10 @@
 // update-book-title.dto.ts
-import { IsString, IsOptional, IsDateString, IsInt } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsInt, IsUUID, IsBoolean, IsDate, IsArray  } from 'class-validator';
 
 export class UpdateBookTitleDTO {
   @IsString()
   @IsOptional()
-  bookId?: string;
+  bookId: string;
 
   @IsString()
   @IsOptional()
@@ -42,6 +42,14 @@ export class UpdateBookTitleDTO {
   @IsOptional()
   department?: string;
 
+  @IsString()
+  @IsOptional()
+  callNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  authorMark?: string;
+  
   @IsInt()
   @IsOptional()
   totalCount?: number;
@@ -62,3 +70,73 @@ export class UpdateBookTitleDTO {
   @IsOptional()
   description?: string;
 }
+
+export class UpdateBookCopyDTO {
+  @IsOptional()
+  @IsString()
+  sourceOfAcquisition?: string;
+
+  @IsOptional()
+  @IsDate()
+  dateOfAcquisition?: Date;
+
+  @IsOptional()
+  @IsInt()
+  billNo?: number;
+
+  @IsOptional()
+  @IsInt()
+  noOfPages?: number;
+
+  @IsOptional()
+  @IsInt()
+  noOfPreliminaryPages?: number;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsInt()
+  inventoryNumber?: number;
+
+  @IsOptional()
+  @IsInt()
+  accessionNumber?: number;
+
+  @IsOptional()
+  @IsString()
+  barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  itemType?: string;
+
+  @IsOptional()
+  @IsUUID()
+  instituteId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isArchived?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  remarks?: string[];
+
+  @IsOptional()
+  @IsArray()
+  images?: string[];
+
+  @IsOptional()
+  additionalFields?: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean;
+}
+
