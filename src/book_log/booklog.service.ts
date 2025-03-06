@@ -15,14 +15,13 @@ export class BooklogService {
   ) {}
 
   async getBooklog() {
-    // const arr = Log();
-    // return ObjectBuilder(arr)
+    return await this.booklogRepository.query(`select * from book_log`);
   }
    async createBooklogIssued(booklogpayload: TCreateBooklogDTO) {
     try {
   
 
-  const result: { student_id:string }[] = await this.booklogRepository.query(`select student_id from students_table where student_uuid='${booklogpayload.student_id}' `)
+  const result: { student_uuid:string; student_name:string; }[] = await this.booklogRepository.query(`select student_uuid from students_table where student_uuid='${booklogpayload.student_uuid}' `)
   const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`select book_title, book_uuid from books_table where book_uuid ='${booklogpayload.book_uuid}'`)  
   //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
    
@@ -32,15 +31,16 @@ console.log()
  console.log('invalid')
 
  }
- console.log('it is working ')
- 
+//  console.log('it is working ')
+const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','borrowed','${result2[0].book_uuid}') `))
+ const result4=(await this.booklogRepository.query(` update book_count set available_count=available_count-1`))
 //  insert
 
     //   let queryData=insertQueryHelper(bookQuerySchema)
       
-    // //   await this.booklogRepository.query(`insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') `,queryData.values)
+    // //   await this.booklogRepository.query(insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') ,queryData.values)
     // }
-    //   // console.log(result);
+      console.log(result2);
     } catch (error) {
       console.log(error)
       throw error
@@ -49,6 +49,38 @@ console.log()
   
   }
 
+
+  async createBooklogreturned(booklogpayload: TCreateBooklogDTO) {
+    try {
+  
+
+  const result: { student_uuid:string; student_name:string; }[] = await this.booklogRepository.query(`select student_uuid from students_table where student_uuid='${booklogpayload.student_uuid}' `)
+  const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`select book_title, book_uuid from books_table where book_uuid ='${booklogpayload.book_uuid}'`)  
+  //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
+   
+  // )
+console.log()
+ if(result.length===0  && result2.length===0){
+ console.log('invalid')
+
+ }
+//  console.log('it is working ')
+const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','returned','${result2[0].book_uuid}') `))
+ const result4=(await this.booklogRepository.query(` update book_count set available_count=available_count+1`))
+//  insert
+
+    //   let queryData=insertQueryHelper(bookQuerySchema)
+      
+    // //   await this.booklogRepository.query(insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') ,queryData.values)
+    // }
+      console.log(result2);
+    } catch (error) {
+      console.log(error)
+      throw error
+  
+    }
+  
+  }
 
 }
 // `insert into book_log (book_uuid, book_title,student_id, department,book_status,borrwed_by)values( ) `

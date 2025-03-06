@@ -22,7 +22,7 @@ export class Books {
   @Column({ name: 'year_of_publication', type: 'date' })
   yearOfPublication: "year_of_publication" = "year_of_publication";
 
-  @Column({ name: 'language', type: 'varchar', length: 255 })
+  @Column({ name: 'language', type: 'varchar', length: 255, nullable:true })
   language: "language" = "language";//bc
 
   @Column({ name: 'edition', type: 'varchar', length: 255 })
@@ -60,7 +60,7 @@ export class Books {
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
   sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";//bc
 
-  @Column({ name: 'date_of_acquisition', type: 'date' })//bc
+  @Column({ name: 'date_of_acquisition', type: 'date', nullable:true })   //bc
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
   @Column({ name: 'bill_no', type: 'int' })

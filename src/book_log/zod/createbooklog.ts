@@ -2,10 +2,10 @@ import { createObjectIncludeProperties } from 'src/create-object-from-class'
 import {z} from 'zod'
 import { Booklog } from '../book_log.entity'
 
-const booklogCreateObject = createObjectIncludeProperties(new Booklog(), ['bookUUID', 'studentId']);
+const booklogCreateObject = createObjectIncludeProperties(new Booklog(), ['bookUUID', 'studentuuid']);
 
 const booklogSchema = z.object({
-    [booklogCreateObject.studentId]: z.string().uuid(),
+    [booklogCreateObject.studentuuid]: z.string().uuid(),
     [booklogCreateObject.bookUUID]: z.string().uuid()
 });
 

@@ -21,13 +21,11 @@ import { TCreateBooklogDTO } from './zod/createbooklog';
   export class BooklogController {
     constructor(private BooklogService: BooklogService) {}
   
-    // @Get('all')
-    // async getallBooklogs(){
-    //    const result= await this.BooklogService.getBooklog();
-    //    return result;
-  
-    //    // return Log();
-    // }
+    @Get('all')
+    async getallBooklogs(){
+       const result= await this.BooklogService.getBooklog();
+       return result;
+    }
     @Post('borrowed')
     async createBooklogissued(@Body() booklogpayload:TCreateBooklogDTO ){
       try{
@@ -37,6 +35,22 @@ import { TCreateBooklogDTO } from './zod/createbooklog';
         return result;
       } catch (error) {
         if (error instanceof Error){
+          console.log(error)
+          throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+        }
+      }
+    
+      }
+      @Post('returned')
+    async createBooklogreturned(@Body() booklogpayload:TCreateBooklogDTO ){
+      try{
+       
+        const result = await this.BooklogService.createBooklogreturned(booklogpayload);
+        
+        return result;
+      } catch (error) {
+        if (error instanceof Error){
+          console.log(error)
           throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
         }
       }

@@ -17,7 +17,7 @@ export class Bookcount {
   @Column({ name: 'available_count', type: 'int', default: 1 })
   availableCount: "available_count" = 'available_count';
 
-  @Column({ name: 'created_at', type: 'date', })
+  @Column({ name: 'created_at', type: 'date', nullable:true })
   createdAt: "created_at" = 'created_at';
 
 }
