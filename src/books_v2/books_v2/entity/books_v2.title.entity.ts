@@ -4,9 +4,11 @@ import { BookCopy } from './books_v2.copies.entity';
 @Entity('book_titles')
 export class BookTitle {
   @PrimaryGeneratedColumn('uuid', { name: 'book_uuid' })
-  bookUUID: string;
+  bookUUID: "book_uuid" = "book_uuid";
 
-  @Column({ name: 'book_id', type: 'varchar', length: 255, unique: true })
+  
+
+  @Column({ name: 'book_id', type: 'varchar', length: 255, unique: true ,nullable:true})
   bookId: "book_id" = "book_id";
 
   // Bibliographic information
@@ -31,6 +33,11 @@ export class BookTitle {
   @Column({ name: 'isbn', type: 'varchar', length: 255 })
   isbn: "isbn" = "isbn";
 
+  @Column({name:'no_pages', type:'integer'})
+ noPages:"no_pages"="no_pages";
+
+ @Column({name:'no_preliminary', type:'integer'})
+ noPreliminary:"no_preliminary"="no_preliminary";
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
   subject: "subject" = "subject";
@@ -44,32 +51,32 @@ export class BookTitle {
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
   authorMark: "author_mark" = "author_mark";
 
-  @Column({
-    name: 'is_archived',
-    default: false,
-    type: 'boolean',
-    nullable: true,
-  })
-  isArchived: "is_archived" = "is_archived";
+  // @Column({
+  //   name: 'is_archived',
+  //   default: false,
+  //   type: 'boolean',
+  //   nullable: true,
+  // })
+  // isArchived: "is_archived" = "is_archived";
 
 
-  @Column({ name: 'total_count', type: 'int' })
+  @Column({ name: 'total_count', type: 'int',nullable:true })
   totalCount: "total_count" = "total_count";
 
-  @Column({ name: 'avaliable_count', type: 'int' })
-  availableCount: "avaliable_count" = "avaliable_count";
+  @Column({ name: 'available_count', type: 'int',nullable:true })
+  availableCount: "available_count" = "available_count";
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt: "created_at" = "created_at";
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt: "updated_at"='updated_at';
 
-  @Column({ name: 'created_by', type: 'uuid', nullable: true })
-  createdBy: "created_by" = "created_by";
+  // @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  // createdBy: "created_by" = "created_by";
 
-  @Column({ name: 'remarks', type: 'simple-array', nullable: true })
-  remarks: "remarks" = "remarks";
+  // @Column({ name: 'remarks', type: 'simple-array', nullable: true })
+  // remarks: "remarks" = "remarks";
 
   @Column({ name: 'images', type: 'simple-array', nullable: true })
   images: "images" = "images";
@@ -80,7 +87,11 @@ export class BookTitle {
   @Column({ name: 'description', type: 'text', nullable: true })
   description: "description" = "description";
 
-  // Relationships
-  @OneToMany(() => BookCopy, (bookCopy) => bookCopy.bookTitle)
-  bookCopies: "book_copies" = "book_copies";
+  // // Relationships
+  // @OneToMany(() => BookCopy, (bookCopy) => bookCopy.bookTitle)
+  // bookCopies: "book_copies" = "book_copies";
+
+  //Relationships
+  // @OneToMany(()=>BookCopy,(bookcopy)=>bookcopy.bookCopyUUID)
+  // bookCopies:'book_copies'='book_copies';
 }
