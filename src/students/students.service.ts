@@ -8,6 +8,7 @@ import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
+import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 
 @Injectable()
 export class StudentsService {
@@ -41,7 +42,7 @@ export class StudentsService {
     )) as Students[];
   }
 
-  async createStudent2(sp: TCreateStudentDTO) {
+  async createStudent2(studentPayload: TCreateStudentDTO) {
     try {
       type TCreateStudentDTOWithID = TCreateStudentDTO & {
         student_id: string;
@@ -49,9 +50,9 @@ export class StudentsService {
       const max: [{ max: null | string }] = await this.studentsRepository.query(
         `SELECT MAX(student_id) from students_table`,
       );
-      let studentId = createStudentId(max[0].max, sp.institute_name)
+      let studentId = createStudentId(max[0].max, studentPayload.institute_name)
       let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
-        { ...sp, student_id: studentId },
+        { ...studentPayload, student_id: studentId },
         ['confirm_password'],
       );
       await this.studentsRepository.query(
@@ -67,49 +68,54 @@ export class StudentsService {
     }
   }
 
-  async createStudent(studentPayload: TCreateStudentDTO) {
-    try {
-      type TCreateStudentDTOWithID = TCreateStudentDTO & {
-        student_id: string;
-        count: number;
-      };
-      //Get Maximum Student Count
-      const maxCountColumn: [{ max: null | number }] =
-        await this.studentsRepository.query(
-          `SELECT MAX(count) from students_table`,
-        );
-      let studentId: string = '';
-      let queryResult: { student_id: string; count: number }[] = [];
-      let count: number = 0;
-      console.log('max column is', maxCountColumn);
-      if (maxCountColumn[0].max) {
-        //studentId = createStudentId(
-        //  maxCountColumn[0].max,
-        //  studentPayload.institute_name,
-        //);
-        queryResult = await this.studentsRepository.query(
-          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
-        );
-        count = queryResult[0].count;
-      } else {
-        studentId = createStudentId(null, studentPayload.institute_name);
-      }
-      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
-        { ...studentPayload, student_id: studentId, count: ++count },
-        ['confirm_password'],
-      );
-      await this.studentsRepository.query(
-        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-        queryData.values,
-      );
-      return {
-        statusCode: HttpStatus.CREATED,
-        studentId: studentId,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
+  //DEPRECATED
+//  async createStudent(studentPayload: TCreateStudentDTO) {
+//    try {
+//      type TCreateStudentDTOWithID = TCreateStudentDTO & {
+//        student_id: string;
+//        count: number;
+//      };
+//      //Get Maximum Student Count
+//      const maxCountColumn: [{ max: null | number }] =
+//        await this.studentsRepository.query(
+//          `SELECT MAX(count) from students_table`,
+//        );
+//      let studentId: string = '';
+//      let queryResult: { student_id: string; count: number }[] = [];
+//      let count: number = 0;
+//      console.log('max column is', maxCountColumn);
+//      if (maxCountColumn[0].max) {
+//        //studentId = createStudentId(
+//        //  maxCountColumn[0].max,
+//        //  studentPayload.institute_name,
+//        //);
+//        queryResult = await this.studentsRepository.query(
+//          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
+//        );
+//        count = queryResult[0].count;
+//      } else {
+//        studentId = createStudentId(null, studentPayload.institute_name);
+//      }
+//      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+//        { ...studentPayload, student_id: studentId, count: ++count },
+//        ['confirm_password'],
+//      );
+//      await this.studentsRepository.query(
+//        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+//        queryData.values,
+//      );
+//      return {
+//        statusCode: HttpStatus.CREATED,
+//        studentId: studentId,
+//      };
+//    } catch (error) {
+//      throw error;
+//    }
+//  }
+//
+  async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
+    return await (CreateWorker(arrStudentPayload, 'student/student-insert-worker') as Promise<TCreateStudentDTO[]>);
+  }  
 
   async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
