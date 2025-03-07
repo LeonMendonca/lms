@@ -108,7 +108,7 @@ export class BookcountService {
         language;
     `, [bookcountpayload.isbn]);
       console.log(result)
-
+return result
       result[0].count=result[0].count+1;
 // insert all the data
         const result2 = await this.bookcountRepository.query(`

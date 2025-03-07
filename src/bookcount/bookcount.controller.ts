@@ -14,7 +14,8 @@ import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
   async  createbookcount(@Body() bookcountpayload:TcreatebookcountQueryValidator, bookcreatepayload:TCreateBookDTO){
       try {
        
-           await this.BookcountService.createBookCount(bookcountpayload,bookcreatepayload)
+         const result=  await this.BookcountService.createBookCount(bookcountpayload,bookcreatepayload)
+           return result
       } catch (error) {
         console.log(error);
         throw error
