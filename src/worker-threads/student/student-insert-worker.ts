@@ -9,7 +9,7 @@ import { createStudentId } from "src/students/create-student-id";
 let uniqueArray: TCreateStudentDTO[] = [];
 
 uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, self) => {
-    return self.findIndex(item => item.email === value.email) === idx;
+    return self.findIndex(item => item.email === value.email && item.phone_no === value.phone_no) === idx;
 });
 
 (async() => {
@@ -22,7 +22,7 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
       let queryData = insertQueryHelper({ ...item, student_id: studentId }, ['confirm_password']);
       await studentRepo.manager.query(`INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values);
       (parentPort ? parentPort.postMessage(true) : "Parent Port NULL" );
-    } catch (error) {      
+    } catch (error) {
       (parentPort ? parentPort.postMessage(false) : "Parent Port NULL" );
     }
   }
