@@ -6,19 +6,24 @@ import { Students } from './students/students.entity';
 import { StudentsModule } from './students/students.module';
 import { BooksModule } from './books/books.module';
 import { Books } from './books/books.entity';
+import { BookMiniCopies } from './book-mini/entity/bookm-copies.entity';
+import { BookMiniTitle } from './book-mini/entity/bookm-title.entity';
+import { BookMiniModule } from './book-mini/bookm.module';
 
 config({ path: '.env' });
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books],
+      entities: [Students, Books, BookMiniCopies, BookMiniTitle],
       ssl: true,
       synchronize: true,
     }),
     StudentsModule,
     BooksModule,
+    BookMiniModule
   ],
 })
 export class AppModule {
