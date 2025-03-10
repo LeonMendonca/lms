@@ -325,6 +325,7 @@ WHERE
   
       return { message: 'Book restored successfully' };
     } catch (error) {
+      console.log(error);
       throw new HttpException('Error restoring book', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
