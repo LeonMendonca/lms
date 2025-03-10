@@ -4,6 +4,8 @@ import { createStudentSchema, TCreateStudentDTO } from "src/students/zod-validat
 const newArr: TCreateStudentDTO[] = [];
 const newErrArr: any[] = [];
 
+console.log("worker started working...");
+
 workerData.oneDArray.filter((item: any)=> {
     let result = createStudentSchema.safeParse(item);
     if(result.success) {
@@ -15,5 +17,6 @@ workerData.oneDArray.filter((item: any)=> {
     }
 })
 
+console.log("work ends.");
 
 (parentPort ? parentPort.postMessage(newArr) : "Parent Port NULL" );

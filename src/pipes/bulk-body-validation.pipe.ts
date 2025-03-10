@@ -20,11 +20,20 @@ export class bulkBodyValidationPipe implements PipeTransform {
     if(metadata.type === 'body') {
       if(value && Array.isArray(value)  && value.length != 0) {
         BatchOfStudentValues = Chunkify(value);
+        console.log("chunked array done..", BatchOfStudentValues.length);
         for(let i = 0; i < BatchOfStudentValues.length ; i++) {
-          let result = await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-worker') as Promise<TCreateStudentDTO[]>)
-          BatchArr.push(result);
+          console.log("now creating batches")
+          let result = await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-body-worker') as Promise<TCreateStudentDTO[]>)
+          if(result.length != 0) {
+            BatchArr.push(result);
+          }
+          console.log("all batch done!")
         }
-        return (await Promise.all(BatchArr)).flat();
+        let zodValidatedArray = (await Promise.all(BatchArr)).flat();
+        if(zodValidatedArray.length === 0) {
+          throw new HttpException("No valid data found", HttpStatus.BAD_REQUEST);
+        }
+        return zodValidatedArray;
       } else {
         throw new HttpException("Required an Array or Empty array not accepted", HttpStatus.BAD_REQUEST);
       }
