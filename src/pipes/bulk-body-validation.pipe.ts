@@ -14,16 +14,20 @@ import { ZodSchema, ZodError } from 'zod';
 export class bulkBodyValidationPipe implements PipeTransform {
   constructor(private readonly zschema: ZodSchema) {}
   async transform(value: any, metadata: ArgumentMetadata) {
-    let BatchArr: TCreateStudentDTO[][] = [[]];
-    let BatchOfStudentValues: any[][] = [[]];
+    //initializing array with empty value;
+    let BatchArr: TCreateStudentDTO[][] = [];
+    let BatchOfStudentValues: any[][] = [];
     if(metadata.type === 'body') {
-      if(value && Array.isArray(value))
+      if(value && Array.isArray(value)) {
         BatchOfStudentValues = Chunkify(value);
         for(let i = 0; i < BatchOfStudentValues.length ; i++) {
-          //BatchArr.push(await CreateWorker(BatchOfStudentValues[i], 'student-worker'));
-          BatchArr.push(await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-worker') as Promise<TCreateStudentDTO[]>));
+          let result = await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-worker') as Promise<TCreateStudentDTO[]>)
+          BatchArr.push(result);
         }
-        return BatchArr.flat();
+        return (await Promise.all(BatchArr)).flat();
+      } else {
+        throw new HttpException("Required an Array", HttpStatus.BAD_REQUEST);
+      }
     } else {
       throw new HttpException("Required a body", HttpStatus.BAD_REQUEST);
     }

@@ -23,6 +23,7 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
       await studentRepo.manager.query(`INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values);
       (parentPort ? parentPort.postMessage(true) : "Parent Port NULL" );
     } catch (error) {
+        console.error(error.message);
       (parentPort ? parentPort.postMessage(false) : "Parent Port NULL" );
     }
   }
