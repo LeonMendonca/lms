@@ -17,16 +17,16 @@ export const editBookSchema = z.object({
   [updateBookObject.noOfPreliminaryPages]: z.number().optional(),
   [updateBookObject.subject]: z.string().optional(),
   [updateBookObject.department]: z.string().optional(),
-  [updateBookObject.callNumber]: z
-    .string()
-    .refine(
-      (call_number) => {
-        return !isNaN(Number(call_number)) && call_number.length === 10;
-      },
-      { message: 'Not a valid phone number' },
-    )
-    .optional(),
-  [updateBookObject.authorMark]: z.string().optional(),
+  // [updateBookObject.callNumber]: z
+  //   .string()
+  //   .refine(
+  //     (call_number) => {
+  //       return !isNaN(Number(call_number)) && call_number.length === 10;
+  //     },
+  //     { message: 'Not a valid phone number' },
+  //   )
+  //   .optional(),
+  // [updateBookObject.authorMark]: z.string().optional(),
   [updateBookObject.sourceOfAcquisition]: z.string().optional(),
   [updateBookObject.dateOfAcquisition]: z.string().date().optional(),
   [updateBookObject.billNo]: z.number().optional(),
