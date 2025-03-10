@@ -6,13 +6,6 @@ export class BookCopy {
   @PrimaryGeneratedColumn('uuid', { name: 'book_copy_uuid' })
   bookCopyUUID: "book_copy_uuid" = "book_copy_uuid";
 
-
-  // @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
-  // callNumber: "call_number" = "call_number";
-
-  // @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  // authorMark: "author_mark" = "author_mark";
-
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
   sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
 
@@ -21,12 +14,6 @@ export class BookCopy {
 
   @Column({ name: 'bill_no', type: 'int' })
   billNo: "bill_no" = "bill_no";
-
-  // @Column({ name: 'no_of_pages', type: 'int' })
-  // noOfPages: "no_of_pages" = "no_of_pages";
-
-  // @Column({ name: 'no_of_preliminary_pages', type: 'int' })
-  // noOfPreliminaryPages: "no_of_preliminary_pages" = "no_of_preliminary_pages";
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
   language: "language" = "language";
@@ -66,9 +53,6 @@ export class BookCopy {
   @Column({ name: 'remarks', type: 'simple-array', nullable: true })
   remarks: "remarks" = "remarks";
 
-  // @Column({ name: 'isbn', type: 'varchar', length: 255,  nullable:true})
-  // isbn: "isbn" = "isbn";
-
   @Column({ name: 'copy_images', type: 'simple-array', nullable: true })
   copyImages: "copy_images" = "copy_images";
 
@@ -81,7 +65,7 @@ export class BookCopy {
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
   isAvailable: "is_available" = "is_available";
 
-  @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookUUID)
+  @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: "book_title_uuid" })
   bookTitleUUID: "book_title_uuid" = "book_title_uuid";
 }

@@ -9,6 +9,7 @@ import { TCreateBookZodDTO } from './zod/createbookdtozod';
 import { insertQueryHelper } from 'src/custom-query-helper';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
+import { UpdateBookTitleDTO } from './zod/updatebookdto';
 
 @Injectable()
 export class BooksV2Service {
@@ -105,7 +106,62 @@ export class BooksV2Service {
     }
   }
 
-  // TODO: Edit Functionality
+  // TODO: Edit Functionality PS. Not working properly
+  async updateBookTitle(id: string, updateBookPayload: UpdateBookTitleDTO) {
+    try {
+      const book = await this.booktitleRepository.query(
+        `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = false LIMIT 1 `,
+        [id],
+      );
+
+      if (!book) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+
+      await this.booktitleRepository.query(
+        `UPDATE book_titles 
+         SET 
+             book_title = COALESCE($2, book_title),
+             book_author = COALESCE($3, book_author),
+             name_of_publisher = COALESCE($4, name_of_publisher),
+             place_of_publication = COALESCE($5, place_of_publication),
+             year_of_publication = COALESCE($6, year_of_publication),
+             edition = COALESCE($7, edition),
+             isbn = COALESCE($8, isbn),
+             subject = COALESCE($9, subject),
+             department = COALESCE($10, department),
+             total_count = COALESCE($11, total_count),
+             available_count = COALESCE($12, available_count),
+             images = COALESCE($13, images),
+             additional_fields = COALESCE($14, additional_fields),
+             description = COALESCE($15, description),
+             updated_at = NOW()
+         WHERE book_uuid = $1`,
+        [
+          id,
+          updateBookPayload.bookTitle,
+          updateBookPayload.bookAuthor,
+          updateBookPayload.nameOfPublisher,
+          updateBookPayload.placeOfPublication,
+          updateBookPayload.yearOfPublication,
+          updateBookPayload.edition,
+          updateBookPayload.isbn,
+          updateBookPayload.subject,
+          updateBookPayload.department,
+          updateBookPayload.totalCount,
+          updateBookPayload.availableCount,
+          updateBookPayload.images,
+          updateBookPayload.additionalFields,
+          updateBookPayload.description,
+        ],
+      );
+
+      return { message: 'Book updated successfully' };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException('Error updating book', HttpStatus.BAD_REQUEST);
+    }
+  }
 
   // Create a new book
   async createBook(createBookpayload: TCreateBookZodDTO) {
@@ -348,7 +404,9 @@ WHERE
       );
     }
   }
-  
+
+  // TODO: Create Direct Copy
+
   async getBookCopies(
     { page, limit }: { page: number; limit: number } = {
       page: 1,
@@ -416,6 +474,177 @@ WHERE
   }
 
   // TODO: Work in Update
+  async updateBookCopy(id: string, updateBookCopyPayload: any) {
+    try {
+      const bookCopy = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies WHERE book_copy_uuid = $1 LIMIT 1`,
+        [id],
+      );
+
+      console.log({bookCopy})
+
+      if (!bookCopy || bookCopy.length === 0) {
+        throw new HttpException('Book copy not found', HttpStatus.NOT_FOUND);
+      }
+
+      await this.bookcopyRepository.query(
+        `UPDATE book_copies 
+         SET 
+             source_of_acquisition = COALESCE($2, source_of_acquisition),
+             date_of_acquisition = COALESCE($3, date_of_acquisition),
+             bill_no = COALESCE($4, bill_no),
+             language = COALESCE($5, language),
+             inventory_number = COALESCE($6, inventory_number),
+             accession_number = COALESCE($7, accession_number),
+             barcode = COALESCE($8, barcode),
+             item_type = COALESCE($9, item_type),
+             remarks = COALESCE($10, remarks),
+             copy_images = COALESCE($11, copy_images),
+             copy_additional_fields = COALESCE($12, copy_additional_fields),
+             copy_description = COALESCE($13, copy_description),
+             updated_at = NOW()
+         WHERE book_copy_uuid = $1`,
+        [
+          id,
+          updateBookCopyPayload.source_of_acquisition,
+          updateBookCopyPayload.date_of_acquisition,
+          updateBookCopyPayload.bill_no,
+          updateBookCopyPayload.language,
+          updateBookCopyPayload.inventory_number,
+          updateBookCopyPayload.accession_number,
+          updateBookCopyPayload.barcode,
+          updateBookCopyPayload.item_type,
+          updateBookCopyPayload.remarks,
+          updateBookCopyPayload.copy_images,
+          updateBookCopyPayload.copy_additional_fields,
+          updateBookCopyPayload.copy_description
+        ],
+      );
+
+      return { message: 'Book copy updated successfully' };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error updating book copy',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  async archiveBookCopy(book_copy_uuid: string) {
+    try {
+      // Archive the book copy and get the bookTitleUUID
+      const archiveResult = await this.bookcopyRepository.query(
+        `UPDATE book_copies 
+         SET is_archived = true 
+         WHERE book_copy_uuid = $1 
+         RETURNING book_title_uuid`,
+        [book_copy_uuid],
+      );
+
+      if (archiveResult.length === 0) {
+        throw new Error('Book copy not found or already archived');
+      }
+
+      const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+
+      console.log({ bookTitleUUID });
+
+      // Reduce total_count and available_count in book_titles
+      await this.booktitleRepository.query(
+        `UPDATE book_titles 
+         SET 
+           total_count = GREATEST(total_count - 1, 0), 
+           available_count = GREATEST(available_count - 1, 0)
+         WHERE book_uuid = $1`,
+        [bookTitleUUID],
+      );
+
+      return { success: true, message: 'Book copy archived successfully' };
+    } catch (error) {
+      console.error('Error archiving book copy:', error);
+      throw new Error('Failed to archive book copy');
+    }
+  }
+
+  async getArchivedBooksCopy(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = true
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = true`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async restoreBookCopy(book_uuid: string) {
+    try {
+      const book = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies WHERE book_copy_uuid = $1 AND is_archived = true`,
+        [book_uuid],
+      );
+
+      if (book.length === 0) {
+        throw new HttpException(
+          'Book not found or already active',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.booktitleRepository.query(
+        `UPDATE book_copies SET is_archived = false WHERE book_copy_uuid = $1 RETURNING book_title_uuid`,
+        [book_uuid],
+      );
+
+      const bookTitleUUID = book[0].book_title_uuid;
+
+      await this.booktitleRepository.query(
+        `UPDATE book_titles 
+         SET 
+           total_count = total_count + 1, 
+           available_count = available_count + 1
+         WHERE book_uuid = $1`,
+        [bookTitleUUID],
+      );
+
+      return { message: 'Book restored successfully' };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error restoring book',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async isbnBook(isbn: string) {
     const result = await this.booktitleRepository.query(`

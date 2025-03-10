@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   ParseUUIDPipe,
+  Patch,
 } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
@@ -19,6 +20,7 @@ import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { EMPTY } from 'rxjs';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { string } from 'zod';
+import { UpdateBookTitleDTO } from './zod/updatebookdto';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -127,5 +129,42 @@ export class BooksV2Controller {
   @Get('fetch_book_copy')
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
     return this.booksService.fetchSingleCopyInfo(identifier);
+  }
+
+  @Patch('update_book_title')
+  async updateBookTitle(
+    @Body('book_uuid') book_uuid: string,
+    @Body() bookPayload: UpdateBookTitleDTO,
+  ) {
+    return this.booksService.updateBookTitle(book_uuid, bookPayload);
+  }
+
+  @Put('archive_book_copy')
+  async archiveBookCopy(@Body('book_uuid') book_uuid: string) {
+    return this.booksService.archiveBookCopy(book_uuid);
+  }
+
+  @Get('fetch_archived_book_copy')
+  async getArchivedBooksCopy(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    return this.booksService.getArchivedBooksCopy({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+    });
+  }
+
+  @Put('restore_book_copy')
+  async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
+    return this.booksService.restoreBookCopy(book_uuid);
+  }
+
+  @Patch('update_book_copy')
+  async updateBookCopy(
+    @Body('book_uuid') book_uuid: string,
+    @Body() bookPayload: any,
+  ) {
+    return this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
 }
