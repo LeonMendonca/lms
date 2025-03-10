@@ -3,6 +3,7 @@ import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
+import { EMPTY } from 'rxjs';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -27,17 +28,14 @@ export class BooksV2Controller {
   @Get('isbn/:isbn')
   
   async searchBookIsbn(@Param('isbn',)isbn:string,@Body() bookpayload:TisbnBookZodDTO){
-try {
-  const result= await this.booksService.isbnBook(isbn,bookpayload)
-  return result[0];
-
-
-} catch (error) {
-  console.log(error);
-  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-
+    try {
+      const result = await this.booksService.isbnBook(isbn,bookpayload)
+        return result;
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
 }
-  }
 
   // Create new book
   @Post('create')
