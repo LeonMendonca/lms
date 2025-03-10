@@ -28,7 +28,6 @@ export class BooksV2Service {
     },
   ) {
     try {
-      console.log(page, limit, search);
       const offset = (page - 1) * limit;
       const searchQuery = search ? `%${search}%` : '%';
 
