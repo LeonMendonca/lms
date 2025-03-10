@@ -18,7 +18,7 @@ export class bulkBodyValidationPipe implements PipeTransform {
     let BatchArr: TCreateStudentDTO[][] = [];
     let BatchOfStudentValues: any[][] = [];
     if(metadata.type === 'body') {
-      if(value && Array.isArray(value)) {
+      if(value && Array.isArray(value)  && value.length != 0) {
         BatchOfStudentValues = Chunkify(value);
         for(let i = 0; i < BatchOfStudentValues.length ; i++) {
           let result = await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-worker') as Promise<TCreateStudentDTO[]>)
@@ -26,7 +26,7 @@ export class bulkBodyValidationPipe implements PipeTransform {
         }
         return (await Promise.all(BatchArr)).flat();
       } else {
-        throw new HttpException("Required an Array", HttpStatus.BAD_REQUEST);
+        throw new HttpException("Required an Array or Empty array not accepted", HttpStatus.BAD_REQUEST);
       }
     } else {
       throw new HttpException("Required a body", HttpStatus.BAD_REQUEST);
