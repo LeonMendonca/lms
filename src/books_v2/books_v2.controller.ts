@@ -18,6 +18,7 @@ import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { EMPTY } from 'rxjs';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
+import { string } from 'zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -41,10 +42,10 @@ export class BooksV2Controller {
   //   return this.booksService.getBooks();
   // }
   @Put('uparchive')
-  async updateArchive(book_uuid:string,createBookpayload:TupdatearchiveZodDTO){
-
-
-
+  async updateArchive(@Body() book_uuid:string){
+console.log('working')
+return this.booksService.updateTitleArchive(book_uuid)
+ 
     
   }
 

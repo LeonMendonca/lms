@@ -233,14 +233,13 @@ WHERE
 
   async updateTitleArchive(
     book_uuid: string,
-    createbookpayload: TupdatearchiveZodDTO,
   ) {
     try {
       // Check if the book exists and is not archived
-      const book = await this.bookcopyRepository.query(
-        `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = false`,
-        [book_uuid],
+      const book = await this.booktitleRepository.query(
+        `SELECT * FROM book_titles WHERE book_uuid ='${book_uuid}' AND is_archived = false`,
       );
+      console.log({book});
 
       if (book.length === 0) {
         throw new HttpException(
@@ -257,6 +256,7 @@ WHERE
 
       return { message: 'Book archived successfully' };
     } catch (error) {
+      console.log (error);
       throw new HttpException(
         'Error archiving book',
         HttpStatus.INTERNAL_SERVER_ERROR,
