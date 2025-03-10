@@ -66,17 +66,17 @@ export class BookCopy {
   @Column({ name: 'remarks', type: 'simple-array', nullable: true })
   remarks: "remarks" = "remarks";
 
-  @Column({ name: 'isbn', type: 'varchar', length: 255,  nullable:true})
-  isbn: "isbn" = "isbn";
+  // @Column({ name: 'isbn', type: 'varchar', length: 255,  nullable:true})
+  // isbn: "isbn" = "isbn";
 
-  // @Column({ name: 'images', type: 'simple-array', nullable: true })
-  // images: "images" = "images";
+  @Column({ name: 'copy_images', type: 'simple-array', nullable: true })
+  copyImages: "copy_images" = "copy_images";
 
-  // @Column({ name: 'additional_fields', type: 'json', nullable: true })
-  // additionalFields: "additional_fields" = "additional_fields";
+  @Column({ name: 'copy_additional_fields', type: 'json', nullable: true })
+  copyAdditionalFields: "copy_additional_fields" = "copy_additional_fields";
   
-  // @Column({ name: 'description', type: 'text', nullable: true })
-  // description: "description" = "description";
+  @Column({ name: 'copy_description', type: 'text', nullable: true })
+  copyDescription: "copy_description" = "copy_description";
 
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
   isAvailable: "is_available" = "is_available";

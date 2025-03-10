@@ -6,7 +6,7 @@ import { BookCopy } from '../entity/books_v2.copies.entity';
 
 
 const createBookTitleObject= createObjectOmitProperties(new BookTitle(),['bookUUID','availableCount','totalCount','updatedAt','createdAt','bookId'])
-const createBookCopyObject = createObjectOmitProperties(new BookCopy(), ['bookCopyUUID','isArchived','isAvailable','isbn','bookCopyUUID','bookTitleUUID','createdBy','createdAt','updatedAt']);
+const createBookCopyObject = createObjectOmitProperties(new BookCopy(), ['bookCopyUUID','isArchived','isAvailable','bookCopyUUID','bookTitleUUID','createdBy','createdAt','updatedAt']);
 
 export const isbnBookSchema = z.object({
     [createBookTitleObject.isbn]:z.string().refine((isbn)=>{
