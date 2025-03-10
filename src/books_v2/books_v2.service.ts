@@ -263,4 +263,70 @@ WHERE
       );
     }
   }
+
+  async getArchivedBooks(
+    { page, limit, search }: { page: number; limit: number; search: string } = {
+      page: 1,
+      limit: 10,
+      search: '',
+    },
+  ) {
+    try {
+      console.log(page, limit, search);
+      const offset = (page - 1) * limit;
+      const searchQuery = search ? '%${search}%' : '%';
+
+      const books = await this.booktitleRepository.query(
+        `SELECT * FROM book_titles 
+         WHERE is_archived = true AND book_title ILIKE $1
+         LIMIT $2 OFFSET $3`,
+        [searchQuery, limit, offset],
+      );
+
+      const total = await this.booktitleRepository.query(
+        `SELECT COUNT(*) as count FROM book_titles 
+         WHERE is_archived = true AND book_title ILIKE $1`,
+        [searchQuery],
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async restoreBook(book_uuid: string) {
+    try {
+      const book = await this.booktitleRepository.query(
+        `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = true`,
+        [book_uuid]
+      );
+  
+      if (book.length === 0) {
+        throw new HttpException('Book not found or already active', HttpStatus.NOT_FOUND);
+      }
+      
+      await this.booktitleRepository.query(
+        `UPDATE book_titles SET is_archived = false WHERE book_uuid = $1`,
+        [book_uuid]
+      );
+  
+      return { message: 'Book restored successfully' };
+    } catch (error) {
+      throw new HttpException('Error restoring book', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  
 }

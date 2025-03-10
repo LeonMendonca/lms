@@ -84,4 +84,22 @@ export class BooksV2Controller {
       }
     }
   }
+
+  @Get('all_archived')
+  async getAllArchivedBooks(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+    @Query('_search') search: string,
+  ) {
+    return this.booksService.getArchivedBooks({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search ?? undefined,
+    });
+  }
+
+  @Put('restore_archive')
+  async restoreArchive(@Body('book_uuid') book_uuid: string) {
+    return this.booksService.restoreBook(book_uuid);
+  }
 }
