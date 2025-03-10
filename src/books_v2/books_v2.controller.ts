@@ -58,12 +58,9 @@ export class BooksV2Controller {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
   @Get('isbn/:isbn')
-  async searchBookIsbn(
-    @Param('isbn') isbn: string,
-    @Body() bookpayload: TisbnBookZodDTO,
-  ) {
+  async searchBookIsbn(@Param('isbn') isbn: string) {
     try {
-      const result = await this.booksService.isbnBook(isbn, bookpayload);
+      const result = await this.booksService.isbnBook(isbn);
       return result[0];
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);

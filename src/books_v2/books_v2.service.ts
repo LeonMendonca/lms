@@ -220,8 +220,7 @@ WHERE
     }
   }
 
-  async isbnBook(isbn: string, createBookpayload: TisbnBookZodDTO) {
-    const querydata = insertQueryHelper(createBookpayload, []);
+  async isbnBook(isbn: string) {
     const result = await this.booktitleRepository.query(`
       SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
       `);
@@ -326,6 +325,39 @@ WHERE
       return { message: 'Book restored successfully' };
     } catch (error) {
       throw new HttpException('Error restoring book', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  
+  async getBookDetails(book_uuid: string, isbn: string, titlename: string) {
+    try {
+      const queryParams: string[] = [];
+      let query = `SELECT * FROM book_titles WHERE 1=1`;
+  
+      if (book_uuid) {
+        query += ` AND book_uuid = $${queryParams.length + 1}`;
+        queryParams.push(book_uuid);
+      }
+      if (isbn) {
+        query += ` AND isbn = $${queryParams.length + 1}`;
+        queryParams.push(isbn);
+      }
+      if (titlename) {
+        query += ` AND book_title ILIKE $${queryParams.length + 1}`;
+        queryParams.push(`%${titlename}%`);
+      }
+  
+      const book = await this.booktitleRepository.query(query, queryParams);
+  
+      if (book.length === 0) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+  
+      return book[0]; // Return only the first matching book
+    } catch (error) {
+      throw new HttpException(
+        'Error fetching book details',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
   
