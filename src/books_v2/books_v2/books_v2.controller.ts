@@ -1,13 +1,8 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, Query, UsePipes, HttpException, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
-import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
-import { bookQuerySchema } from 'src/books/zod-validation/bookquery-zod';
-import { BookQueryValidator, UnionBook } from 'src/books/books.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-// import { createBookSchema, TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
-
-import { CreateBookCopyDTO } from './zod/createcopydto';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
+import { TisbnBookZodDTO } from './zod/isbnbookzod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -29,6 +24,19 @@ export class BooksV2Controller {
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}
+  @Get('isbn')
+  async searchBookIsbn(@Body() bookpayload:TisbnBookZodDTO){
+try {
+  const result= await this.booksService.isbnBook(bookpayload)
+  return result;
+
+
+} catch (error) {
+  console.log(error);
+  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+
+}
+  }
 
   // Create new book
   @Post('create')
@@ -39,9 +47,11 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (error instanceof Error) {
+       console.log(error);
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
     }
   }
-  //https://github.com/Aspireve/lms/tree/master/src steve done it
+
+ 
 }

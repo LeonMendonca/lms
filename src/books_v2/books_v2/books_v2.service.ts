@@ -3,11 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BookCopy } from './entity/books_v2.copies.entity';
 import { BookTitle } from './entity/books_v2.title.entity';
-import { UpdateBookTitleDTO } from './zod/updatebookdto';
-import { UnionBook } from 'src/books/books.query-validator';
+
 import { CreateBookCopyDTO } from './zod/createcopydto';
 import { TCreateBookZodDTO } from './zod/createbookdtozod';
 import { insertQueryHelper } from 'src/custom-query-helper';
+import { TisbnBookZodDTO } from './zod/isbnbookzod';
 
 @Injectable()
 export class BooksV2Service {
@@ -48,9 +48,11 @@ export class BooksV2Service {
     if (bookTitleValid.length == 0) {
       const booktitle = this.booktitleRepository.query(`insert into book_titles(${querydata.queryCol})values(${querydata.queryArg})`, querydata.values,);
       console.log("new book generated and data is inserting in book title book");
+     
       const querydata2 = insertQueryHelper(createBookpayload, ['book_title', 'book_author', 'name_of_publisher', 'place_of_publication', 'year_of_publication', 'edition', 'subject', 'department', 'call_number', 'author_mark', 'images', 'additional_fields', 'description', 'no_pages', 'no_preliminary']);
       const bookcopy = this.booktitleRepository.query(`insert into book_copies(${querydata2.queryCol})values(${querydata2.queryArg})`, querydata2.values,);
       console.log("new book");
+      
       const bookisbn: { book_uuid: string; total_count: string; }[] = await this.booktitleRepository.query(`SELECT book_uuid, COUNT(*) OVER (PARTITION BY isbn) AS total_count FROM 
         book_titles WHERE  isbn = '${createBookpayload.isbn}'GROUP BY book_uuid limit 1`)
       const update = this.booktitleRepository.query(`update book_copies set book_title_uuid='${bookisbn[0].book_uuid}' where isbn='${createBookpayload.isbn}'`)
@@ -62,10 +64,28 @@ export class BooksV2Service {
       //   book_titles WHERE  isbn = '${data_isbn2}'GROUP BY book_uuid limit 1`)
       //   const update2= this.booktitleRepository.query(`update book_copies set book_title_uuid='${bookisbn[0].book_uuid}' where isbn='${data_isbn}'`)
       //   console.log("book is available book title book available and total count is updated ");
+// updating book_count
 
+console.log("update count in process");
+const count:{count:string;}[]=await this.booktitleRepository.query(`SELECT 
+ count(isbn)
+FROM 
+  book_copies
+WHERE 
+  isbn = '${createBookpayload.isbn}'
+
+`)
+  console.log(count);  
+const update_count=await this.booktitleRepository.query(`update book_titles set total_count =${count[0].count} , available_count=${count[0].count} where  isbn='${createBookpayload.isbn}'`)
+      
     }
-    const updatecount = await this.booktitleRepository.query(`update book_titles set available_count=available_count+1,total_count=total_count+1 where isbn='${createBookpayload.isbn}' `)
-    console.log("book is available count is increasing");
+else{
+
+
+
+//available
+    // const updatecount = await this.booktitleRepository.query(`update book_titles set available_count=available_count+1,total_count=total_count+1 where isbn='${createBookpayload.isbn}' `)
+    // console.log("book is available count is increasing");
 
     const querydata2 = insertQueryHelper(createBookpayload, ['book_title', 'book_author', 'name_of_publisher', 'place_of_publication', 'year_of_publication', 'edition', 'subject', 'department', 'call_number', 'author_mark', 'images', 'additional_fields', 'description', 'no_pages', 'no_preliminary']);
     const bookcopy = this.booktitleRepository.query(`insert into book_copies(${querydata2.queryCol})values(${querydata2.queryArg})`, querydata2.values,);
@@ -75,11 +95,35 @@ export class BooksV2Service {
     const bookisbn: { book_uuid: string; total_count: string; }[] = await this.booktitleRepository.query(`SELECT book_uuid, COUNT(*) OVER (PARTITION BY isbn) AS total_count FROM 
     book_titles WHERE  isbn = '${data_isbn}'GROUP BY book_uuid limit 1`)
     const update = this.booktitleRepository.query(`update book_copies set book_title_uuid='${bookisbn[0].book_uuid}' where isbn='${data_isbn}'`)
+    
     console.log("book is available book title book available and total count is updated ");
 
+
+    console.log("update count in process");
+    const count:{count:string;}[]=await this.booktitleRepository.query(`SELECT 
+     count(isbn)
+    FROM 
+      book_copies
+    WHERE 
+      isbn = '${createBookpayload.isbn}'
+    
+    `)
+      console.log(count);  
+    const update_count=await this.booktitleRepository.query(`update book_titles set total_count =${count[0].count} , available_count=${count[0].count} where  isbn='${createBookpayload.isbn}'`)
+    
+
+console.log("update count", update_count)
     const finalresult=await this.booktitleRepository.query(`select * from book_titles where isbn='${createBookpayload.isbn}' `);
     return finalresult;
   }
+  }
 
-// change count part count +1 value is not valid use count aggregate functio to get count 
+  async isbnBook(createBookpayload:TisbnBookZodDTO){
+    const querydata = insertQueryHelper(createBookpayload, []);
+
+    return await this.booktitleRepository.query(`select book_copies.source_of_acquisition,book_copies.date_of_acquisition,book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  from book_titles inner join book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${createBookpayload.isbn}' LIMIT 1`
+);
+
+
+  }
 }
