@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booklog} from './book_log.entity';
@@ -6,6 +6,7 @@ import { insertQueryHelper } from 'src/custom-query-helper';
 import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
 import { string } from 'zod';
 import { TCreateBooklogDTO } from './zod/createbooklog';
+import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 // import { bookQuerySchema } from './zod-validation/bookquery-zod';
 @Injectable()
 export class BooklogService {
@@ -28,8 +29,7 @@ export class BooklogService {
   // )
 console.log()
  if(result.length===0  && result2.length===0){
- console.log('invalid')
-
+throw new Error("Book and Student Id is not valid!!")
  }
   console.log('it is working ')
 const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','borrowed','${result2[0].book_uuid}') `))

@@ -32,8 +32,8 @@ export class BooksV2Controller {
       const result = await this.booksService.isbnBook(isbn,bookpayload)
         return result[0];
     } catch (error) {
-      console.log(error);
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
 }
 
