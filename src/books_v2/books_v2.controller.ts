@@ -42,11 +42,9 @@ export class BooksV2Controller {
   //   return this.booksService.getBooks();
   // }
   @Put('uparchive')
-  async updateArchive(@Body() book_uuid:string){
-console.log('working')
-return this.booksService.updateTitleArchive(book_uuid)
- 
-    
+  async updateArchive(@Body('book_uuid') book_uuid: string) {
+    console.log('working');
+    return this.booksService.updateTitleArchive(book_uuid);
   }
 
   // @Get('search')
