@@ -99,4 +99,33 @@ export class BooksV2Controller {
   async restoreArchive(@Body('book_uuid') book_uuid: string) {
     return this.booksService.restoreBook(book_uuid);
   }
+
+  @Get('get_book_tile_details')
+  async getBookTitleDetails(
+    @Query('_book_uuid') book_uuid: string,
+    @Query('_isbn') isbn: string,
+    @Query('_titlename') titlename: string,
+  ) {
+    return this.booksService.getBookTitleDetails({
+      book_uuid: book_uuid ?? undefined,
+      isbn: isbn ?? undefined,
+      titlename: titlename ?? undefined,
+    });
+  }
+
+  @Get('fetch_all_book_copy')
+  async fetchAllCopyInfo(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    return this.booksService.getBookCopies({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+    });
+  }
+
+  @Get('fetch_book_copy')
+  async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
+    return this.booksService.fetchSingleCopyInfo(identifier);
+  }
 }

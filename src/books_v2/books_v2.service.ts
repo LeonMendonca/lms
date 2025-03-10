@@ -64,17 +64,48 @@ export class BooksV2Service {
     }
   }
 
-  // Find a single book by query (e.g., search by ISBN, title, etc.)
-  // async findBookBy(query: UnionBook) {
-  //   try {
-  //     const book = await this.booktitleRepository.findOne({
-  //       where: query, // Use the query as the condition for findOne
-  //     });
-  //     return book; // return the found book or null
-  //   } catch (error) {
-  //     throw new HttpException('Error fetching book', HttpStatus.INTERNAL_SERVER_ERROR);
-  //   }
-  // }
+  async getBookTitleDetails({
+    book_uuid,
+    isbn,
+    titlename,
+  }: {
+    book_uuid: string;
+    isbn: string;
+    titlename: string;
+  }) {
+    try {
+      const queryParams: string[] = [];
+      let query = `SELECT * FROM book_titles WHERE 1=1`;
+
+      if (book_uuid) {
+        query += ` AND book_uuid = $${queryParams.length + 1}`;
+        queryParams.push(book_uuid);
+      }
+      if (isbn) {
+        query += ` AND isbn = $${queryParams.length + 1}`;
+        queryParams.push(isbn);
+      }
+      if (titlename) {
+        query += ` AND book_title ILIKE $${queryParams.length + 1}`;
+        queryParams.push(`%${titlename}%`);
+      }
+
+      const book = await this.booktitleRepository.query(query, queryParams);
+
+      if (book.length === 0) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+
+      return book[0]; // Return only the first matching book
+    } catch (error) {
+      throw new HttpException(
+        'Error fetching book details',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // TODO: Edit Functionality
 
   // Create a new book
   async createBook(createBookpayload: TCreateBookZodDTO) {
@@ -98,9 +129,6 @@ export class BooksV2Service {
       const booktitle = this.booktitleRepository.query(
         `insert into book_titles(${querydata.queryCol})values(${querydata.queryArg})`,
         querydata.values,
-      );
-      console.log(
-        'new book generated and data is inserting in book title book',
       );
 
       const querydata2 = insertQueryHelper(createBookpayload, [
@@ -200,12 +228,11 @@ WHERE
       console.log('update count in process');
       const count: { count: string }[] = await this.booktitleRepository
         .query(`SELECT 
-     count(isbn)
-    FROM 
-      book_copies
-    WHERE 
-      isbn = '${createBookpayload.isbn}'
-    
+            count(isbn)
+            FROM 
+              book_copies
+            WHERE 
+              isbn = '${createBookpayload.isbn}'
     `);
       console.log(count);
       const update_count = await this.booktitleRepository.query(
@@ -220,25 +247,13 @@ WHERE
     }
   }
 
-  async isbnBook(isbn: string) {
-    const result = await this.booktitleRepository.query(`
-      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
-      `);
-    if (result.length === 0) {
-      throw new Error('No data found');
-    }
-    return result;
-  }
-
-  async updateTitleArchive(
-    book_uuid: string,
-  ) {
+  async updateTitleArchive(book_uuid: string) {
     try {
       // Check if the book exists and is not archived
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid ='${book_uuid}' AND is_archived = false`,
       );
-      console.log({book});
+      console.log({ book });
 
       if (book.length === 0) {
         throw new HttpException(
@@ -255,7 +270,7 @@ WHERE
 
       return { message: 'Book archived successfully' };
     } catch (error) {
-      console.log (error);
+      console.log(error);
       throw new HttpException(
         'Error archiving book',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -310,55 +325,105 @@ WHERE
     try {
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = true`,
-        [book_uuid]
+        [book_uuid],
       );
-  
+
       if (book.length === 0) {
-        throw new HttpException('Book not found or already active', HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          'Book not found or already active',
+          HttpStatus.NOT_FOUND,
+        );
       }
-      
+
       await this.booktitleRepository.query(
         `UPDATE book_titles SET is_archived = false WHERE book_uuid = $1`,
-        [book_uuid]
+        [book_uuid],
       );
-  
+
       return { message: 'Book restored successfully' };
     } catch (error) {
-      throw new HttpException('Error restoring book', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-  
-  async getBookDetails(book_uuid: string, isbn: string, titlename: string) {
-    try {
-      const queryParams: string[] = [];
-      let query = `SELECT * FROM book_titles WHERE 1=1`;
-  
-      if (book_uuid) {
-        query += ` AND book_uuid = $${queryParams.length + 1}`;
-        queryParams.push(book_uuid);
-      }
-      if (isbn) {
-        query += ` AND isbn = $${queryParams.length + 1}`;
-        queryParams.push(isbn);
-      }
-      if (titlename) {
-        query += ` AND book_title ILIKE $${queryParams.length + 1}`;
-        queryParams.push(`%${titlename}%`);
-      }
-  
-      const book = await this.booktitleRepository.query(query, queryParams);
-  
-      if (book.length === 0) {
-        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
-      }
-  
-      return book[0]; // Return only the first matching book
-    } catch (error) {
       throw new HttpException(
-        'Error fetching book details',
+        'Error restoring book',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
   
+  async getBookCopies(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = false
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = false`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async fetchSingleCopyInfo(identifier: string) {
+    try {
+      let query = `SELECT * FROM book_copies WHERE `;
+      let params: (string | number)[] = [];
+
+      if (!isNaN(Number(identifier))) {
+        query += `(barcode = $1 OR inventory_number = $1) `;
+        params.push(Number(identifier)); // Convert to BIGINT
+      } else {
+        query += `book_copy_uuid = $1 `;
+        params.push(identifier);
+      }
+
+      query += `AND is_archived = false`;
+
+      const book = await this.bookcopyRepository.query(query, params);
+
+      return { message: 'Book fetched successfully', book: book[0] };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching copy',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  // TODO: Work in Update
+
+  async isbnBook(isbn: string) {
+    const result = await this.booktitleRepository.query(`
+      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
+      `);
+    if (result.length === 0) {
+      throw new Error('No data found');
+    }
+    return result;
+  }
 }
