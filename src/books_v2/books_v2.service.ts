@@ -22,7 +22,8 @@ export class BooksV2Service {
   // Find all books
   async getBooks() {
     try {
-      return await this.booktitleRepository.query('select * from book_titles inner join book_copies on book_titles.book_uuid = book_copies.book_title_uuid');
+      console.log("working");
+      return await this.booktitleRepository.query(`select * from book_titles where is_archived=false`);
     } catch (error) {
       throw new HttpException('Error fetching books', HttpStatus.INTERNAL_SERVER_ERROR);
     }

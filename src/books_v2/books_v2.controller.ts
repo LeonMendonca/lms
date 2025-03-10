@@ -14,6 +14,11 @@ export class BooksV2Controller {
   async getAllBooks() {
     return this.booksService.getBooks();
   }
+  @Get('isarchiveT')
+  async AllBooksArchiveTrue() {
+    return this.booksService.getBooks();
+  }
+
 
   // @Get('search')
   // //@UsePipes(new QueryValidationPipe(bookQuerySchema)) // Ensure the schema is passed correctly

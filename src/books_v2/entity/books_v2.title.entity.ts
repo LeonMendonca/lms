@@ -11,6 +11,8 @@ export class BookTitle {
   @Column({ name: 'book_id', type: 'varchar', length: 255, unique: true ,nullable:true})
   bookId: "book_id" = "book_id";
 
+
+
   // Bibliographic information
   @Column({ name: 'book_title', type: 'varchar', length: 255 })
   bookTitle: "book_title" = "book_title";
@@ -51,13 +53,13 @@ export class BookTitle {
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
   authorMark: "author_mark" = "author_mark";
 
-  // @Column({
-  //   name: 'is_archived',
-  //   default: false,
-  //   type: 'boolean',
-  //   nullable: true,
-  // })
-  // isArchived: "is_archived" = "is_archived";
+  @Column({
+    name: 'is_archived',
+    default: false,
+    type: 'boolean',
+    nullable: true,
+  })
+  isArchived: "is_archived" = "is_archived";
 
 
   @Column({ name: 'total_count', type: 'int',nullable:true })
