@@ -25,9 +25,10 @@ export class BooksV2Controller {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}
   @Get('isbn/:isbn')
+  
   async searchBookIsbn(@Param('isbn',)isbn:string,@Body() bookpayload:TisbnBookZodDTO){
 try {
-  const result= await this.booksService.isbnBook(bookpayload)
+  const result= await this.booksService.isbnBook(isbn,bookpayload)
   return result;
 
 

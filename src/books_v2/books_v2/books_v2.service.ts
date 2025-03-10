@@ -118,10 +118,10 @@ console.log("update count", update_count)
   }
   }
 
-  async isbnBook(createBookpayload:TisbnBookZodDTO){
+  async isbnBook(isbn:string,createBookpayload:TisbnBookZodDTO){
     const querydata = insertQueryHelper(createBookpayload, []);
 
-    return await this.booktitleRepository.query(`select book_copies.source_of_acquisition,book_copies.date_of_acquisition,book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  from book_titles inner join book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${createBookpayload.isbn}' LIMIT 1`
+    return await this.booktitleRepository.query(`select book_copies.source_of_acquisition,book_copies.date_of_acquisition,book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_copies.isbn,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  from book_titles inner join book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1`
 );
 
 
