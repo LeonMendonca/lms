@@ -24,7 +24,7 @@ export class BooksV2Controller {
   //     return result;
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
-  //   }}
+  //   }}//see query for nestjs
   @Get('isbn/:isbn')
   
   async searchBookIsbn(@Param('isbn',)isbn:string,@Body() bookpayload:TisbnBookZodDTO){
