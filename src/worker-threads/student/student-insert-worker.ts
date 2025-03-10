@@ -21,10 +21,10 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
       const studentId = createStudentId(maxId[0].max, item.institute_name);
       let queryData = insertQueryHelper({ ...item, student_id: studentId }, ['confirm_password']);
       await studentRepo.manager.query(`INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`, queryData.values);
-      (parentPort ? parentPort.postMessage(true) : "Parent Port NULL" );
     } catch (error) {
-        console.error(error.message);
+      console.error(error.message);
       (parentPort ? parentPort.postMessage(false) : "Parent Port NULL" );
     }
   }
+  (parentPort ? parentPort.postMessage(true) : "Parent Port NULL" );
 })();

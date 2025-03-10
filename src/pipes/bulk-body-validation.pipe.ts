@@ -5,29 +5,24 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { TCreateStudentDTO } from 'src/students/zod-validation/createstudents-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
-import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
-export class bulkBodyValidationPipe implements PipeTransform {
-  constructor(private readonly zschema: ZodSchema) {}
+export class bulkBodyValidationPipe<T extends object | string> implements PipeTransform {
+  constructor(private readonly workerThreadPath: string) {}
   async transform(value: any, metadata: ArgumentMetadata) {
     //initializing array with empty value;
-    let BatchArr: TCreateStudentDTO[][] = [];
+    let BatchArr: T[][] = [];
     let BatchOfStudentValues: any[][] = [];
     if(metadata.type === 'body') {
-      if(value && Array.isArray(value)  && value.length != 0) {
+      if(value && Array.isArray(value) && value.length != 0) {
         BatchOfStudentValues = Chunkify(value);
-        console.log("chunked array done..", BatchOfStudentValues.length);
         for(let i = 0; i < BatchOfStudentValues.length ; i++) {
-          console.log("now creating batches")
-          let result = await (CreateWorker(BatchOfStudentValues[i], 'student/student-zod-body-worker') as Promise<TCreateStudentDTO[]>)
-          if(result.length != 0) {
+          let result = await CreateWorker(BatchOfStudentValues[i], this.workerThreadPath) as T[];
+          if(result.length !== 0) {
             BatchArr.push(result);
           }
-          console.log("all batch done!")
         }
         let zodValidatedArray = (await Promise.all(BatchArr)).flat();
         if(zodValidatedArray.length === 0) {

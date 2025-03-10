@@ -28,6 +28,7 @@ import {
   TEditStudentDTO,
 } from './zod-validation/putstudent-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
+import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 
 @Controller('student')
 export class StudentsController {
@@ -64,7 +65,7 @@ export class StudentsController {
   }
 
   @Post('bulk-create')
-  @UsePipes(new bulkBodyValidationPipe(createStudentSchema))
+  @UsePipes(new bulkBodyValidationPipe<TCreateStudentDTO[]>("student/student-zod-body-worker"))
   async bulkCreateStudent(@Body() arrStudentPayload: TCreateStudentDTO[]) {
     try {
       return this.studentsService.bulkCreate(arrStudentPayload)
@@ -122,6 +123,16 @@ export class StudentsController {
       } else {
         throw new Error(`User with id ${studentId} not found`);
       }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Delete('bulk-delete')
+  @UsePipes(new bulkBodyValidationPipe<TstudentUUIDZod[]>('student/student-zod-uuid-worker'))
+  async bulkDeleteStudent(@Body() arrStudentUUIDPayload: TstudentUUIDZod[]) {
+    try {
+      return this.studentsService.bulkDelete(arrStudentUUIDPayload); 
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }

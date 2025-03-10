@@ -9,6 +9,7 @@ import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
+import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 
 @Injectable()
 export class StudentsService {
@@ -154,6 +155,14 @@ export class StudentsService {
       );
       //Asserted a type as UPDATE returns it
       return result as [[], number];
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async bulkDelete(arrStudentUUIDPayload: TstudentUUIDZod[]) {
+    try {
+      return await CreateWorker(arrStudentUUIDPayload, 'student/student-archive-worker');
     } catch (error) {
       throw error;
     }
