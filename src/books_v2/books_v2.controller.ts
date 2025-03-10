@@ -4,6 +4,7 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { EMPTY } from 'rxjs';
+import { TupdatearchiveZodDTO } from './zod/uarchive';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -14,9 +15,16 @@ export class BooksV2Controller {
   async getAllBooks() {
     return this.booksService.getBooks();
   }
-  @Get('isarchiveT')
-  async AllBooksArchiveTrue() {
-    return this.booksService.getBooks();
+  // @Get('isarchiveT')
+  // async AllBooksArchiveTrue() {
+  //   return this.booksService.getBooks();
+  // }
+  @Put('uparchive')
+  async updateArchive(book_uuid:string,createBookpayload:TupdatearchiveZodDTO){
+
+
+
+    
   }
 
 
