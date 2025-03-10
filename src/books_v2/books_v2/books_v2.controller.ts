@@ -29,7 +29,7 @@ export class BooksV2Controller {
   async searchBookIsbn(@Param('isbn',)isbn:string,@Body() bookpayload:TisbnBookZodDTO){
 try {
   const result= await this.booksService.isbnBook(isbn,bookpayload)
-  return result;
+  return result[0];
 
 
 } catch (error) {
