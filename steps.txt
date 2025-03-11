@@ -32,3 +32,26 @@
 
 -->COMMIT 07
 - Add HttpCode in book.controller
+
+
+P0 : Find Journal in journal_copy and journal_table
+P1 : Update Journal in journal_copy and journal_table
+P2 : Delete Journal in journal_copy and journal_table
+
+
+--------------------- JOURNALS ---------------------
+- Create journals module (nest g module journals)
+- Create journals controller (nest g controller journals)
+- Create journals service (nest g service journals)
+- Create journals_table.entity.ts where I created the journals_table
+- Create journals_copy.entity.ts where I created the journals_copy
+- Add these entities in the journals.module and the app.module
+- Create the basic service and controller functions to be carried out (CRUD) for the journal table and copy
+
+- Now for update journal route, we need to create the zod-validation 
+- Then we need to specify the logic for it in services
+
+- For find journal we have to give the zod validation first
+- Then write the query validator for it
+- Then you write the logic in services
+- Then you write the route function in controller

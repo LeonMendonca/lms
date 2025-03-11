@@ -30,7 +30,7 @@ import {
 
 @Controller('student')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private studentsService: StudentsService) { }
   @Get('all')
   async getAllStudents() {
     return await this.studentsService.findAllStudents();
