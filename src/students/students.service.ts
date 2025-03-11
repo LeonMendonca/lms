@@ -5,12 +5,13 @@ import { Students } from './students.entity';
 import { StudentQueryValidator } from './students.query-validator';
 import type { UnionUser } from './students.query-validator';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
-import { insertQueryHelper, updateQueryHelper } from '../misc/custom-query-helper';
+import { insertQueryHelper, selectQueryHelper, updateQueryHelper } from '../misc/custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
+import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 
 @Injectable()
 export class StudentsService {
@@ -31,17 +32,31 @@ export class StudentsService {
     if ('student_id' in query) {
       requiredKey = 'student_id';
       value = query.student_id;
-    } else if ('email' in query) {
-      requiredKey = 'email';
-      value = query.email;
     } else {
-      requiredKey = 'phone_no';
-      value = query.phone_no;
+      requiredKey = 'student_uuid';
+      value = query.student_uuid;
     }
-    return (await this.studentsRepository.query(
-      `SELECT * FROM students_table WHERE ${requiredKey} = $1 AND is_archived = false`,
-      [value],
+
+    //let studentObject = createObjectOmitProperties(new Students(), ['studentUUID', 'password']);
+    //let newObject = {};
+
+    ////Get all values of the object that are Column name in students_table
+    //for(let key in studentObject) {
+    //  newObject[studentObject[key]] = '';
+    //}
+
+    //const queryData = selectQueryHelper(newObject, [])
+    const result = (await this.studentsRepository.query(
+      `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
     )) as Students[];
+
+    if(result.length === 0) {
+      return null;
+    }
+
+    const filteredStudentObject = createObjectOmitProperties(result[0], ['password', 'isArchived']);
+    console.log("data is", filteredStudentObject);
+    return filteredStudentObject;
   }
 
   async createStudent2(studentPayload: TCreateStudentDTO) {

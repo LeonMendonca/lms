@@ -40,16 +40,26 @@ export class StudentsController {
     return await this.studentsService.findAllStudents();
   }
 
-  @Get('search')
+  @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
-  async getStudentBy(@Query() query: UnionUser) {
+  async getStudentDetail(@Query() query: UnionUser) {
     const result = await this.studentsService.findStudentBy(query);
-    if (result.length != 0) {
-      return result[0];
+    if(result) {
+      return result;
     } else {
       throw new HttpException('No user found', HttpStatus.NOT_FOUND);
     }
   }
+
+  //@Get('search')
+  //async getStudentBy(@Query() query: UnionUser) {
+  //  const result = await this.studentsService.findStudentBy(query);
+  //  if (result.length != 0) {
+  //    return result[0];
+  //  } else {
+  //    throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+  //  }
+  //}
 
   @Post('create')
   @UsePipes(new bodyValidationPipe(createStudentSchema))

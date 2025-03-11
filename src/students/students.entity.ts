@@ -13,7 +13,7 @@ export const Gender = {
 @Entity('students_table')
 export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
-  studentUUID = 'student_uuid';
+  studentUUID: "student_uuid" = 'student_uuid';
 
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
@@ -91,9 +91,9 @@ export class Students {
   })
   isArchived: 'is_archived' = 'is_archived';
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: "created_at" })
   createdAt: "created_at" = "created_at";
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
 }
