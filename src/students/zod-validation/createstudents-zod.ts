@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Gender, Students } from '../students.entity';
-import { createObjectOmitProperties } from '../../create-object-from-class';
+import { createObjectOmitProperties } from '../../misc/create-object-from-class';
 
 let GenderArr: readonly string[] = Object.keys(Gender)
 

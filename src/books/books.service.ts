@@ -5,7 +5,7 @@ import { Books } from './books.entity';
 import type { TCreateBookDTO } from './zod-validation/createbooks-zod';
 import type { UnionBook } from './books.query-validator';
 import { BookQueryValidator } from './books.query-validator';
-import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from '../misc/custom-query-helper';
 import { TEditBookDTO } from './zod-validation/putbook-zod';
 
 @Injectable()

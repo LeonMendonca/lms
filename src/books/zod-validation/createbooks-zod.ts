@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createObjectOmitProperties } from '../../create-object-from-class';
+import { createObjectOmitProperties } from '../../misc/create-object-from-class';
 import { Books } from '../books.entity';
 
 const createBookObject = createObjectOmitProperties(new Books(), ['bookUUID']);

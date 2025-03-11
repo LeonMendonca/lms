@@ -1,11 +1,11 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Students } from './students.entity';
 import { StudentQueryValidator } from './students.query-validator';
 import type { UnionUser } from './students.query-validator';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
-import { insertQueryHelper, updateQueryHelper } from '../custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from '../misc/custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
@@ -119,26 +119,26 @@ export class StudentsService {
     return await (CreateWorker(arrStudentPayload, 'student/student-insert-worker') as Promise<TCreateStudentDTO[]>);
   }  
 
-  async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
+  async editStudent(studentUUID: string, editStudentPayload: TEditStudentDTO) {
     try {
-      if (editStudentPayload.current_password) {
-        const result: [{ password: string }] =
-          await this.studentsRepository.query(
-            `SELECT password from students_table WHERE password = $1 AND is_archived = false`,
-            [editStudentPayload.current_password],
-          );
-        if (!result.length) {
-          throw new Error('Invalid Password');
-        }
-      }
+      //NO Need to validate current_password
+      //if (editStudentPayload.current_password && editStudentPayload.password) {
+      //  const result: [{ password: string }] =
+      //    await this.studentsRepository.query(
+      //      `SELECT password from students_table WHERE password = $1 AND is_archived = false`,
+      //      [editStudentPayload.current_password],
+      //    );
+      //  if (!result.length) {
+      //    throw new Error('Invalid Password');
+      //  }
+      //}
       let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, [
         'confirm_password',
         'current_password',
       ]);
-      console.log("query data is", queryData);
       const result = await this.studentsRepository.query(
         `
-        UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentId}'
+        UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentUUID}' AND is_archived = false
       `,
         queryData.values,
       );
@@ -164,7 +164,7 @@ export class StudentsService {
   async bulkDelete(arrStudentUUIDPayload: TstudentUUIDZod[]) {
     try {
       const zodValidatedBatchArr: TstudentUUIDZod[][] = Chunkify(arrStudentUUIDPayload);
-      const BatchArr: Promise<string[]>[] = [];
+      const BatchArr: Promise<TstudentUUIDZod[]>[] = [];
       for(let i = 0; i < zodValidatedBatchArr.length ; i++) {
           let result = CreateWorker<TstudentUUIDZod>(zodValidatedBatchArr[i], 'student/student-archive-worker' );
           BatchArr.push(result);
@@ -173,5 +173,13 @@ export class StudentsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async findAll() {
+    try {
+      throw new Error("test");
+    } catch (error) {
+      throw error;
+    } 
   }
 }

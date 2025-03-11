@@ -11,6 +11,7 @@ import {
   UsePipes,
   Put,
   Delete,
+  UseFilters,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
@@ -29,6 +30,7 @@ import {
 } from './zod-validation/putstudent-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
+import { HttpExceptionFilter } from 'src/misc/exception-filter';
 
 @Controller('student')
 export class StudentsController {
@@ -135,6 +137,16 @@ export class StudentsController {
       return this.studentsService.bulkDelete(arrStudentUUIDPayload); 
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('ep')
+  @UseFilters(new HttpExceptionFilter())
+  async findAll() {
+    try { 
+      return await this.studentsService.findAll()
+    } catch (error) { 
+      throw new HttpException({ message: error.message }, HttpStatus.NOT_FOUND, { cause:error });
     }
   }
 }

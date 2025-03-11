@@ -1,4 +1,4 @@
-import { insertQueryHelper } from "src/custom-query-helper";
+import { insertQueryHelper } from "src/misc/custom-query-helper";
 import { TCreateStudentDTO } from "src/students/zod-validation/createstudents-zod";
 import { parentPort, workerData } from "worker_threads";
 import { dataSource } from "../datasource-typeorm";
