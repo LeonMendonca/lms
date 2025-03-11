@@ -26,6 +26,7 @@ import { TCreateBooklogDTO } from './zod/createbooklog';
        const result= await this.BooklogService.getBooklog();
        return result;
     }
+    
     @Post('borrowed')
     async createBooklogissued(@Body() booklogpayload:TCreateBooklogDTO ){
       try{
@@ -56,5 +57,14 @@ import { TCreateBooklogDTO } from './zod/createbooklog';
       }
     
       }
-    
+      @Post('booklibrary')
+      async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
+try {
+   const result= await this.BooklogService.setbooklibrary(booklogpayload)
+} catch (error) {
+  
+}
+      }
+      
+      
   }

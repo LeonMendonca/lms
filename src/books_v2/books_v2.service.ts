@@ -10,6 +10,7 @@ import { insertQueryHelper } from 'src/custom-query-helper';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';
+import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
 
 @Injectable()
 export class BooksV2Service {
@@ -655,4 +656,16 @@ WHERE
     }
     return result;
   }
+
+
+  async  getavailablebook(){
+ const result= await this.bookcopyRepository.query(`SELECT 
+       *
+    FROM book_copies bc
+    JOIN book_titles b ON bc.book_title_uuid = b.book_uuid
+    WHERE bc.is_available = true`);
+    return result;
+  }
+
+
 }

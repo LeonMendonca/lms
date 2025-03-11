@@ -50,6 +50,3 @@ export const createBookSchema=z.object({
 });
 
 export type TCreateBookZodDTO=z.infer<typeof createBookSchema>;
-
-
-

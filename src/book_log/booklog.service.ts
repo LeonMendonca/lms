@@ -23,24 +23,32 @@ export class BooklogService {
   
 
   const result: { student_uuid:string; student_name:string; }[] = await this.booklogRepository.query(`select student_uuid from students_table where student_uuid='${booklogpayload.student_uuid}' `)
-  const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`select book_title, book_uuid from book_titles where book_uuid ='${booklogpayload.book_uuid}'`)  
+  const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`SELECT 
+    b.book_title, 
+    b.book_uuid, 
+    b.book_author, 
+    b.year_of_publication 
+FROM book_copies bc
+JOIN book_titles b ON bc.book_title_uuid = b.book_uuid
+WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);  
   //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
-   
   // )
-console.log()
+// console.log(result2);
  if(result.length===0  && result2.length===0){
 throw new Error("Book and Student Id is not valid!!")
  }
   console.log('it is working ')
 const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','borrowed','${result2[0].book_uuid}') `))
  const result4=(await this.booklogRepository.query(` update book_titles set available_count=available_count-1`))
-//  insert
+ const result5=(await this.booklogRepository.query(` update book_copies set is_available=false where book_copy_uuid='${booklogpayload.book_uuid}'`))
+
+ //  insert
 
     //   let queryData=insertQueryHelper(bookQuerySchema)
       
     // //   await this.booklogRepository.query(insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') ,queryData.values)
     // }
-      console.log(result2);
+      // console.log(result2);
     } catch (error) {
       console.log(error)
       throw error
@@ -55,8 +63,14 @@ const result3=( await this.booklogRepository.query(`insert into book_log(book_ti
   
 
   const result: { student_uuid:string; student_name:string; }[] = await this.booklogRepository.query(`select student_uuid from students_table where student_uuid='${booklogpayload.student_uuid}' `)
-  const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`select book_title, book_uuid from books_table where book_uuid ='${booklogpayload.book_uuid}'`)  
-  //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
+  const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`SELECT 
+    b.book_title, 
+    b.book_uuid, 
+    b.book_author, 
+    b.year_of_publication 
+FROM book_copies bc
+JOIN book_titles b ON bc.book_title_uuid = b.book_uuid
+WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);    //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
    
   // )
 console.log()
@@ -66,14 +80,15 @@ console.log()
  }
 //  console.log('it is working ')
 const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','returned','${result2[0].book_uuid}') `))
- const result4=(await this.booklogRepository.query(` update book_count set available_count=available_count+1`))
+ const result4=(await this.booklogRepository.query(` update book_titles set available_count=available_count+1`))
+ const result5=(await this.booklogRepository.query(` update book_copies set is_available=true where book_copy_uuid='${booklogpayload.book_uuid}'`))
+
 //  insert
 
     //   let queryData=insertQueryHelper(bookQuerySchema)
       
     // //   await this.booklogRepository.query(insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') ,queryData.values)
     // }
-      console.log(result2);
     } catch (error) {
       console.log(error)
       throw error
@@ -82,5 +97,42 @@ const result3=( await this.booklogRepository.query(`insert into book_log(book_ti
   
   }
 
+  async setbooklibrary(booklogpayload: TCreateBooklogDTO){
+    try {
+  
+
+      const result: { student_uuid:string; student_name:string; }[] = await this.booklogRepository.query(`select student_uuid from students_table where student_uuid='${booklogpayload.student_uuid}' `)
+      const result2: { book_title: string; book_uuid: string }[] = await this.booklogRepository.query(`SELECT 
+        b.book_title, 
+        b.book_uuid, 
+        b.book_author, 
+        b.year_of_publication 
+    FROM book_copies bc
+    JOIN book_titles b ON bc.book_title_uuid = b.book_uuid
+    WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);  
+      //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
+      // )
+    // console.log(result2);
+     if(result.length===0  && result2.length===0){
+    throw new Error("Book and Student Id is not valid!!")
+     }
+      console.log('it is working ')
+    const result3=( await this.booklogRepository.query(`insert into book_log(book_title,student_uuid,book_status,book_uuid)values('${result2[0].book_title}','${result[0].student_uuid}','setbooklibrary','${result2[0].book_uuid}') `))
+     const result4=(await this.booklogRepository.query(` update book_titles set available_count=available_count-1`))
+     const result5=(await this.booklogRepository.query(` update book_copies set is_available=false where book_copy_uuid='${booklogpayload.book_uuid}'`))
+    
+     //  insert
+    
+        //   let queryData=insertQueryHelper(bookQuerySchema)
+          
+        // //   await this.booklogRepository.query(insert into book_log (${queryData.queryCol})values( '${queryData.queryArg}') ,queryData.values)
+        // }
+          // console.log(result2);
+        } catch (error) {
+          console.log(error)
+          throw error
+      
+        }
+  }
+
 }
-// `insert into book_log (book_uuid, book_title,student_id, department,book_status,borrwed_by)values( ) `

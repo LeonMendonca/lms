@@ -139,6 +139,8 @@ export class BooksV2Controller {
     return this.booksService.updateBookTitle(book_uuid, bookPayload);
   }
 
+
+
   @Put('archive_book_copy')
   async archiveBookCopy(@Body('book_uuid') book_uuid: string) {
     return this.booksService.archiveBookCopy(book_uuid);
@@ -167,4 +169,15 @@ export class BooksV2Controller {
   ) {
     return this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
+
+  @Get('available')
+  async availableBook(){
+ return await this.booksService.getavailablebook();
+  }
+
+
+
+
+
+  
 }

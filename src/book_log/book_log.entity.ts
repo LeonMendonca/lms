@@ -3,6 +3,7 @@ import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 export const BOOK_STATUS = {
   RETURNED: 'returned',
   BORROWED: 'borrowed',
+  BOOKLIBRARY:"setbooklibrary",
 } as const;
 
 @Entity('book_log')
