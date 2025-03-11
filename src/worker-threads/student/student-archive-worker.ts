@@ -4,10 +4,11 @@ import { Repository } from "typeorm";
 import { Students } from "src/students/students.entity";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
 
-let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
-let arrOfErr: string[] = [];
 
 (async() => {
+    let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
+    let arrOfErr: string[] = [];
+
     const dataSourceInit = await dataSource.initialize();
     const studentRepo: Repository<Students> = dataSourceInit.getRepository(Students);
     try {

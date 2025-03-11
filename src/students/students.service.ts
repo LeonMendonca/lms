@@ -10,6 +10,7 @@ import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
+import { Chunkify } from 'src/worker-threads/chunk-array';
 
 @Injectable()
 export class StudentsService {
@@ -162,7 +163,13 @@ export class StudentsService {
 
   async bulkDelete(arrStudentUUIDPayload: TstudentUUIDZod[]) {
     try {
-      return await CreateWorker(arrStudentUUIDPayload, 'student/student-archive-worker');
+      const zodValidatedBatchArr: TstudentUUIDZod[][] = Chunkify(arrStudentUUIDPayload);
+      const BatchArr: string[][] = [];
+      for(let i = 0; i < zodValidatedBatchArr.length ; i++) {
+          let result = await CreateWorker(zodValidatedBatchArr[i], 'student/student-archive-worker' ) as string[];
+          BatchArr.push(result);
+      }
+      return await Promise.all(BatchArr);
     } catch (error) {
       throw error;
     }

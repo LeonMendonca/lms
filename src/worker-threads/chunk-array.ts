@@ -1,6 +1,6 @@
 import { cpus } from "os";
 
-const noOfCores = cpus().length / 2;
+const noOfCores = cpus().length;
 
 export function Chunkify(arr: any[]) {
     let arrlength = arr.length;
