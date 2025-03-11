@@ -36,8 +36,16 @@ import { HttpExceptionFilter } from 'src/misc/exception-filter';
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
   @Get('all')
-  async getAllStudents() {
-    return await this.studentsService.findAllStudents();
+  async getAllStudents(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+    @Query('_search') search: string,
+  ) {
+    return await this.studentsService.findAllStudents({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search ?? undefined,
+    });
   }
 
   @Get('search')
@@ -67,15 +75,16 @@ export class StudentsController {
   }
 
   @Post('bulk-create')
-  @UsePipes(new bulkBodyValidationPipe<TCreateStudentDTO[]>("student/student-zod-body-worker"))
+  @UsePipes(
+    new bulkBodyValidationPipe<TCreateStudentDTO[]>(
+      'student/student-zod-body-worker',
+    ),
+  )
   async bulkCreateStudent(@Body() arrStudentPayload: TCreateStudentDTO[]) {
     try {
-      return this.studentsService.bulkCreate(arrStudentPayload)
+      return this.studentsService.bulkCreate(arrStudentPayload);
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -131,10 +140,14 @@ export class StudentsController {
   }
 
   @Delete('bulk-delete')
-  @UsePipes(new bulkBodyValidationPipe<TstudentUUIDZod[]>('student/student-zod-uuid-worker'))
+  @UsePipes(
+    new bulkBodyValidationPipe<TstudentUUIDZod[]>(
+      'student/student-zod-uuid-worker',
+    ),
+  )
   async bulkDeleteStudent(@Body() arrStudentUUIDPayload: TstudentUUIDZod[]) {
     try {
-      return this.studentsService.bulkDelete(arrStudentUUIDPayload); 
+      return this.studentsService.bulkDelete(arrStudentUUIDPayload);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -143,10 +156,14 @@ export class StudentsController {
   @Get('ep')
   @UseFilters(new HttpExceptionFilter())
   async findAll() {
-    try { 
-      return await this.studentsService.findAll()
-    } catch (error) { 
-      throw new HttpException({ message: error.message }, HttpStatus.NOT_FOUND, { cause:error });
+    try {
+      return await this.studentsService.findAll();
+    } catch (error) {
+      throw new HttpException(
+        { message: error.message },
+        HttpStatus.NOT_FOUND,
+        { cause: error },
+      );
     }
   }
 }
