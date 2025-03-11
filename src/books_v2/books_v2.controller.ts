@@ -175,6 +175,11 @@ export class BooksV2Controller {
  return await this.booksService.getavailablebook();
   }
 
+  @Get('unavailable')
+  async notavailableBook(){
+ return await this.booksService.getunavailablebook();
+  }
+
 
 
 

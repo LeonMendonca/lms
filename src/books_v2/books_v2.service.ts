@@ -666,6 +666,13 @@ WHERE
     WHERE bc.is_available = true`);
     return result;
   }
-
+  async  getunavailablebook(){
+    const result= await this.bookcopyRepository.query(`SELECT 
+          *
+       FROM book_copies bc
+       JOIN book_titles b ON bc.book_title_uuid = b.book_uuid
+       WHERE bc.is_available = false`);
+       return result;
+     }
 
 }
