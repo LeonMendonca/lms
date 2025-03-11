@@ -175,19 +175,14 @@ export class BooksV2Controller {
   }
 
   @Get('available')
-  async availableBook() {
-    return await this.booksService.getavailablebook();
-  }
-
-  @Get('unavailable')
-  async notavailableBook() {
-    return await this.booksService.getunavailablebook();
+  async availableBook(@Query('isbn') isbn: string) {
+    return await this.booksService.getavailablebook(isbn);
   }
 
   //logs part
 
   @Post('borrowed')
-  // @UsePipes(new bodyValidationPipe(booklogSchema))
+  @UsePipes(new bodyValidationPipe(booklogSchema))
   async createBooklogIssued(
     @Body() booklogpayload: TCreateBooklogDTO,
     @Req() req: Request,
@@ -218,10 +213,52 @@ export class BooksV2Controller {
     }
   }
 
-  @Post('returned')
-  async createBooklogreturned(@Body() booklogpayload: TCreateBooklogDTO) {
+  @Post('library')
+  @UsePipes(new bodyValidationPipe(booklogSchema))
+  async setbooklibrary(
+    @Body() booklogpayload: TCreateBooklogDTO,
+    @Req() req: Request,
+  ) {
     try {
-      const result = await this.booksService.createbookreturned(booklogpayload);
+      // Extract user IP address properly
+      const ipAddress =
+        req.headers['x-forwarded-for']?.[0] ||
+        req.socket.remoteAddress ||
+        'Unknown';
+
+      const result = await this.booksService.setbooklibrary(
+        booklogpayload,
+        ipAddress,
+      );
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Book borrowed successfully',
+        data: result,
+      };
+    } catch (error) {
+      console.error('Error in createBooklogIssued:', error);
+      throw new HttpException(
+        error.message || 'Failed to borrow book',
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('returned')
+  async createBooklogreturned(
+    @Body() booklogpayload: TCreateBooklogDTO,
+    @Req() req: Request,
+  ) {
+    try {
+      const ipAddress =
+        req.headers['x-forwarded-for']?.[0] ||
+        req.socket.remoteAddress ||
+        'Unknown';
+      const result = await this.booksService.createbookreturned(
+        booklogpayload,
+        ipAddress,
+      );
 
       return result;
     } catch (error) {
