@@ -14,7 +14,8 @@ import {
   } from '@nestjs/common';
   import { BooklogService } from './booklog.service';
 import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
-import { TCreateBooklogDTO } from './zod/createbooklog';
+import { booklogSchema, TCreateBooklogDTO } from './zod/createbooklog';
+import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 //   import { TCreateBooklogDTO } from './zod-validation/createbooklog-zod';
   
   @Controller('booklog')
@@ -28,11 +29,10 @@ import { TCreateBooklogDTO } from './zod/createbooklog';
     }
     
     @Post('borrowed')
+    @UsePipes(new bodyValidationPipe(booklogSchema))
     async createBooklogissued(@Body() booklogpayload:TCreateBooklogDTO ){
-      try{
-       
+      try {
         const result = await this.BooklogService.createBooklogIssued(booklogpayload);
-        
         return result;
       } catch (error) {
         if (error instanceof Error){

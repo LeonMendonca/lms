@@ -5,7 +5,7 @@ import { Booklog } from '../book_log.entity'
 const booklogCreateObject = createObjectIncludeProperties(new Booklog(), ['bookUUID', 'studentuuid']);
 // const boologCopyObject= createObjectIncludeProperties( new )
 
-const booklogSchema = z.object({
+export const booklogSchema = z.object({
     [booklogCreateObject.studentuuid]: z.string().uuid(),
     [booklogCreateObject.bookUUID]: z.string().uuid()
 });

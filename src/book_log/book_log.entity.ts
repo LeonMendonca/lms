@@ -14,7 +14,7 @@ export class Booklog {
   @Column({ name: 'book_uuid', type: 'varchar', length: 255, nullable:true })
   bookUUID: "book_uuid" = 'book_uuid';
 
-  @Column({ name: 'book_title', type: 'varchar', length: 255 })
+  @Column({ name: 'book_title', type: 'varchar', length: 255, nullable: true })
   bookTitle: "book_title" = 'book_title';
 
   @Column({ name: 'student_uuid', type: 'uuid' })
@@ -25,9 +25,6 @@ export class Booklog {
 
   @Column({  name:'time' ,type:'timestamp' ,default: () => 'CURRENT_TIMESTAMP' })
   time:'time'='time';
-
-  @Column({ name: 'returned_date', type: 'date', default: new Date().toISOString() })
-  returned_date: "returned_date" = 'returned_date';
 
   @Column({ name: 'book_status', type: 'enum', enum: BOOK_STATUS })
   book_status: "book_status" ='book_status';
