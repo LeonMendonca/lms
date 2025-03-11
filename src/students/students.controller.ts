@@ -52,7 +52,7 @@ export class StudentsController {
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
   async getStudentDetail(@Query() query: UnionUser) {
     const result = await this.studentsService.findStudentBy(query);
-    if(result) {
+    if (result) {
       return result;
     } else {
       throw new HttpException('No user found', HttpStatus.NOT_FOUND);
@@ -206,5 +206,10 @@ export class StudentsController {
   ) {
     console.log('working');
     return this.studentsService.restoreStudentArchive(student_uuid, student_id);
+  }
+
+  @Get('export')
+  async exportAllStudents() {
+    return await this.studentsService.exportAllStudents();
   }
 }

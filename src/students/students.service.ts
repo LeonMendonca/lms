@@ -78,12 +78,16 @@ export class StudentsService {
       `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
     )) as Students[];
 
-    if(result.length === 0) {
+    if (result.length === 0) {
       return null;
     }
 
-    const filteredStudentObject = createObjectOmitProperties(result[0], ['studentUUID', 'password', 'isArchived']);
-    console.log("data is", filteredStudentObject);
+    const filteredStudentObject = createObjectOmitProperties(result[0], [
+      'studentUUID',
+      'password',
+      'isArchived',
+    ]);
+    console.log('data is', filteredStudentObject);
     return filteredStudentObject;
   }
 
@@ -307,16 +311,16 @@ export class StudentsService {
          LIMIT 1`, // Ensures only one student is retrieved
         [student_uuid, student_id],
       );
-  
+
       console.log({ student });
-  
+
       if (student.length === 0) {
         throw new HttpException(
           'Student not found or not archived',
           HttpStatus.NOT_FOUND,
         );
       }
-  
+
       // Restore the student (set is_archived to false)
       const updateResult = await this.studentsRepository.query(
         `UPDATE students_table 
@@ -326,14 +330,14 @@ export class StudentsService {
          RETURNING *`, // Confirms the update was successful
         [student_uuid, student_id],
       );
-  
+
       if (updateResult.length === 0) {
         throw new HttpException(
           'Failed to restore student',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-  
+
       return { message: 'Student restored successfully' };
     } catch (error) {
       console.error(error);
@@ -342,5 +346,15 @@ export class StudentsService {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  async exportAllStudents() {
+    const students = await this.studentsRepository.query(
+      'SELECT * from students_table WHERE is_archived = false',
+    );
+
+    return {
+      data: students,
+    };
   }
 }
