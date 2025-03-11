@@ -164,9 +164,9 @@ export class StudentsService {
   async bulkDelete(arrStudentUUIDPayload: TstudentUUIDZod[]) {
     try {
       const zodValidatedBatchArr: TstudentUUIDZod[][] = Chunkify(arrStudentUUIDPayload);
-      const BatchArr: string[][] = [];
+      const BatchArr: Promise<string[]>[] = [];
       for(let i = 0; i < zodValidatedBatchArr.length ; i++) {
-          let result = await CreateWorker(zodValidatedBatchArr[i], 'student/student-archive-worker' ) as string[];
+          let result = CreateWorker<TstudentUUIDZod>(zodValidatedBatchArr[i], 'student/student-archive-worker' );
           BatchArr.push(result);
       }
       return await Promise.all(BatchArr);

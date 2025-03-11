@@ -13,16 +13,13 @@ export class bulkBodyValidationPipe<T extends object | string> implements PipeTr
   constructor(private readonly workerThreadPath: string) {}
   async transform(value: any, metadata: ArgumentMetadata) {
     //initializing array with empty value;
-    let BatchArr: T[][] = [];
+    let BatchArr: Promise<T[]>[] = [];
     let BatchOfStudentValues: any[][] = [];
     if(metadata.type === 'body') {
       if(value && Array.isArray(value) && value.length != 0) {
         BatchOfStudentValues = Chunkify(value);
         for(let i = 0; i < BatchOfStudentValues.length ; i++) {
-          let result = await CreateWorker(BatchOfStudentValues[i], this.workerThreadPath) as T[];
-          if(result.length !== 0) {
-            BatchArr.push(result);
-          }
+            BatchArr.push((CreateWorker<T>(BatchOfStudentValues[i], this.workerThreadPath)));
         }
         let zodValidatedArray = (await Promise.all(BatchArr)).flat();
         if(zodValidatedArray.length === 0) {
