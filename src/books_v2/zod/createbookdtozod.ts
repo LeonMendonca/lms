@@ -30,7 +30,7 @@ export const createBookSchema=z.object({
 [createBookTitleObject.department]:z.string(),
 [createBookTitleObject.callNumber]:z.string(),
 [createBookTitleObject.authorMark]:z.string(),
-[createBookTitleObject.images]:z.string(),
+[createBookTitleObject.images]:z.array(z.string()).optional(),
 [createBookTitleObject.additionalFields]:z.string().optional(),
 [createBookTitleObject.description]:z.string().optional(),
 
@@ -46,7 +46,7 @@ export const createBookSchema=z.object({
 [createBookCopyObject.itemType]: z.string(),
 [createBookCopyObject.instituteId]: z.string().optional(),
 [createBookCopyObject.createdBy]: z.string().optional(),
-[createBookCopyObject.remarks]: z.string().optional(),
+[createBookCopyObject.remarks]: z.array(z.string()).optional(),
 });
 
 export type TCreateBookZodDTO=z.infer<typeof createBookSchema>;
