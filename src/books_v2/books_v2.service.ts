@@ -15,6 +15,7 @@ import { count } from 'console';
 import { string } from 'zod';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { Students } from 'src/students/students.entity';
+import { Booklog_v2 } from './entity/book_logv2.entity';
 
 @Injectable()
 export class BooksV2Service {
@@ -27,9 +28,11 @@ export class BooksV2Service {
 
     @InjectRepository(Students)
     private readonly sudentRepository: Repository<Students>,
+
+    @InjectRepository(Booklog_v2)
+    private readonly booklogRepository: Repository<Booklog_v2>,
   ) {}
 
-  // Find all books
   async getBooks(
     { page, limit, search }: { page: number; limit: number; search: string } = {
       page: 1,
@@ -109,6 +112,423 @@ export class BooksV2Service {
     } catch (error) {
       throw new HttpException(
         'Error fetching book details',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getBookCopies(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = false
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = false`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getBookCopiesByTitle({
+    book_uuid,
+    isbn,
+    titlename,
+  }: {
+    book_uuid: string;
+    isbn: string;
+    titlename: string;
+  }) {
+    try {
+      const queryParams: string[] = [];
+      let query = `SELECT * FROM book_titles WHERE 1=1`;
+
+      if (book_uuid) {
+        query += ` AND book_uuid = $${queryParams.length + 1}`;
+        queryParams.push(book_uuid);
+      }
+      if (isbn) {
+        query += ` AND isbn = $${queryParams.length + 1}`;
+        queryParams.push(isbn);
+      }
+      if (titlename) {
+        query += ` AND book_title ILIKE $${queryParams.length + 1}`;
+        queryParams.push(`%${titlename}%`);
+      }
+
+      const book = await this.booktitleRepository.query(query, queryParams);
+
+      if (book.length === 0) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = false AND book_title_uuid = $1`,
+        [book[0].book_uuid],
+      );
+
+      return {
+        data: books,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getSingleCopyInfo(identifier: string) {
+    try {
+      let query = `SELECT * FROM book_copies WHERE `;
+      let params: (string | number)[] = [];
+
+      if (!isNaN(Number(identifier))) {
+        query += `(barcode = $1 OR inventory_number = $1) `;
+        params.push(Number(identifier)); // Convert to BIGINT
+      } else {
+        query += `book_copy_uuid = $1 `;
+        params.push(identifier);
+      }
+
+      query += `AND is_archived = false`;
+
+      const book = await this.bookcopyRepository.query(query, params);
+
+      return { message: 'Book fetched successfully', book: book[0] };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching copy',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getArchivedBooks(
+    { page, limit, search }: { page: number; limit: number; search: string } = {
+      page: 1,
+      limit: 10,
+      search: '',
+    },
+  ) {
+    try {
+      console.log(page, limit, search);
+      const offset = (page - 1) * limit;
+      const searchQuery = search ? '%${search}%' : '%';
+
+      const books = await this.booktitleRepository.query(
+        `SELECT * FROM book_titles 
+         WHERE is_archived = true AND book_title ILIKE $1
+         LIMIT $2 OFFSET $3`,
+        [searchQuery, limit, offset],
+      );
+
+      const total = await this.booktitleRepository.query(
+        `SELECT COUNT(*) as count FROM book_titles 
+         WHERE is_archived = true AND book_title ILIKE $1`,
+        [searchQuery],
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getArchivedBooksCopy(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = true
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = true`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getavailablebookbyisbn(isbn: string) {
+    try {
+      const bookTitle = await this.booktitleRepository.query(
+        `
+        SELECT * FROM book_titles
+        WHERE isbn = $1
+        LIMIT 1
+      `,
+        [isbn],
+      );
+      const result = await this.bookcopyRepository.query(
+        `
+        SELECT *
+        FROM book_copies 
+        WHERE book_title_uuid = $1 AND is_available = true AND is_archived = true`,
+        [bookTitle[0].book_title_uuid],
+      );
+      return result;
+    } catch (error) {
+      console.error('Error getting book in library:', error);
+      throw new HttpException(
+        'Error getting book in library',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAllAvailableBooks(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = true AND is_available = true
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = true AND is_available = true`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getunavailablebookbyisbn(isbn: string) {
+    try {
+      const bookTitle = await this.booktitleRepository.query(
+        `
+        SELECT * FROM book_titles
+        WHERE isbn = $1
+        LIMIT 1
+      `,
+        [isbn],
+      );
+      const result = await this.bookcopyRepository.query(
+        `
+        SELECT *
+        FROM book_copies 
+        WHERE book_title_uuid = $1 AND is_available = false AND is_archived = true`,
+        [bookTitle[0].book_title_uuid],
+      );
+      return result;
+    } catch (error) {
+      console.error('Error getting book in library:', error);
+      throw new HttpException(
+        'Error getting book in library',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAllUnavailableBooks(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+         WHERE is_archived = true AND is_available = false
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.bookcopyRepository.query(
+        `SELECT COUNT(*) as count FROM book_copies 
+         WHERE is_archived = true AND is_available = false`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getLogDetails(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const books = await this.booklogRepository.query(
+        `SELECT * FROM book_logv2 
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.booklogRepository.query(
+        `SELECT COUNT(*) as count FROM book_logv2`,
+      );
+
+      return {
+        data: books,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getLogDetailsByTitle({
+    book_uuid,
+    isbn,
+  }: {
+    book_uuid: string;
+    isbn: string;
+  }) {
+    try {
+      const logs = await this.booklogRepository.query(
+        `SELECT * FROM book_logv2 
+          WHERE book_uuid = $1 OR isbn = $2`,
+        [book_uuid, isbn],
+      );
+      return {
+        data: logs,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getLogDetailsByCopy({ barcode }: { barcode: string }) {
+    try {
+      const book = await this.bookcopyRepository.query(
+        `SELECT * FROM book_copies 
+          WHERE barcode = $1 OR isbn = $2`,
+        [barcode],
+      );
+
+      const logs = await this.booklogRepository.query(
+        `SELECT * FROM book_logv2 
+          WHERE book_copy_uuid = $1`,
+        [book[0].book_copy_uuid],
+      );
+      return {
+        data: logs,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -289,49 +709,6 @@ export class BooksV2Service {
     }
   }
 
-  async getArchivedBooks(
-    { page, limit, search }: { page: number; limit: number; search: string } = {
-      page: 1,
-      limit: 10,
-      search: '',
-    },
-  ) {
-    try {
-      console.log(page, limit, search);
-      const offset = (page - 1) * limit;
-      const searchQuery = search ? '%${search}%' : '%';
-
-      const books = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles 
-         WHERE is_archived = true AND book_title ILIKE $1
-         LIMIT $2 OFFSET $3`,
-        [searchQuery, limit, offset],
-      );
-
-      const total = await this.booktitleRepository.query(
-        `SELECT COUNT(*) as count FROM book_titles 
-         WHERE is_archived = true AND book_title ILIKE $1`,
-        [searchQuery],
-      );
-
-      return {
-        data: books,
-        pagination: {
-          total: parseInt(total[0].count, 10),
-          page,
-          limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-        },
-      };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   async restoreBook(book_uuid: string) {
     try {
       const book = await this.booktitleRepository.query(
@@ -355,72 +732,6 @@ export class BooksV2Service {
     } catch (error) {
       throw new HttpException(
         'Error restoring book',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getBookCopies(
-    { page, limit }: { page: number; limit: number } = {
-      page: 1,
-      limit: 10,
-    },
-  ) {
-    try {
-      const offset = (page - 1) * limit;
-
-      const books = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
-         WHERE is_archived = false
-         LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-
-      const total = await this.bookcopyRepository.query(
-        `SELECT COUNT(*) as count FROM book_copies 
-         WHERE is_archived = false`,
-      );
-
-      return {
-        data: books,
-        pagination: {
-          total: parseInt(total[0].count, 10),
-          page,
-          limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-        },
-      };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async fetchSingleCopyInfo(identifier: string) {
-    try {
-      let query = `SELECT * FROM book_copies WHERE `;
-      let params: (string | number)[] = [];
-
-      if (!isNaN(Number(identifier))) {
-        query += `(barcode = $1 OR inventory_number = $1) `;
-        params.push(Number(identifier)); // Convert to BIGINT
-      } else {
-        query += `book_copy_uuid = $1 `;
-        params.push(identifier);
-      }
-
-      query += `AND is_archived = false`;
-
-      const book = await this.bookcopyRepository.query(query, params);
-
-      return { message: 'Book fetched successfully', book: book[0] };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching copy',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -519,45 +830,6 @@ export class BooksV2Service {
     }
   }
 
-  async getArchivedBooksCopy(
-    { page, limit }: { page: number; limit: number } = {
-      page: 1,
-      limit: 10,
-    },
-  ) {
-    try {
-      const offset = (page - 1) * limit;
-
-      const books = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
-         WHERE is_archived = true
-         LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-
-      const total = await this.bookcopyRepository.query(
-        `SELECT COUNT(*) as count FROM book_copies 
-         WHERE is_archived = true`,
-      );
-
-      return {
-        data: books,
-        pagination: {
-          total: parseInt(total[0].count, 10),
-          page,
-          limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-        },
-      };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   async restoreBookCopy(book_uuid: string) {
     try {
       const book = await this.bookcopyRepository.query(
@@ -606,33 +878,6 @@ export class BooksV2Service {
       throw new Error('No data found');
     }
     return result;
-  }
-
-  async getavailablebook(isbn: string) {
-    try {
-      const bookTitle = await this.booktitleRepository.query(
-        `
-      SELECT * FROM book_titles
-      WHERE isbn = $1
-      LIMIT 1
-      `,
-        [isbn],
-      );
-      const result = await this.bookcopyRepository.query(
-        `
-      SELECT *
-      FROM book_copies 
-      WHERE book_title_uuid = $1 AND is_available = true`,
-        [bookTitle[0].book_title_uuid],
-      );
-      return result;
-    } catch (error) {
-      console.error('Error getting book in library:', error);
-      throw new HttpException(
-        'Error getting book in library',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async createbookreturned(

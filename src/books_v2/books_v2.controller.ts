@@ -134,7 +134,7 @@ export class BooksV2Controller {
 
   @Get('fetch_book_copy')
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
-    return this.booksService.fetchSingleCopyInfo(identifier);
+    return this.booksService.getSingleCopyInfo(identifier);
   }
 
   @Patch('update_book_title')
@@ -176,7 +176,7 @@ export class BooksV2Controller {
 
   @Get('available')
   async availableBook(@Query('isbn') isbn: string) {
-    return await this.booksService.getavailablebook(isbn);
+    return await this.booksService.getavailablebookbyisbn(isbn);
   }
 
   //logs part
