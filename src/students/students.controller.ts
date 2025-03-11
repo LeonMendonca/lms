@@ -166,4 +166,35 @@ export class StudentsController {
       );
     }
   }
+
+  @Get('archive')
+  async getAllArchivedStudents(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+    @Query('_search') search: string,
+  ) {
+    return await this.studentsService.findAllArchivedStudents({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search ?? undefined,
+    });
+  }
+
+  @Put('archive')
+  async updateArchive(
+    @Body('student_uuid') student_uuid: string,
+    @Body('student_id') student_id: string,
+  ) {
+    console.log('working');
+    return this.studentsService.updateStudentArchive(student_uuid, student_id);
+  }
+
+  @Put('restore')
+  async restoreArchive(
+    @Body('student_uuid') student_uuid: string,
+    @Body('student_id') student_id: string,
+  ) {
+    console.log('working');
+    return this.studentsService.restoreStudentArchive(student_uuid, student_id);
+  }
 }

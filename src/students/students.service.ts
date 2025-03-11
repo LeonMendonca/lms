@@ -33,14 +33,14 @@ export class StudentsService {
     const searchQuery = search ? '%${search}%' : '%';
 
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND book_title ILIKE $1 LIMIT $2 OFFSET $3',
+      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
       [searchQuery, limit, offset],
     );
 
     const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table WHERE is_archived = false AND book_title ILIKE $1`,
+      `SELECT COUNT(*) from students_table WHERE is_archived = false AND student_name ILIKE $1`,
       [searchQuery],
-    )
+    );
 
     return {
       data: students,
@@ -233,14 +233,14 @@ export class StudentsService {
     const searchQuery = search ? '%${search}%' : '%';
 
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = true AND book_title ILIKE $1 LIMIT $2 OFFSET $3',
+      'SELECT * from students_table WHERE is_archived = true AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
       [searchQuery, limit, offset],
     );
 
     const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table WHERE is_archived = true AND book_title ILIKE $1`,
+      `SELECT COUNT(*) from students_table WHERE is_archived = true AND student_name ILIKE $1`,
       [searchQuery],
-    )
+    );
 
     return {
       data: students,
@@ -251,5 +251,81 @@ export class StudentsService {
         totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
       },
     };
+  }
+
+  async updateStudentArchive(student_uuid: string, student_id: string) {
+    try {
+      const student = await this.studentsRepository.query(
+        `SELECT * FROM students_table WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = false LIMIT 1`,
+        [student_uuid, student_id],
+      );
+      console.log({ student });
+
+      if (student.length === 0) {
+        throw new HttpException(
+          'Student not found or already archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      await this.studentsRepository.query(
+        `UPDATE students_table SET is_archived = true WHERE student_uuid = $1 OR student_id = $2`,
+        [student_uuid, student_id],
+      );
+
+      return { message: 'Student archived successfully' };
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        'Error archiving student',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async restoreStudentArchive(student_uuid: string, student_id: string) {
+    try {
+      // Fetch student who is currently archived
+      const student = await this.studentsRepository.query(
+        `SELECT * FROM students_table 
+         WHERE (student_uuid = $1 OR student_id = $2) 
+         AND is_archived = true 
+         LIMIT 1`, // Ensures only one student is retrieved
+        [student_uuid, student_id],
+      );
+  
+      console.log({ student });
+  
+      if (student.length === 0) {
+        throw new HttpException(
+          'Student not found or not archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+  
+      // Restore the student (set is_archived to false)
+      const updateResult = await this.studentsRepository.query(
+        `UPDATE students_table 
+         SET is_archived = false 
+         WHERE (student_uuid = $1 OR student_id = $2) 
+         AND is_archived = true 
+         RETURNING *`, // Confirms the update was successful
+        [student_uuid, student_id],
+      );
+  
+      if (updateResult.length === 0) {
+        throw new HttpException(
+          'Failed to restore student',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+  
+      return { message: 'Student restored successfully' };
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(
+        'Error restoring student',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
