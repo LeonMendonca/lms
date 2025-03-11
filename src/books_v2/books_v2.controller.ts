@@ -12,6 +12,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
   Patch,
+  Req,
 } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
@@ -20,7 +21,9 @@ import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { EMPTY } from 'rxjs';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { string } from 'zod';
+import { Request } from 'express';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';
+import { booklogSchema, TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -181,8 +184,59 @@ export class BooksV2Controller {
   }
 
 
+//logs part 
 
 
+@Post('borrowed')
+@UsePipes(new bodyValidationPipe(booklogSchema))
+async createBooklogIssued(@Body() booklogpayload: TCreateBooklogDTO, @Req() req: Request) {
+  try {
+    // Extract user IP address properly
+    const ipAddress = req.headers['x-forwarded-for']?.[0] || req.socket.remoteAddress || 'Unknown';
+
+    const result = await this.booksService.createBookborrowed(booklogpayload, ipAddress);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Book borrowed successfully',
+      data: result,
+    };
+  } catch (error) {
+    console.error('Error in createBooklogIssued:', error);
+    throw new HttpException(
+      error.message || 'Failed to borrow book',
+      error.status || HttpStatus.INTERNAL_SERVER_ERROR
+    );
+  }
+}
+
+
+
+
+
+      @Post('returned')
+    async createBooklogreturned(@Body() booklogpayload:TCreateBooklogDTO ){
+      try{
+       
+        const result = await this.booksService.createbookreturned(booklogpayload);
+        
+        return result;
+      } catch (error) {
+        if (error instanceof Error){
+          console.log(error)
+          throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+        }
+      }
+    
+      }
+//       @Post('booklibrary')
+//       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
+// try {
+//    const result= await this.BooklogService.setbooklibrary(booklogpayload)
+// } catch (error) {
+  
+// }
+//       }
 
   
 }

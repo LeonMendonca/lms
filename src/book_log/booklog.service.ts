@@ -46,6 +46,7 @@ WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);
       INSERT into book_log (student_uuid, book_status, book_uuid) VALUES ('${studentQueryData[0].student_uuid}', 'borrowed', '${bookQueryData[0].book_uuid}')
       `
     )
+    
 
   //  const result:{ student_id:string;book_title: string; book_uuid: string}[] =await this.booklogRepository.query(
   // )
