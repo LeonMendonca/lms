@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booklog} from './book_log.entity';
@@ -40,7 +40,7 @@ WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);
     if(studentQueryData.length === 0 || bookQueryData.length === 0) {
       throw new Error("Invalid Book or Student received");
     }
-    
+
     await this.booklogRepository.query(
       `
       INSERT into book_log (student_uuid, book_status, book_uuid) VALUES ('${studentQueryData[0].student_uuid}', 'borrowed', '${bookQueryData[0].book_uuid}')
@@ -68,8 +68,10 @@ WHERE bc.book_copy_uuid = '${booklogpayload.book_uuid}'`);
     // }
       // console.log(result2);
     } catch (error) {
-      console.log(error)
-      throw error
+        throw new HttpException(
+              'Error restoring book',
+              HttpStatus.INTERNAL_SERVER_ERROR,
+            );
   
     }
   
