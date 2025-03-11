@@ -201,8 +201,8 @@ export class BooksV2Service {
         'images',
         'additional_fields',
         'description',
-        'no_pages',
-        'no_preliminary',
+        'no_of_pages',
+        'no_of_preliminary',
       ]);
       const bookcopy = this.booktitleRepository.query(
         `insert into book_copies(${querydata2.queryCol})values(${querydata2.queryArg})`,
@@ -259,8 +259,8 @@ WHERE
         'images',
         'additional_fields',
         'description',
-        'no_pages',
-        'no_preliminary',
+        'no_of_pages',
+        'no_of_preliminary',
       ]);
       const bookcopy = this.booktitleRepository.query(
         `insert into book_copies(${querydata2.queryCol})values(${querydata2.queryArg})`,
@@ -648,7 +648,7 @@ WHERE
 
   async isbnBook(isbn: string) {
     const result = await this.booktitleRepository.query(`
-      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_pages,book_titles.no_preliminary  FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
+      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_of_pages,book_titles.no_of_preliminary,book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
       `);
     if (result.length === 0) {
       throw new Error('No data found');

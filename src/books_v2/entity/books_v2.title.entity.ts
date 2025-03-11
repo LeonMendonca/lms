@@ -43,11 +43,11 @@ export class BookTitle {
   @Column({ name: 'isbn', type: 'varchar', length: 255 })
   isbn: 'isbn' = 'isbn';
 
-  @Column({ name: 'no_pages', type: 'integer' })
-  noPages: 'no_pages' = 'no_pages';
+  @Column({ name: 'no_of_pages', type: 'integer' ,nullable:true })
+  noPages: 'no_of_pages' = 'no_of_pages';
 
-  @Column({ name: 'no_preliminary', type: 'integer' })
-  noPreliminary: 'no_preliminary' = 'no_preliminary';
+  @Column({ name: 'no_of_preliminary', type: 'integer', nullable:true })
+  noPreliminary: 'no_of_preliminary' = 'no_of_preliminary';
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
   subject: 'subject' = 'subject';
