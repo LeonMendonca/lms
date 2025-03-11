@@ -21,7 +21,15 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books, Booklog, Bookcount, BookCopy, BookTitle,Booklog_v2],
+      entities: [
+        Students,
+        Books,
+        Booklog,
+        Bookcount,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
+      ],
       ssl: true,
       synchronize: true,
     }),

@@ -45,6 +45,62 @@ export class BooksV2Controller {
       search: search ?? undefined,
     });
   }
+
+  @Get('get_copies_with_title')
+  async getBookCopiesByTitle(
+    @Query('_book_uuid') book_uuid: string,
+    @Query('_isbn') isbn: string,
+    @Query('_titlename') titlename: string,
+  ) {
+    return this.booksService.getBookCopiesByTitle({
+      book_uuid,
+      isbn,
+      titlename,
+    });
+  }
+
+  @Get('get_logs_of_title')
+  async getLogDetailsByTitle(
+    @Query('_book_uuid') book_uuid: string,
+    @Query('_isbn') isbn: string,
+  ) {
+    return this.booksService.getLogDetailsByTitle({
+      book_uuid,
+      isbn,
+    });
+  }
+
+  @Get('get_logs_of_copy')
+  async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
+    return this.booksService.getLogDetailsByCopy({
+      barcode,
+    });
+  }
+
+  @Get('get_all_available')
+  async getAllAvailableBooks() {
+    return this.booksService.getAllAvailableBooks();
+  }
+
+  @Get('get_available_by_isbn')
+  async getavailablebookbyisbn(
+    @Query('_isbn') isbn: string,
+  ) {
+    return this.booksService.getunavailablebookbyisbn(isbn);
+  }
+
+  @Get('get_all_unavailable')
+  async getAllUnavailableBooks() {
+    return this.booksService.getAllUnavailableBooks();
+  }
+
+  @Get('get_unavailable_by_isbn')
+  async getunavailablebookbyisbn(
+    @Query('_isbn') isbn: string,
+  ) {
+    return this.booksService.getunavailablebookbyisbn(isbn);
+  }
+
   // @Get('isarchiveT')
   // async AllBooksArchiveTrue() {
   //   return this.booksService.getBooks();
@@ -100,6 +156,17 @@ export class BooksV2Controller {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
+    });
+  }
+
+  @Get('get_all_logs')
+  async getLogDetails(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    return this.booksService.getLogDetails({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
     });
   }
 

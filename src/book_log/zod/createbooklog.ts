@@ -10,8 +10,8 @@ const booklogCreateObject = createObjectIncludeProperties(new Booklog(), [
 
 export const booklogSchema = z.object({
   [booklogCreateObject.studentuuid]: z.string().uuid(),
-  [booklogCreateObject.bookUUID]: z.string().uuid(),
-  barcode: z.string().uuid(),
+  [booklogCreateObject.bookUUID]: z.string(),
+  barcode: z.string(),
 });
 
 export type TCreateBooklogDTO = z.infer<typeof booklogSchema>;
