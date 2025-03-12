@@ -13,10 +13,10 @@ export class Booklog_v2 {
   @Column({  name:'borrower_uuid' ,type:'uuid' })
   borrowerId:'borrower_uuid'='borrower_uuid'; 
 
-  @Column({  name:'book_uuid' ,type:'uuid' })
+  @Column({  name:'book_uuid' ,type:'uuid', nullable:true })
   bookUUID:'book_uuid'='book_uuid'; 
 
-  @Column({  name:'book_copy_uuid' ,type:'uuid' })
+  @Column({  name:'book_copy_uuid' ,type:'uuid',nullable:true })
   bookCopyUUID:'book_copy_uuid'='book_copy_uuid'; 
 
   @Column({ name: 'old_booktitle', type: 'json',  nullable:true })
