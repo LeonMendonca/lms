@@ -28,7 +28,7 @@ export class bodyValidationPipe implements PipeTransform {
         throw new HttpException(modifiedZodError, HttpStatus.NOT_ACCEPTABLE);
       } else {
         throw new HttpException(
-          'Undefined Error',
+          error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
