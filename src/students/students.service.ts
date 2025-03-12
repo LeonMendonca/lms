@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Students } from './students.entity';
+import { Students, TStudents } from './students.entity';
 import { StudentQueryValidator } from './students.query-validator';
 import type { UnionUser } from './students.query-validator';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
@@ -76,18 +76,17 @@ export class StudentsService {
     //const queryData = selectQueryHelper(newObject, [])
     const result = (await this.studentsRepository.query(
       `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
-    )) as Students[];
+    )) as TStudents[];
 
     if (result.length === 0) {
       return null;
     }
 
     const filteredStudentObject = createObjectOmitProperties(result[0], [
-      'studentUUID',
+      'student_uuid',
       'password',
-      'isArchived',
+      'is_archived',
     ]);
-    console.log('data is', filteredStudentObject);
     return filteredStudentObject;
   }
 
@@ -120,51 +119,6 @@ export class StudentsService {
     }
   }
 
-  //DEPRECATED
-  //  async createStudent(studentPayload: TCreateStudentDTO) {
-  //    try {
-  //      type TCreateStudentDTOWithID = TCreateStudentDTO & {
-  //        student_id: string;
-  //        count: number;
-  //      };
-  //      //Get Maximum Student Count
-  //      const maxCountColumn: [{ max: null | number }] =
-  //        await this.studentsRepository.query(
-  //          `SELECT MAX(count) from students_table`,
-  //        );
-  //      let studentId: string = '';
-  //      let queryResult: { student_id: string; count: number }[] = [];
-  //      let count: number = 0;
-  //      console.log('max column is', maxCountColumn);
-  //      if (maxCountColumn[0].max) {
-  //        //studentId = createStudentId(
-  //        //  maxCountColumn[0].max,
-  //        //  studentPayload.institute_name,
-  //        //);
-  //        queryResult = await this.studentsRepository.query(
-  //          `SELECT student_id, count from students_table WHERE count = (${maxCountColumn[0].max})`,
-  //        );
-  //        count = queryResult[0].count;
-  //      } else {
-  //        studentId = createStudentId(null, studentPayload.institute_name);
-  //      }
-  //      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
-  //        { ...studentPayload, student_id: studentId, count: ++count },
-  //        ['confirm_password'],
-  //      );
-  //      await this.studentsRepository.query(
-  //        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-  //        queryData.values,
-  //      );
-  //      return {
-  //        statusCode: HttpStatus.CREATED,
-  //        studentId: studentId,
-  //      };
-  //    } catch (error) {
-  //      throw error;
-  //    }
-  //  }
-  //
   async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
     return await (CreateWorker(
       arrStudentPayload,
@@ -351,7 +305,7 @@ export class StudentsService {
   async exportAllStudents() {
     const students = await this.studentsRepository.query(
       'SELECT * from students_table WHERE is_archived = false',
-    );
+    ) as TStudents[];
 
     return {
       data: students,

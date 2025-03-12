@@ -7,5 +7,4 @@ function GenericTypeGuard<T extends object>(
   }
   return false;
 }
-
 export { GenericTypeGuard };

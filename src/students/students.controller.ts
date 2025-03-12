@@ -163,20 +163,6 @@ export class StudentsController {
     }
   }
 
-  @Get('ep')
-  @UseFilters(new HttpExceptionFilter())
-  async findAll() {
-    try {
-      return await this.studentsService.findAll();
-    } catch (error) {
-      throw new HttpException(
-        { message: error.message },
-        HttpStatus.NOT_FOUND,
-        { cause: error },
-      );
-    }
-  }
-
   @Get('archive')
   async getAllArchivedStudents(
     @Query('_page') page: string,

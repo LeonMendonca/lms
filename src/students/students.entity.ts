@@ -97,3 +97,10 @@ export class Students {
   @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
 }
+
+const student = new Students();
+
+//Type that represents the table Columns
+export type TStudents = {
+  [P in keyof typeof student as typeof student[P]]: typeof student[P];
+}
