@@ -1,5 +1,5 @@
 import z from'zod'
-import { createObjectOmitProperties } from "src/create-object-from-class";
+import { createObjectOmitProperties } from "src/misc/create-object-from-class";
 import { BookTitle } from "../entity/books_v2.title.entity";
 import { BookCopy } from '../entity/books_v2.copies.entity';
 import { parse } from 'isbn3';

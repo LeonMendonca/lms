@@ -1,4 +1,4 @@
-import { createObjectIncludeProperties, createObjectOmitProperties } from 'src/create-object-from-class';
+import { createObjectIncludeProperties, createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import z from 'zod'
 import { BookTitle } from '../entity/books_v2.title.entity';
 

@@ -6,7 +6,7 @@ import { BookTitle } from './entity/books_v2.title.entity';
 import { Request } from 'express';
 import { CreateBookCopyDTO } from './zod/createcopydto';
 import { TCreateBookZodDTO } from './zod/createbookdtozod';
-import { insertQueryHelper } from 'src/custom-query-helper';
+import { insertQueryHelper } from 'src/misc/custom-query-helper';
 import { TisbnBookZodDTO } from './zod/isbnbookzod';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';

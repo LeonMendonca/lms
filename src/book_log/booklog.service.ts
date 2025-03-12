@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booklog} from './book_log.entity';
-import { insertQueryHelper } from 'src/custom-query-helper';
+import { insertQueryHelper } from 'src/misc/custom-query-helper';
 import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
 import { string } from 'zod';
 import { TCreateBooklogDTO } from './zod/createbooklog';

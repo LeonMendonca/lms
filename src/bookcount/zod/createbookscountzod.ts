@@ -1,5 +1,5 @@
 import {isValid, string, z} from 'zod'
-import { createObjectIncludeProperties } from 'src/create-object-from-class'
+import { createObjectIncludeProperties } from 'src/misc/create-object-from-class'
 import { Bookcount } from '../bookcount.entity'
 import { parse } from 'isbn3';
 import { createBookQuery } from 'src/books/zod-validation/bookquery-zod';

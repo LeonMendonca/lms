@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Bookcount } from './bookcount.entity';
 import { TCreateBookDTO } from 'src/books/zod-validation/createbooks-zod';
 import { TcreatebookcountQueryValidator } from './zod/createbookscountzod';
-import { insertQueryHelper } from 'src/custom-query-helper';
 @Injectable()
 export class BookcountService {
   constructor(
