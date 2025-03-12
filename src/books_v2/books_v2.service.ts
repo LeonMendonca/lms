@@ -1109,4 +1109,9 @@ export class BooksV2Service {
       );
     }
   }
+  // visit log
+  async createvisitlog(studeintId:string){
+    await this.booktitleRepository.query(`insert into visit_log (student_id)`)
+  } 
+
 }

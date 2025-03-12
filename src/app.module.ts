@@ -14,6 +14,7 @@ import { BookCopy } from './books_v2/entity/books_v2.copies.entity';
 import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { BooksV2Module } from './books_v2/books_v2.module';
 import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
+import { VisitLog } from './books_v2/entity/visitlog.entity';
 
 config({ path: '.env' });
 @Module({
@@ -29,6 +30,7 @@ config({ path: '.env' });
         BookCopy,
         BookTitle,
         Booklog_v2,
+        VisitLog
       ],
       ssl: true,
       synchronize: true,

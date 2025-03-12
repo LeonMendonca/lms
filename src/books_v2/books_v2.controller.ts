@@ -335,6 +335,17 @@ export class BooksV2Controller {
       }
     }
   }
+
+
+  @Post("vistlog_create")
+  async createVisitLog( @Body() studeintId:string){
+ try {
+ return await this.booksService.createvisitlog(studeintId)
+ } catch (error) {
+  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+ }
+
+  }
   //       @Post('booklibrary')
   //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
   // try {
