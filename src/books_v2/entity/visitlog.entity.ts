@@ -11,10 +11,10 @@ export class VisitLog {
 // StudentId :'student_id'='student_id';
 // relation 
 @ManyToOne(() => Students, (student) => student.studentUUID)
-  @JoinColumn({ name: "student_id" })
-  studentId: "student_id" = "student_id";
+  @JoinColumn({ name: "student_uuid" , })
+  studentUUID: "student_uuid" = "student_uuid";
 
-  @Column({ name: 'timestamp'  })
+  @Column({ name: 'timestamp' ,type:'timestamp' ,default: () => 'CURRENT_TIMESTAMP' })
   timestamp: 'timestamp'='timestamp';
 
   @Column({ name: 'action', type: 'varchar', length: 255 })

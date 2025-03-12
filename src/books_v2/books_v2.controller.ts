@@ -336,15 +336,32 @@ export class BooksV2Controller {
     }
   }
 
+//visitlog
+@Get('get_visitlog')
+async getVisitlog() {
+  try {
+    return await this.booksService.getallvisitlog();
+  } catch (error) {
+    throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  }
+}
 
-  @Post("vistlog_create")
-  async createVisitLog( @Body() studeintId:string){
- try {
- return await this.booksService.createvisitlog(studeintId)
- } catch (error) {
-  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
- }
+  @Post("vistlog_entry")
+  async createVisitLog(@Body() body: { student_uuid: string }) {
+    try {
+      return await this.booksService.visitlogentry(body.student_uuid);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 
+  @Post("vistlog_exit")
+  async createVisitExit(@Body() body: { student_uuid: string }) {
+    try {
+      return await this.booksService.visitlogexit(body.student_uuid);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
   //       @Post('booklibrary')
   //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){

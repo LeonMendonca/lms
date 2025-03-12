@@ -1110,8 +1110,69 @@ export class BooksV2Service {
     }
   }
   // visit log
-  async createvisitlog(studeintId:string){
-    await this.booktitleRepository.query(`insert into visit_log (student_id)`)
+
+  async getallvisitlog(){
+    try {
+     return await this.booktitleRepository.query(
+        `select * from visit_log`
+        
+      );
+    } catch (error) {
+      throw new HttpException(
+        `Error ${error} setting book in library`,
+        HttpStatus.INTERNAL_SERVER_ERROR,);
+    }
+  }
+
+  async visitlogentry(student_uuid: string) {
+    try {
+     const result=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+     if (result.length === 0) {
+      throw new HttpException(
+        { message: "Invalid student ID" },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+     await this.booktitleRepository.query(
+        `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'entry')`,
+        [student_uuid]
+      );
+      return {
+        message: "Visit log entry created successfully",
+        student_uuid: student_uuid,
+        timestamp: new Date().toISOString(), // Adding timestamp for clarity
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error ${error} setting book in library`,
+        HttpStatus.INTERNAL_SERVER_ERROR,);
+    }
   } 
+
+  async visitlogexit(student_uuid: string) {
+    try {
+     const result=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+     if (result.length === 0) {
+      throw new HttpException(
+        { message: "Invalid student ID" },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+     await this.booktitleRepository.query(
+        `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
+        [student_uuid]
+      );
+      return {
+        message: "Visit log entry created successfully",
+        student_uuid: student_uuid,
+        timestamp: new Date().toISOString(), // Adding timestamp for clarity
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error ${error} setting book in library`,
+        HttpStatus.INTERNAL_SERVER_ERROR,);
+    }
+  } 
+
 
 }
