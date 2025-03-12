@@ -41,22 +41,36 @@ export class StudentsController {
     @Query('_limit') limit: string,
     @Query('_search') search: string,
   ) {
-    return await this.studentsService.findAllStudents({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      search: search ?? undefined,
-    });
+    try {
+      return await this.studentsService.findAllStudents({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+        search: search ?? undefined,
+      }); 
+    } catch (error) { 
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
   }
 
   @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
   async getStudentDetail(@Query() query: UnionUser) {
-    const result = await this.studentsService.findStudentBy(query);
-    if (result) {
-      return result;
-    } else {
-      throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+    try {
+      const result = await this.studentsService.findStudentBy(query);
+      if (result) {
+        return result;
+      } else {
+        throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+      } 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      }
     }
+    
   }
 
   //@Get('search')
@@ -73,14 +87,13 @@ export class StudentsController {
   @UsePipes(new bodyValidationPipe(createStudentSchema))
   async createStudent(@Body() studentPayload: TCreateStudentDTO) {
     try {
-      return await this.studentsService.createStudent2(studentPayload);
+      return await this.studentsService.createStudent(studentPayload);
     } catch (error) {
-      if (error instanceof Error) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
     }
   }
 
@@ -94,7 +107,11 @@ export class StudentsController {
     try {
       return this.studentsService.bulkCreate(arrStudentPayload);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
     }
   }
 
@@ -119,33 +136,39 @@ export class StudentsController {
           message: `User id ${studentId} updated successfully!`,
         };
       } else {
-        throw new Error(`User with id ${studentId} not found`);
+        throw new HttpException(`User with id ${studentId} not found`, HttpStatus.NOT_FOUND);
       }
     } catch (error) {
-      if (error instanceof Error) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
     }
   }
+
   @Delete('delete/:student_uuid')
   async deleteStudent(
     @Param('student_uuid', new ParseUUIDPipe()) studentId: string,
   ) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
-      if (result[1]) {
-        return {
-          statusCode: HttpStatus.OK,
-          message: `User id ${studentId} deleted successfully!`,
-        };
-      } else {
-        throw new Error(`User with id ${studentId} not found`);
+      if (!result[1]) {
+        throw new HttpException(
+          `User with id ${studentId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
+      return {
+        statusCode: HttpStatus.OK,
+        message: `User id ${studentId} deleted successfully!`,
+      };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
     }
   }
 
@@ -157,9 +180,22 @@ export class StudentsController {
   )
   async bulkDeleteStudent(@Body() arrStudentUUIDPayload: TstudentUUIDZod[]) {
     try {
-      return this.studentsService.bulkDelete(arrStudentUUIDPayload);
+      const result = await this.studentsService.bulkDelete(arrStudentUUIDPayload);
+      return result;
+      //if(!result) {
+      //  return {
+      //    statusCode: 200,
+      //    message: "All Student uuids archived"
+      //  }
+      //}
+      ////console.log("array", result)
+      //throw new HttpException(result, HttpStatus.MULTI_STATUS);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
     }
   }
 
@@ -181,8 +217,22 @@ export class StudentsController {
     @Body('student_uuid') student_uuid: string,
     @Body('student_id') student_id: string,
   ) {
-    console.log('working');
-    return this.studentsService.updateStudentArchive(student_uuid, student_id);
+    try {
+      const result = await this.studentsService.updateStudentArchive(student_uuid, student_id);
+      if(!result) {
+        throw new HttpException(
+          'Student not found or already archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return { statusCode: HttpStatus.OK, message: 'Student archived successfully' };
+    } catch (error) {
+     if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      }; 
+    }
   }
 
   @Put('restore')
@@ -190,12 +240,32 @@ export class StudentsController {
     @Body('student_uuid') student_uuid: string,
     @Body('student_id') student_id: string,
   ) {
-    console.log('working');
-    return this.studentsService.restoreStudentArchive(student_uuid, student_id);
+    const result = await this.studentsService.restoreStudentArchive(student_uuid, student_id);
+      if(!result) {
+        throw new HttpException(
+          'Student not found or already restored',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return { statusCode: HttpStatus.OK, message: 'Student restored successfully' };
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
   }
 
   @Get('export')
   async exportAllStudents() {
-    return await this.studentsService.exportAllStudents();
+    try {
+      return await this.studentsService.exportAllStudents();
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      };
+    }
   }
 }

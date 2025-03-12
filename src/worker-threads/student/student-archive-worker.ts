@@ -7,7 +7,7 @@ import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
 
 (async() => {
     let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
-    let arrOfErr: string[] = [];
+    let arrOfArchivedStatus: string[] = [];
 
     const dataSourceInit = await dataSource.initialize();
     const studentRepo: Repository<Students> = dataSourceInit.getRepository(Students);
@@ -17,10 +17,12 @@ import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
                 UPDATE students_table SET is_archived = true WHERE student_uuid = '${uuid}' AND is_archived = false`
             );
             if(!result[1]) {
-                arrOfErr.push(`Unable to delete ${uuid}`);
+                arrOfArchivedStatus.push(`Unable to archive ${uuid}`);
+            } else {
+                arrOfArchivedStatus.push(`Succesfully archived ${uuid}`);
             }
         }
-        (parentPort ? parentPort.postMessage(arrOfErr) : "Parent Port NULL" );
+        (parentPort ? parentPort.postMessage(arrOfArchivedStatus) : "Parent Port NULL" );
     }
     catch (error) {
         (parentPort ? parentPort.postMessage(error.message) : "Parent Port NULL" );

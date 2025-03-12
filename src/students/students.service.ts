@@ -55,42 +55,37 @@ export class StudentsService {
   }
 
   async findStudentBy(query: UnionUser) {
-    let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
-    let value: string | undefined = undefined;
-    if ('student_id' in query) {
-      requiredKey = 'student_id';
-      value = query.student_id;
-    } else {
-      requiredKey = 'student_uuid';
-      value = query.student_uuid;
+    try {
+      let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
+      let value: string | undefined = undefined;
+      if ('student_id' in query) {
+        requiredKey = 'student_id';
+        value = query.student_id;
+      } else {
+        requiredKey = 'student_uuid';
+        value = query.student_uuid;
+      }
+
+      const result = (await this.studentsRepository.query(
+        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
+      )) as TStudents[];
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const filteredStudentObject = createObjectOmitProperties(result[0], [
+        'password',
+        'is_archived',
+      ]);
+      return filteredStudentObject; 
+    } catch (error) {
+      throw error;
     }
-
-    //let studentObject = createObjectOmitProperties(new Students(), ['studentUUID', 'password']);
-    //let newObject = {};
-
-    ////Get all values of the object that are Column name in students_table
-    //for(let key in studentObject) {
-    //  newObject[studentObject[key]] = '';
-    //}
-
-    //const queryData = selectQueryHelper(newObject, [])
-    const result = (await this.studentsRepository.query(
-      `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
-    )) as TStudents[];
-
-    if (result.length === 0) {
-      return null;
-    }
-
-    const filteredStudentObject = createObjectOmitProperties(result[0], [
-      'student_uuid',
-      'password',
-      'is_archived',
-    ]);
-    return filteredStudentObject;
+    
   }
 
-  async createStudent2(studentPayload: TCreateStudentDTO) {
+  async createStudent(studentPayload: TCreateStudentDTO) {
     try {
       type TCreateStudentDTOWithID = TCreateStudentDTO & {
         student_id: string;
@@ -181,7 +176,11 @@ export class StudentsService {
         );
         BatchArr.push(result);
       }
-      return await Promise.all(BatchArr);
+      const arrayOfUnableToArchive = ((await Promise.all(BatchArr)).flat());
+      //if(arrayOfUnableToArchive.length === 0) {
+      //  return null;
+      //}
+      return arrayOfUnableToArchive;
     } catch (error) {
       throw error;
     }
@@ -202,103 +201,56 @@ export class StudentsService {
       search: '',
     },
   ) {
-    const offset = (page - 1) * limit;
-    const searchQuery = search ? '%${search}%' : '%';
+    try {
+      const offset = (page - 1) * limit;
+      const searchQuery = search ? '%${search}%' : '%';
 
-    const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = true AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
-      [searchQuery, limit, offset],
-    );
+      const students = await this.studentsRepository.query(
+        'SELECT * from students_table WHERE is_archived = true AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
+        [searchQuery, limit, offset],
+      );
 
-    const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table WHERE is_archived = true AND student_name ILIKE $1`,
-      [searchQuery],
-    );
+      const total = await this.studentsRepository.query(
+        `SELECT COUNT(*) from students_table WHERE is_archived = true AND student_name ILIKE $1`,
+        [searchQuery],
+      );
 
-    return {
-      data: students,
-      pagination: {
-        total: parseInt(total[0].count, 10),
-        page,
-        limit,
-        totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-      },
-    };
+      return {
+        data: students,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      }; 
+    } catch (error) {
+      throw error;
+    }
+    
   }
 
   async updateStudentArchive(student_uuid: string, student_id: string) {
     try {
-      const student = await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = false LIMIT 1`,
+      const result: [[], number] = await this.studentsRepository.query(
+        `UPDATE students_table SET is_archived = true WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = false`,
         [student_uuid, student_id],
       );
-      console.log({ student });
-
-      if (student.length === 0) {
-        throw new HttpException(
-          'Student not found or already archived',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = true WHERE student_uuid = $1 OR student_id = $2`,
-        [student_uuid, student_id],
-      );
-
-      return { message: 'Student archived successfully' };
+      return result[1];
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error archiving student',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
   async restoreStudentArchive(student_uuid: string, student_id: string) {
     try {
-      // Fetch student who is currently archived
-      const student = await this.studentsRepository.query(
-        `SELECT * FROM students_table 
-         WHERE (student_uuid = $1 OR student_id = $2) 
-         AND is_archived = true 
-         LIMIT 1`, // Ensures only one student is retrieved
+      const result: [[], number] = await this.studentsRepository.query(
+        `UPDATE students_table SET is_archived = false WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = true`,
         [student_uuid, student_id],
       );
-
-      console.log({ student });
-
-      if (student.length === 0) {
-        throw new HttpException(
-          'Student not found or not archived',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Restore the student (set is_archived to false)
-      const updateResult = await this.studentsRepository.query(
-        `UPDATE students_table 
-         SET is_archived = false 
-         WHERE (student_uuid = $1 OR student_id = $2) 
-         AND is_archived = true 
-         RETURNING *`, // Confirms the update was successful
-        [student_uuid, student_id],
-      );
-
-      if (updateResult.length === 0) {
-        throw new HttpException(
-          'Failed to restore student',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      return { message: 'Student restored successfully' };
+      return result[1];
     } catch (error) {
-      console.error(error);
-      throw new HttpException(
-        'Error restoring student',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
