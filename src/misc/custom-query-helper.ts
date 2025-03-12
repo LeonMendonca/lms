@@ -1,3 +1,5 @@
+import { Students } from "src/students/students.entity";
+
 //creates Columns (col1, col2, ....), Arguments ($1, $2, ....) and Array of values [val1, val2, ....]
 export function insertQueryHelper<T extends object>(
   payloadObject: T,
@@ -39,4 +41,16 @@ export function updateQueryHelper<T extends object>(
   }
   queryCol = queryCol.slice(0, -1);
   return { queryCol, values };
+}
+
+export function selectQueryHelper<T extends object>(payloadObject: T, ignoreField: (keyof T)[]) {
+  let queryCol = '';
+  for(let key in payloadObject) {
+    if(ignoreField.includes(key)) {
+      continue;
+    }
+    queryCol = queryCol.concat(`${key},`)
+  }
+  queryCol = queryCol.slice(0, -1);
+  return queryCol;
 }

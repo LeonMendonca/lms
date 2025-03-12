@@ -6,7 +6,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { isEmptyObject } from 'src/check-empty-object';
+import { isEmptyObject } from 'src/misc/check-empty-object';
 import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
