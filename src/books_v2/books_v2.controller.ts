@@ -363,12 +363,4 @@ async getVisitlog() {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
-  //       @Post('booklibrary')
-  //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
-  // try {
-  //    const result= await this.BooklogService.setbooklibrary(booklogpayload)
-  // } catch (error) {
-
-  // }
-  //       }
 }
