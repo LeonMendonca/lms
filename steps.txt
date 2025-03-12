@@ -55,3 +55,35 @@ P2 : Delete Journal in journal_copy and journal_table
 - Then write the query validator for it
 - Then you write the logic in services
 - Then you write the route function in controller
+
+
+------------- NOTIFICATIONS ----------------
+- Create module, controller and services (nest g mo notifications, nest g constroller notifications, nest g s notifications)
+- Install the dependencies to ensure scheduling (npm i --save @nestjs/schedule)
+- Register the controller and services in the module
+- Register the Schedule in the module to use it
+- In services create a function and annotate it with @Cron decorator to indicate the function is used for task scheduling
+-> Cron Job Standard Configs
+(* * * * * *) => (seconds, minutes, hours, day_of_the_month, month, day_of_the_week) => (0-59, 0-59, 0-23, 1-31, 1-12, 1-7)
+-> CronExpression gives us pre defined expressions
+-> Intervals gives us teh freedom to give time intervals and not limit us to fixed time
+** Time is defined in milliseconds **
+** We can also schedule the timezone **
+
+
+
+--> Give Notifications of :-
+
+-- DATABASE BASED UPDATES --
+
+1. Database Updates
+  - Tell whether there are any updates or not
+2. New Users Added Updates
+  - Tell if new users are added or not
+3. New Books or Periodicals Updates
+  - Tell if new periodicals are added or not
+
+-- REMINDER BASED UPDATES --
+
+1. Reminder to borrowed books
+  - Give the reminder to the users that they have to return the borrowed item while their borrowing period is over

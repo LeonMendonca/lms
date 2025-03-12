@@ -11,6 +11,7 @@ import { Booklog } from './book_log/book_log.entity';
 import { JournalsModule } from './journals/journals.module';
 import { JournalsTable } from './journals/entity/journals_table.entity';
 import { JournalsCopy } from './journals/entity/journals_copy.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 
 config({ path: '.env' });
 @Module({
@@ -26,6 +27,7 @@ config({ path: '.env' });
     BooksModule,
     BookLogModule,
     JournalsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {
