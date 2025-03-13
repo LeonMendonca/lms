@@ -23,26 +23,47 @@ export class StudentsService {
     private studentsRepository: Repository<Students>,
   ) {}
 
-  async findAllStudents(
-    { page, limit, search }: { page: number; limit: number; search: string } = {
-      page: 1,
-      limit: 10,
-      search: '',
-    },
-  ) {
+
+  async findAllStudents({
+    page,
+    limit,
+    search,
+    department,
+    year,
+  }: {
+    page: number;
+    limit: number;
+    search?: string;
+    department?: string;
+    year?: string;
+  }) {
     const offset = (page - 1) * limit;
-    const searchQuery = search ? '%${search}%' : '%';
-
-    const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
-      [searchQuery, limit, offset],
-    );
-
-    const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table WHERE is_archived = false AND student_name ILIKE $1`,
-      [searchQuery],
-    );
-
+    const queryParams: any[] = [];
+    let query = `SELECT * FROM students_table WHERE is_archived = false`;
+  
+    if (search) {
+      query += ` AND student_name ILIKE $${queryParams.length + 1}`;
+      queryParams.push(`%${search}%`);
+    }
+  
+    if (department) {
+      query += ` AND department = $${queryParams.length + 1}`;
+      queryParams.push(department);
+    }
+  
+    if (year) {
+      query += ` AND year_of_admission = $${queryParams.length + 1}`;
+      queryParams.push(year);
+    }
+  
+    query += ` ORDER BY year_of_admission DESC, department DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    queryParams.push(limit, offset);
+  
+    const students = await this.studentsRepository.query(query, queryParams);
+  
+    const totalQuery = `SELECT COUNT(*) FROM students_table WHERE is_archived = false`;
+    const total = await this.studentsRepository.query(totalQuery);
+  
     return {
       data: students,
       pagination: {
@@ -53,6 +74,8 @@ export class StudentsService {
       },
     };
   }
+  
+  
 
   async findStudentBy(query: UnionUser) {
     let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
@@ -311,4 +334,104 @@ export class StudentsService {
       data: students,
     };
   }
+// visit log 
+async getVisitAllLog(){
+  try {
+  const data=await this.studentsRepository.query(`SELECT * FROM visit_log`);
+  return data
+  } catch (error) {
+    throw new HttpException(
+      `Error ${error} something went wrong in all log !1`,
+      HttpStatus.INTERNAL_SERVER_ERROR,);
+  }
+}
+  async getVisitLogByStudentUUID(student_uuid: string){
+    try {
+      return await this.studentsRepository.query(
+        `SELECT * FROM visit_log WHERE student_uuid = $1`, [student_uuid]
+      );
+    } catch (error) {
+      throw new HttpException(
+        `Error ${error} invalid  student_uuid`,
+        HttpStatus.INTERNAL_SERVER_ERROR,);
+    }
+  }
+  async visitlogentry(student_uuid: string) {
+    try {
+     const result=await this.studentsRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+     if (result.length === 0) {
+      throw new HttpException(
+        { message: "Invalid student ID" },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+     await this.studentsRepository.query(
+        `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'entry')`,
+        [student_uuid]
+      );
+      return {
+        message: "Visit log entry created successfully",
+        student_uuid: student_uuid,
+        timestamp: new Date().toISOString(), // Adding timestamp for clarity
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error ${error} something went wrong in visit entry!!`,
+        HttpStatus.INTERNAL_SERVER_ERROR,);
+    }
+  } 
+  async visitlogexit(student_uuid: string) {
+    try {
+        // 1 Validate if student exists
+        const studentExists = await this.studentsRepository.query(
+            `SELECT 1 FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`, 
+            [student_uuid]
+        );
+  
+        if (studentExists.length === 0) {
+            throw new HttpException(
+                { message: "Invalid student ID" },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+  
+        // 2 Get last visit log entry
+        const lastEntry = await this.studentsRepository.query(
+            `SELECT action FROM visit_log 
+             WHERE student_uuid=$1 
+             ORDER BY timestamp DESC 
+             LIMIT 1`,
+            [student_uuid]
+        );
+  
+        // 3 Ensure last action was 'entry' before logging 'exit'
+        if (lastEntry.length === 0 || lastEntry[0].action !== 'entry') {
+            throw new HttpException(
+                { message: "No prior entry log found. Entry is required before exit." },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+  
+        // 4 Insert exit log
+        await this.studentsRepository.query(
+            `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
+            [student_uuid]
+        );
+  
+        return {
+            message: "Exit log created successfully",
+            student_uuid,
+            timestamp: new Date().toISOString(),
+        };
+  
+    } catch (error) {
+        throw new HttpException(
+            `Error: ${error.message || error} while processing visit log in  visit exit `,
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+  }
+  
+  
+
 }

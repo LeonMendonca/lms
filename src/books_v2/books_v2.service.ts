@@ -181,7 +181,7 @@ export class BooksV2Service {
         query += ` AND book_title ILIKE $${queryParams.length + 1}`;
         queryParams.push(`%${titlename}%`);
       }
-
+console.log(query,queryParams)
       const book = await this.booktitleRepository.query(query, queryParams);
 
       if (book.length === 0) {
@@ -403,6 +403,7 @@ export class BooksV2Service {
         WHERE book_title_uuid = $1 AND is_available = false AND is_archived = false`,
         [bookTitle[0].book_uuid],
       );
+      console.log(result);
       return result;
     } catch (error) {
       console.error('Error getting book in library:', error);
@@ -1111,43 +1112,9 @@ export class BooksV2Service {
   }
   // visit log
 
-  async getallvisitlog(){
-    try {
-     return await this.booktitleRepository.query(
-        `select * from visit_log`
-        
-      );
-    } catch (error) {
-      throw new HttpException(
-        `Error ${error} setting book in library`,
-        HttpStatus.INTERNAL_SERVER_ERROR,);
-    }
-  }
 
-  async visitlogentry(student_uuid: string) {
-    try {
-     const result=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
-     if (result.length === 0) {
-      throw new HttpException(
-        { message: "Invalid student ID" },
-        HttpStatus.BAD_REQUEST
-      );
-    }
-     await this.booktitleRepository.query(
-        `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'entry')`,
-        [student_uuid]
-      );
-      return {
-        message: "Visit log entry created successfully",
-        student_uuid: student_uuid,
-        timestamp: new Date().toISOString(), // Adding timestamp for clarity
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error ${error} setting book in library`,
-        HttpStatus.INTERNAL_SERVER_ERROR,);
-    }
-  } 
+
+  
 
 //   async visitlogexit(student_uuid: string) {
 //     try {
@@ -1179,58 +1146,6 @@ export class BooksV2Service {
 //         HttpStatus.INTERNAL_SERVER_ERROR,);
 //     }
 //   } 
-
-async visitlogexit(student_uuid: string) {
-  try {
-      // 1 Validate if student exists
-      const studentExists = await this.booktitleRepository.query(
-          `SELECT 1 FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`, 
-          [student_uuid]
-      );
-
-      if (studentExists.length === 0) {
-          throw new HttpException(
-              { message: "Invalid student ID" },
-              HttpStatus.BAD_REQUEST
-          );
-      }
-
-      // 2 Get last visit log entry
-      const lastEntry = await this.booktitleRepository.query(
-          `SELECT action FROM visit_log 
-           WHERE student_uuid=$1 
-           ORDER BY timestamp DESC 
-           LIMIT 1`,
-          [student_uuid]
-      );
-
-      // 3 Ensure last action was 'entry' before logging 'exit'
-      if (lastEntry.length === 0 || lastEntry[0].action !== 'entry') {
-          throw new HttpException(
-              { message: "No prior entry log found. Entry is required before exit." },
-              HttpStatus.BAD_REQUEST
-          );
-      }
-
-      // 4 Insert exit log
-      await this.booktitleRepository.query(
-          `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
-          [student_uuid]
-      );
-
-      return {
-          message: "Exit log created successfully",
-          student_uuid,
-          timestamp: new Date().toISOString(),
-      };
-
-  } catch (error) {
-      throw new HttpException(
-          `Error: ${error.message || error} while processing visit log`,
-          HttpStatus.INTERNAL_SERVER_ERROR
-      );
-  }
-}
 
 
 

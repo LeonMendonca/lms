@@ -35,18 +35,24 @@ import { HttpExceptionFilter } from 'src/misc/exception-filter';
 @Controller('student')
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
+  
   @Get('all')
   async getAllStudents(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
     @Query('_search') search: string,
+    @Query('_department') department: string,
+    @Query('_year') year: string
   ) {
     return await this.studentsService.findAllStudents({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
+      department: department ?? undefined,
+      year: year ?? undefined,
     });
   }
+  
 
   @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
@@ -197,5 +203,43 @@ export class StudentsController {
   @Get('export')
   async exportAllStudents() {
     return await this.studentsService.exportAllStudents();
+  }
+
+  //Visitlog
+
+  @Get('alllog')
+  async getAllLog(){
+    try {
+      return await this.studentsService.getVisitAllLog()
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  @Get('visitlog_by_uuid')
+async getVisitlog(@Query('_student_uuid', new ParseUUIDPipe()) studentUUID: string) {
+  try {
+    console.log(studentUUID)
+    return await this.studentsService.getVisitLogByStudentUUID(studentUUID);
+  } catch (error) {
+    throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+@Post("vistlog_entry")
+  async createVisitLog(@Body() body: { student_uuid: string }) {
+    try {
+      return await this.studentsService.visitlogentry(body.student_uuid);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post("vistlog_exit")
+  async createVisitExit(@Body() body: { student_uuid: string }) {
+    try {
+      return await this.studentsService.visitlogexit(body.student_uuid);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 }

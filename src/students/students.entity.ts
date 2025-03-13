@@ -1,5 +1,5 @@
-import { VisitLog } from 'src/books_v2/entity/visitlog.entity';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { VisitLog } from './visitlog.entity';
 
 export const Department = {
   ELECTRICAL: 'electrical',
@@ -99,8 +99,8 @@ export class Students {
   @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
 
-   @OneToMany(() => VisitLog, (visit_log) => visit_log.visitlogId)
-    visitlog: 'visit_log' = 'visit_log';
+  //  @OneToMany(() => VisitLog, (visit_log) => visit_log.student_UUID)
+  //   visitlog: 'visit_log' = 'visit_log';
 }
 
 const student = new Students();

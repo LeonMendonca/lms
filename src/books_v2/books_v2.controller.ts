@@ -46,7 +46,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_copies_with_title')
+  @Get('get_copies_with_title')//
   async getBookCopiesByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -59,7 +59,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_title')
+  @Get('get_logs_of_title')//
   async getLogDetailsByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -70,7 +70,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_copy')
+  @Get('get_logs_of_copy')//
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
     return this.booksService.getLogDetailsByCopy({
       barcode,
@@ -337,30 +337,19 @@ export class BooksV2Controller {
   }
 
 //visitlog
-@Get('get_visitlog')
-async getVisitlog() {
-  try {
-    return await this.booksService.getallvisitlog();
-  } catch (error) {
-    throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  }
-}
 
-  @Post("vistlog_entry")
-  async createVisitLog(@Body() body: { student_uuid: string }) {
-    try {
-      return await this.booksService.visitlogentry(body.student_uuid);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
 
-  @Post("vistlog_exit")
-  async createVisitExit(@Body() body: { student_uuid: string }) {
-    try {
-      return await this.booksService.visitlogexit(body.student_uuid);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
+
+// @Get('fetch_archived_book_copy')
+// async getArchivedBooksCopy(
+//   @Query('_page') page: string,
+//   @Query('_limit') limit: string,
+// ) {
+//   return this.booksService.getArchivedBooksCopy({
+//     page: page ? parseInt(page, 10) : 1,
+//     limit: limit ? parseInt(limit, 10) : 10,
+//   });
+// }
+
+  
 }
