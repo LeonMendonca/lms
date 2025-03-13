@@ -1182,9 +1182,9 @@ export class BooksV2Service {
 
 async visitlogexit(student_uuid: string) {
   try {
-      // Check if student exists
+      // 1 Validate if student exists
       const studentExists = await this.booktitleRepository.query(
-          `SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`, 
+          `SELECT 1 FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`, 
           [student_uuid]
       );
 
@@ -1195,20 +1195,24 @@ async visitlogexit(student_uuid: string) {
           );
       }
 
-      // Check if the student has an 'entry' log before inserting 'exit'
-      const validation = await this.booktitleRepository.query(
-          `SELECT * FROM visit_log WHERE student_uuid=$1 AND action='entry' ORDER BY timestamp DESC LIMIT 1`,
+      // 2 Get last visit log entry
+      const lastEntry = await this.booktitleRepository.query(
+          `SELECT action FROM visit_log 
+           WHERE student_uuid=$1 
+           ORDER BY timestamp DESC 
+           LIMIT 1`,
           [student_uuid]
       );
 
-      if (validation.length === 0) {
+      // 3 Ensure last action was 'entry' before logging 'exit'
+      if (lastEntry.length === 0 || lastEntry[0].action !== 'entry') {
           throw new HttpException(
               { message: "No prior entry log found. Entry is required before exit." },
               HttpStatus.BAD_REQUEST
           );
       }
 
-      // Insert exit log
+      // 4 Insert exit log
       await this.booktitleRepository.query(
           `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
           [student_uuid]
@@ -1216,7 +1220,7 @@ async visitlogexit(student_uuid: string) {
 
       return {
           message: "Exit log created successfully",
-          student_uuid: student_uuid,
+          student_uuid,
           timestamp: new Date().toISOString(),
       };
 
@@ -1227,6 +1231,7 @@ async visitlogexit(student_uuid: string) {
       );
   }
 }
+
 
 
 }
