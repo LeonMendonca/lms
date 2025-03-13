@@ -39,6 +39,7 @@ export class BooksV2Controller {
     @Query('_limit') limit: string,
     @Query('_search') search: string,
   ) {
+    console.log(page, limit, search);
     return this.booksService.getBooks({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,

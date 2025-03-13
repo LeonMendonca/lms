@@ -6,22 +6,31 @@ export class BookCopy {
   @PrimaryGeneratedColumn('uuid', { name: 'book_copy_uuid' })
   bookCopyUUID: "book_copy_uuid" = "book_copy_uuid";
 
+@Column({
+    name: 'book_copy_id',
+    type: 'varchar',
+    length: 255,
+    unique: true,
+    nullable: true,
+  })
+  bookId: 'book_copy_id' = 'book_copy_id';
+
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
   sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
 
   @Column({ name: 'date_of_acquisition', type: 'date' })
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
-  @Column({ name: 'bill_no', type: 'int' })
+  @Column({ name: 'bill_no', type: 'varchar' })
   billNo: "bill_no" = "bill_no";
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
   language: "language" = "language";
 
-  @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
+  @Column({ name: 'inventory_number', type: 'varchar', nullable: true })
   inventoryNumber: "inventory_number" = "inventory_number";
 
-  @Column({ name: 'accession_number', type: 'int' })
+  @Column({ name: 'accession_number', type: 'varchar' })
   accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
@@ -30,8 +39,8 @@ export class BookCopy {
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
   itemType: "item_type" = "item_type";
 
-  @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: "institute_id" = "institute_id";
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUUID: "institute_uuid" = "institute_uuid";
 
   @Column({
     name: 'is_archived',
@@ -53,14 +62,14 @@ export class BookCopy {
   @Column({ name: 'remarks', type: 'simple-array', nullable: true })
   remarks: "remarks" = "remarks";
 
-  @Column({ name: 'copy_images', type: 'simple-array', nullable: true })
-  copyImages: "copy_images" = "copy_images";
+  @Column({ name: 'images', type: 'simple-array', nullable: true })
+  images: "images" = "images";
 
-  @Column({ name: 'copy_additional_fields', type: 'json', nullable: true })
-  copyAdditionalFields: "copy_additional_fields" = "copy_additional_fields";
+  @Column({ name: 'additional_fields', type: 'json', nullable: true })
+  additionalFields: "additional_fields" = "additional_fields";
   
-  @Column({ name: 'copy_description', type: 'text', nullable: true })
-  copyDescription: "copy_description" = "copy_description";
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: "description" = "description";
 
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
   isAvailable: "is_available" = "is_available";

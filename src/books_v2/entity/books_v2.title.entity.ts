@@ -55,7 +55,7 @@ export class BookTitle {
   @Column({ name: 'department', type: 'varchar', length: 255 })
   department: 'department' = 'department';
 
-  @Column({ name: 'call_number', type: 'char', length: 10, nullable: true })
+  @Column({ name: 'call_number', type: 'varchar', length: 255, nullable: true })
   callNumber: 'call_number' = 'call_number';
 
   @Column({ name: 'author_mark', type: 'varchar', length: 255 })
@@ -69,10 +69,10 @@ export class BookTitle {
   })
   isArchived: 'is_archived' = 'is_archived';
 
-  @Column({ name: 'total_count', type: 'int', nullable: true })
+  @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
   totalCount: 'total_count' = 'total_count';
 
-  @Column({ name: 'available_count', type: 'int', nullable: true })
+  @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
   availableCount: 'available_count' = 'available_count';
 
   @CreateDateColumn({ name: 'created_at' })

@@ -16,6 +16,7 @@ import { string } from 'zod';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
+import { genBookId } from './create-book-id';
 
 @Injectable()
 export class BooksV2Service {
@@ -599,45 +600,35 @@ export class BooksV2Service {
   // Create a new book
   async createBook(createBookpayload: TCreateBookZodDTO) {
     try {
-      let bookTitleExists = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE isbn = $1`,
+      //Check if book exists in BookTitle Table
+      let bookTitleUUID: [{ book_uuid: string }] = await this.booktitleRepository.query(
+        `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
         [createBookpayload.isbn],
       );
 
-      if (!bookTitleExists.length) {
-        bookTitleExists = await this.booktitleRepository.query(
-          `
-        INSERT INTO book_titles (
-          book_title, book_author, name_of_publisher, place_of_publication,
-          year_of_publication, edition, isbn, no_of_pages, no_of_preliminary,
-          subject, department, call_number, author_mark,
-          images, additional_fields, description,
-          created_at, updated_at, total_count, available_count
-        ) VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15,
-          $16, NOW(), NOW(), 1, 1
-        ) RETURNING *;
-     `,
-          [
-            createBookpayload.book_title,
-            createBookpayload.book_author,
-            createBookpayload.name_of_publisher,
-            createBookpayload.place_of_publication,
-            createBookpayload.year_of_publication,
-            createBookpayload.edition,
-            createBookpayload.isbn,
-            createBookpayload.no_of_pages,
-            createBookpayload.no_of_preliminary,
-            createBookpayload.subject,
-            createBookpayload.department,
-            createBookpayload.call_number,
-            createBookpayload.author_mark,
-            JSON.stringify(createBookpayload.images),
-            JSON.stringify(createBookpayload.additional_fields),
-            createBookpayload.description,
-          ],
+      //Book Title Table logic
+      if (!bookTitleUUID.length) {
+        //Create custom Book Id
+        const max: [{ max: null | string }] = await this.booktitleRepository.query(`SELECT MAX(book_id) FROM book_titles`);
+        const bookId = genBookId(max[0].max, 'BT');
+        const bookTitlePayloadWithId = { ...createBookpayload, book_id: bookId };
+
+        //Create the required Columns, Arg, and Values
+        const bookTitleQueryData = insertQueryHelper(bookTitlePayloadWithId, [
+          'source_of_acquisition', 'date_of_acquisition', 'bill_no', 'language',
+          'inventory_number', 'accession_number', 'barcode', 'item_type',
+          'institute_uuid', 'created_by', 'remarks'
+        ]);
+
+        //Convert the some spefic fields to string
+        bookTitleQueryData.values.forEach((element, idx) => {
+          if(Array.isArray(element) || typeof element === 'object') {
+            bookTitleQueryData.values[idx] = JSON.stringify(element);
+          }
+        }); 
+        console.log(bookTitleQueryData);
+        bookTitleUUID = await this.booktitleRepository.query(`
+          INSERT INTO book_titles (${bookTitleQueryData.queryCol}) VALUES (${bookTitleQueryData.queryArg}) RETURNING book_uuid`, bookTitleQueryData.values
         );
       } else {
         await this.booktitleRepository.query(
@@ -646,34 +637,27 @@ export class BooksV2Service {
         );
       }
 
-      await this.bookcopyRepository.query(
-        `
-      INSERT INTO book_copies (
-        source_of_acquisition, date_of_acquisition, bill_no, language, 
-        inventory_number, accession_number, barcode, item_type, institute_id, 
-        is_archived, created_at, updated_at, created_by, book_title_uuid
-      ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10,
-        NOW(), NOW(), $11, $12
-      ) RETURNING *;
-      `,
-        [
-          createBookpayload.source_of_acquisition,
-          createBookpayload.date_of_acquisition,
-          createBookpayload.bill_no,
-          createBookpayload.language,
-          createBookpayload.inventory_number,
-          createBookpayload.accession_number,
-          createBookpayload.barcode,
-          createBookpayload.item_type,
-          createBookpayload.institute_id,
-          false,
-          createBookpayload.created_by,
-          bookTitleExists[0].book_uuid,
-        ],
-      );
-      return { message: 'Book Added successfully' };
+      //Book Copy Table logic
+
+      //Create custom Book Id
+      const max: [{ max: null | string }] = await this.booktitleRepository.query(`SELECT MAX(book_copy_id) FROM book_copies`);
+      const bookId = genBookId(max[0].max, 'BC');
+      const bookCopyPayloadWithId = { ...createBookpayload, book_copy_id: bookId, book_title_uuid: bookTitleUUID[0].book_uuid };
+
+      const bookCopyQueryData = insertQueryHelper(bookCopyPayloadWithId, [
+        'book_title', 'book_author', 'name_of_publisher', 'place_of_publication',
+        'year_of_publication', 'edition', 'isbn', 'no_of_pages', 'no_of_preliminary',
+        'subject', 'department', 'call_number', 'author_mark'
+      ]);
+
+      bookCopyQueryData.values.forEach((element, idx) => {
+          if(Array.isArray(element) || typeof element === 'object') {
+            bookCopyQueryData.values[idx] = JSON.stringify(element);
+          }
+      }); 
+      await this.bookcopyRepository.query(`INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`, bookCopyQueryData.values);
+      
+      return { statusCode: HttpStatus.CREATED, message: "Book created" }
     } catch (error) {
       console.log(error);
       throw new HttpException(
