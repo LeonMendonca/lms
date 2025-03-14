@@ -1,4 +1,4 @@
-import { CreateDateColumn, UpdateDateColumn, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, PrimaryColumn, OneToMany } from 'typeorm';
+import { CreateDateColumn, UpdateDateColumn, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
 
 @Entity('book_copies')
@@ -6,14 +6,14 @@ export class BookCopy {
   @PrimaryGeneratedColumn('uuid', { name: 'book_copy_uuid' })
   bookCopyUUID: "book_copy_uuid" = "book_copy_uuid";
 
-@Column({
+  @Column({
     name: 'book_copy_id',
     type: 'varchar',
     length: 255,
     unique: true,
     nullable: true,
   })
-  bookId: 'book_copy_id' = 'book_copy_id';
+  bookCopyId: 'book_copy_id' = 'book_copy_id';
 
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
   sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
@@ -62,14 +62,14 @@ export class BookCopy {
   @Column({ name: 'remarks', type: 'simple-array', nullable: true })
   remarks: "remarks" = "remarks";
 
-  @Column({ name: 'images', type: 'simple-array', nullable: true })
-  images: "images" = "images";
+  @Column({ name: 'copy_images', type: 'simple-array', nullable: true })
+  copyImages: "copy_images" = "copy_images";
 
-  @Column({ name: 'additional_fields', type: 'json', nullable: true })
-  additionalFields: "additional_fields" = "additional_fields";
+  @Column({ name: 'copy_additional_fields', type: 'json', nullable: true })
+  copyAdditionalFields: "copy_additional_fields" = "copy_additional_fields";
   
-  @Column({ name: 'description', type: 'text', nullable: true })
-  description: "description" = "description";
+  @Column({ name: 'copy_description', type: 'text', nullable: true })
+  copyDescription: "copy_description" = "copy_description";
 
   @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
   isAvailable: "is_available" = "is_available";
@@ -77,4 +77,11 @@ export class BookCopy {
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: "book_title_uuid" })
   bookTitleUUID: "book_title_uuid" = "book_title_uuid";
+}
+
+const book_copy = new BookCopy();
+
+//Type that represents the table Columns
+export type TBookCopy = {
+  [P in keyof typeof book_copy as typeof book_copy[P]]: any;
 }

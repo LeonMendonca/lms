@@ -1,14 +1,8 @@
-import { createObjectIncludeProperties, createObjectOmitProperties } from 'src/misc/create-object-from-class';
-import z from 'zod'
-import { BookTitle } from '../entity/books_v2.title.entity';
+import { z } from 'zod';
 
+//Book Title UUID
+export const createObjectSchema = z.object({
+  book_uuid: z.string().uuid()
+});
 
-
-const createBookTitleObject = createObjectIncludeProperties(new BookTitle(), ['bookUUID']);
-
-export const createObjectSchema=z.object({
-[createBookTitleObject.bookUUID]:z.string()
-    
-}) 
-
-export type TupdatearchiveZodDTO=z.infer<typeof createObjectSchema>;
+export type TupdatearchiveZodDTO = z.infer<typeof createObjectSchema>;

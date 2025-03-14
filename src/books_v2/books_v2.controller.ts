@@ -3,9 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Param,
   Put,
-  Delete,
   Query,
   UsePipes,
   HttpException,
@@ -17,10 +15,6 @@ import {
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
-import { TisbnBookZodDTO } from './zod/isbnbookzod';
-import { EMPTY } from 'rxjs';
-import { TupdatearchiveZodDTO } from './zod/uarchive';
-import { string } from 'zod';
 import { Request } from 'express';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';
 import {
@@ -140,10 +134,10 @@ export class BooksV2Controller {
       const result = await this.booksService.createBook(bookPayload);
       return result;
     } catch (error) {
-      if (error instanceof Error) {
-        console.log(error);
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
+      throw error;
     }
   }
 

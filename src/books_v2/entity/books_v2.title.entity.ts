@@ -14,13 +14,13 @@ export class BookTitle {
   bookUUID: 'book_uuid' = 'book_uuid';
 
   @Column({
-    name: 'book_id',
+    name: 'book_title_id',
     type: 'varchar',
     length: 255,
     unique: true,
     nullable: true,
   })
-  bookId: 'book_id' = 'book_id';
+  bookTitleId: 'book_title_id' = 'book_title_id';
 
   @Column({ name: 'book_title', type: 'varchar', length: 255 })
   bookTitle: 'book_title' = 'book_title';
@@ -81,16 +81,23 @@ export class BookTitle {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: 'updated_at' = 'updated_at';
 
-  @Column({ name: 'images', type: 'simple-array', nullable: true })
-  images: 'images' = 'images';
+  @Column({ name: 'title_images', type: 'simple-array', nullable: true })
+  titleImages: 'title_images' = 'title_images';
 
-  @Column({ name: 'additional_fields', type: 'json', nullable: true })
-  additionalFields: 'additional_fields' = 'additional_fields';
+  @Column({ name: 'title_additional_fields', type: 'json', nullable: true })
+  titleAdditionalFields: 'title_additional_fields' = 'title_additional_fields';
 
-  @Column({ name: 'description', type: 'text', nullable: true })
-  description: 'description' = 'description';
+  @Column({ name: 'title_description', type: 'text', nullable: true })
+  titleDescription: 'title_description' = 'title_description';
 
   //Relationships
   @OneToMany(() => BookCopy, (bookcopy) => bookcopy.bookTitleUUID)
   bookCopies: 'book_copies' = 'book_copies';
+}
+
+const book_title = new BookTitle();
+
+//Type that represents the table Columns
+export type TBookTitle = {
+  [P in keyof typeof book_title as typeof book_title[P]]: any;
 }
