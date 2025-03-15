@@ -395,7 +395,7 @@ export class BooksV2Service {
       `,
         [isbn],
       );
-      console.log({bookTitle})
+      console.log({ bookTitle });
       const result = await this.bookcopyRepository.query(
         `
         SELECT *
@@ -463,7 +463,8 @@ export class BooksV2Service {
 
       const books = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
-         LIMIT $1 OFFSET $2`,
+          ORDER BY time DESC 
+          LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
 
@@ -1084,7 +1085,7 @@ export class BooksV2Service {
         ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10)
       `;
 
-      console.log({newBookTitleData, newBookCopyData});
+      console.log({ newBookTitleData, newBookCopyData });
 
       const insertLogValues = [
         booklogpayload.student_uuid,
