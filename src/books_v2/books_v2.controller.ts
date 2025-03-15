@@ -117,7 +117,7 @@ export class BooksV2Controller {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
   @Get('isbn')
-  async searchBookIsbn(@Query('isbn') isbn: string) {
+  async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
       return result[0];
@@ -170,7 +170,7 @@ export class BooksV2Controller {
     return this.booksService.restoreBook(book_uuid);
   }
 
-  @Get('get_book_tile_details')
+  @Get('get_book_title_details')
   async getBookTitleDetails(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -183,7 +183,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('fetch_all_book_copy')
+  @Get('get_all_book_copy')
   async fetchAllCopyInfo(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -194,7 +194,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('fetch_book_copy')
+  @Get('get_book_copy')
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
     return this.booksService.getSingleCopyInfo(identifier);
   }
@@ -212,7 +212,7 @@ export class BooksV2Controller {
     return this.booksService.archiveBookCopy(book_uuid);
   }
 
-  @Get('fetch_archived_book_copy')
+  @Get('get_archived_book_copy')
   async getArchivedBooksCopy(
     @Query('_page') page: string,
     @Query('_limit') limit: string,

@@ -37,15 +37,13 @@ export class BooksV2Service {
     try {
       console.log(page, limit, search);
       const offset = (page - 1) * limit;
-      const searchQuery = search ? '%${search}%' : '%';
+      const searchQuery = search ? `${search}%` : '%';
 
-      const books = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles 
-        WHERE is_archived = false AND book_title ILIKE $1
-        LIMIT $2 OFFSET $3`,
-        [searchQuery, limit, offset],
-      );
-
+      const books = await this.booktitleRepository.query
+      (
+        `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false LIMIT $2 OFFSET $3;`,
+        [searchQuery, limit, offset]
+      ); 
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
         WHERE is_archived = false AND book_title ILIKE $1`,
@@ -96,13 +94,13 @@ export class BooksV2Service {
         queryParams.push(`%${titlename}%`);
       }
 
-      const book = await this.booktitleRepository.query(query, queryParams);
+      const book = await this.booktitleRepository.query(query.concat(' LIMIT 1'), queryParams);
 
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
 
-      return book[0]; // Return only the first matching book
+      return book; // Return only the first matching book
     } catch (error) {
       throw new HttpException(
         'Error fetching book details',
@@ -150,6 +148,7 @@ export class BooksV2Service {
     }
   }
 
+  //----------
   async getBookCopiesByTitle({
     book_uuid,
     isbn,
@@ -161,7 +160,7 @@ export class BooksV2Service {
   }) {
     try {
       const queryParams: string[] = [];
-      let query = `SELECT * FROM book_titles WHERE 1=1`;
+      let query = `SELECT book_uuid, book_title FROM book_titles WHERE 1=1`;
 
       if (book_uuid) {
         query += ` AND book_uuid = $${queryParams.length + 1}`;
@@ -172,17 +171,19 @@ export class BooksV2Service {
         queryParams.push(isbn);
       }
       if (titlename) {
-        query += ` AND book_title ILIKE $${queryParams.length + 1}`;
-        queryParams.push(`%${titlename}%`);
+        query += ` AND book_title LIKE $${queryParams.length + 1}`;
+        queryParams.push(`${titlename}%`);
       }
 
       const book = await this.booktitleRepository.query(query, queryParams);
+
+      console.log({ book });
+      console.log("THIS IS THE UUID", book[0]);
 
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
 
-      console.log({ book });
 
       const books = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies 
@@ -193,7 +194,8 @@ export class BooksV2Service {
       console.log({ books });
 
       return {
-        data: books,
+        title: book,
+        copies: books,
       };
     } catch (error) {
       console.log(error);
