@@ -10,6 +10,7 @@ import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
 import { genBookId } from './create-book-id';
+import { TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 
 @Injectable()
 export class BooksV2Service {
@@ -875,21 +876,17 @@ export class BooksV2Service {
   }
 
   async createbookreturned(
-    booklogpayload: {
-      student_uuid: string;
-      book_uuid: string | undefined;
-      barcode: string;
-    },
+    booklogpayload: TCreateBooklogV2DTO,
     ipAddress: string,
   ) {
     try {
       const studentExists = await this.sudentRepository.query(
         `SELECT * FROM students_table WHERE student_uuid = $1`,
-          [booklogpayload.student_uuid],
+          [booklogpayload.borrower_uuid],
       );
 
       if (studentExists.length === 0) {
-        console.error(' Invalid Student UUID:', booklogpayload.student_uuid);
+        console.error(' Invalid Student UUID:', booklogpayload.borrower_uuid);
         throw new HttpException('Invalid Student UUID', HttpStatus.BAD_REQUEST);
       }
 
@@ -899,7 +896,7 @@ export class BooksV2Service {
       );
 
       if (bookData.length === 0) {
-        console.error(' Invalid Book UUID:', booklogpayload.book_uuid);
+        console.error(' Invalid Book UUID:', booklogpayload.book_copy_uuid);
         throw new HttpException('Invalid Barcode', HttpStatus.BAD_REQUEST);
       }
 
@@ -926,8 +923,8 @@ export class BooksV2Service {
       `;
 
       const insertLogValues = [
-        booklogpayload.student_uuid,
-        booklogpayload.student_uuid,
+        booklogpayload.borrower_uuid,
+        booklogpayload.borrower_uuid,
         JSON.stringify(newBookTitleData),
         JSON.stringify(oldBookCopy),
         JSON.stringify(newBookCopyData),
@@ -952,67 +949,65 @@ export class BooksV2Service {
   }
 
   async createBookborrowed(
-    booklogpayload: TCreateBooklogDTO,
-    ipAddress: string,
+    booklogPayload: TCreateBooklogV2DTO,
   ) {
     try {
-      const studentExists = await this.sudentRepository.query(
-        `SELECT * FROM students_table WHERE student_uuid = $1`,
-          [booklogpayload.student_uuid],
+      const studentExists: { student_uuid: string }[] = await this.sudentRepository.query(
+        `SELECT student_uuid FROM students_table WHERE student_uuid = $1`,
+          [booklogPayload.borrower_uuid],
       );
-
       if (studentExists.length === 0) {
-        console.error(' Invalid Student UUID:', booklogpayload.student_uuid);
         throw new HttpException('Invalid Student UUID', HttpStatus.BAD_REQUEST);
       }
 
-      const bookData = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE barcode = $1 AND is_available = true LIMIT 1`,
-          [booklogpayload.barcode],
+      const bookTitleUUIDFromBookCopy: [{ book_title_uuid: string }[] | [], number] = await this.bookcopyRepository.query(
+        `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE RETURNING book_title_uuid`,
+          [booklogPayload.book_copy_uuid, booklogPayload.barcode],
       );
-
-      if (bookData.length === 0) {
-        console.error(' Invalid Book UUID:', booklogpayload.book_uuid);
-        throw new HttpException('Invalid Barcode', HttpStatus.BAD_REQUEST);
+      //return bookTitleUUIDFromBookCopy[0][0].book_title_uuid ?? "Hmm";
+      const updateStatus = bookTitleUUIDFromBookCopy[1];
+      if(!updateStatus) {
+        return 
+      }
+      if(bookTitleUUIDFromBookCopy[0].length) {
+        return bookTitleUUIDFromBookCopy[0][0].book_title_uuid;
+      } else {
+        return "empty array"
       }
 
-      const newData = await this.bookcopyRepository.query(
-        `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 RETURNING *`,
-          [bookData[0].book_copy_uuid],
-      );
 
-      const newTitle = await this.booktitleRepository.query(
-        `UPDATE book_titles SET available_count = available_count - 1 
-        WHERE book_uuid = $1 RETURNING *`,
-          [bookData[0].book_title_uuid],
-      );
 
-      //  Fetch Old Book Copy Data
-      const oldBookCopy = bookData[0];
-      const newBookCopyData = newData[0];
-      const newBookTitleData = newTitle[0];
+//      const newTitle = await this.booktitleRepository.query(
+//        `UPDATE book_titles SET available_count = available_count - 1 
+//        WHERE book_uuid = $1 RETURNING *`,
+//          [bookCopyData[0].book_title_uuid],
+//      );
+//
+//      //  Fetch Old Book Copy Data
+//      const oldBookCopy = bookCopyData[0];
+//      const newBookCopyData = newData[0];
+//      const newBookTitleData = newTitle[0];
+//
+      //const insertLogQuery = `
+      //INSERT INTO book_logv2 
+      //(person, borrower_uuid, new_booktitle, old_bookcopy, new_bookcopy, action, description, time,  book_uuid, book_copy_uuid)  
+      //VALUES 
+      //($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
+      //`;
 
-      const insertLogQuery = `
-      INSERT INTO book_logv2 
-      (person, borrower_uuid, new_booktitle, old_bookcopy, new_bookcopy, action, description, ip_address, time,  book_uuid, book_copy_uuid)  
-      VALUES 
-      ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10)
-      `;
+      //const insertLogValues = [
+      //  booklogpayload.borrower_uuid,
+      //  booklogpayload.borrower_uuid,
+      //  JSON.stringify(newBookTitleData),
+      //  JSON.stringify(oldBookCopy),
+      //  JSON.stringify(newBookCopyData),
+      //  'borrowed',
+      //  'Book has been borrowed',
+      //  newBookTitleData[0].book_uuid,
+      //  newBookCopyData[0].book_copy_uuid,
+      //];
 
-      const insertLogValues = [
-        booklogpayload.student_uuid,
-        booklogpayload.student_uuid,
-        JSON.stringify(newBookTitleData),
-        JSON.stringify(oldBookCopy),
-        JSON.stringify(newBookCopyData),
-        'borrowed',
-        'Book has been borrowed',
-        ipAddress,
-        newBookTitleData[0].book_uuid,
-        newBookCopyData[0].book_copy_uuid,
-      ];
-
-      await this.booktitleRepository.query(insertLogQuery, insertLogValues);
+      //await this.booktitleRepository.query(insertLogQuery, insertLogValues);
       return { message: 'Book borrowed successfully' };
     } catch (error) {
       console.error(' Error issuing book:', error);
@@ -1023,16 +1018,16 @@ export class BooksV2Service {
     }
   }
 
-  async setbooklibrary(booklogpayload: TCreateBooklogDTO, ipAddress: string) {
+  async setbooklibrary(booklogpayload: TCreateBooklogV2DTO, ipAddress: string) {
     try {
       // Validate student existence
       const studentExists = await this.sudentRepository.query(
         `SELECT * FROM students_table WHERE student_uuid = $1`,
-          [booklogpayload.student_uuid],
+          [booklogpayload.borrower_uuid],
       );
 
       if (studentExists.length === 0) {
-        console.error(' Invalid Student UUID:', booklogpayload.student_uuid);
+        console.error(' Invalid Student UUID:', booklogpayload.borrower_uuid);
         throw new HttpException('Invalid Student UUID', HttpStatus.BAD_REQUEST);
       }
 
@@ -1042,7 +1037,7 @@ export class BooksV2Service {
       );
 
       if (bookData.length === 0) {
-        console.error(' Invalid Book UUID:', booklogpayload.book_uuid);
+        console.error(' Invalid Book UUID:', booklogpayload.book_copy_uuid);
         throw new HttpException('Invalid Barcode', HttpStatus.BAD_REQUEST);
       }
 
@@ -1071,8 +1066,8 @@ export class BooksV2Service {
       console.log({newBookTitleData, newBookCopyData});
 
       const insertLogValues = [
-        booklogpayload.student_uuid,
-        booklogpayload.student_uuid,
+        booklogpayload.borrower_uuid,
+        booklogpayload.borrower_uuid,
         JSON.stringify(newBookTitleData),
         JSON.stringify(oldBookCopy),
         JSON.stringify(newBookCopyData),

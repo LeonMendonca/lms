@@ -21,6 +21,7 @@ import {
   booklogSchema,
   TCreateBooklogDTO,
 } from 'src/book_log/zod/createbooklog';
+import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -244,21 +245,13 @@ export class BooksV2Controller {
   //logs part
 
   @Post('borrowed')
-  @UsePipes(new bodyValidationPipe(booklogSchema))
+  @UsePipes(new bodyValidationPipe(booklogV2Schema))
   async createBooklogIssued(
-    @Body() booklogpayload: TCreateBooklogDTO,
-    @Req() req: Request,
+    @Body() booklogpayload: TCreateBooklogV2DTO,
   ) {
     try {
-      // Extract user IP address properly
-      const ipAddress =
-        req.headers['x-forwarded-for']?.[0] ||
-        req.socket.remoteAddress ||
-        'Unknown';
-
       const result = await this.booksService.createBookborrowed(
         booklogpayload,
-        ipAddress,
       );
 
       return {
@@ -278,7 +271,7 @@ export class BooksV2Controller {
   @Post('library')
   @UsePipes(new bodyValidationPipe(booklogSchema))
   async setbooklibrary(
-    @Body() booklogpayload: TCreateBooklogDTO,
+    @Body() booklogpayload: TCreateBooklogV2DTO,
     @Req() req: Request,
   ) {
     try {
@@ -309,7 +302,7 @@ export class BooksV2Controller {
 
   @Post('returned')
   async createBooklogreturned(
-    @Body() booklogpayload: TCreateBooklogDTO,
+    @Body() booklogpayload: TCreateBooklogV2DTO,
     @Req() req: Request,
   ) {
     try {
