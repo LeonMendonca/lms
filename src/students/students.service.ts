@@ -31,10 +31,10 @@ export class StudentsService {
     },
   ) {
     const offset = (page - 1) * limit;
-    const searchQuery = search ? '%${search}%' : '%';
+    const searchQuery = search ? `%${search}%` : '%';
 
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
+      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
       [searchQuery, limit, offset],
     );
 
@@ -56,6 +56,7 @@ export class StudentsService {
 
   async findStudentBy(query: UnionUser) {
     try {
+      console.log("here")
       let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
       let value: string | undefined = undefined;
       if ('student_id' in query) {
