@@ -15,7 +15,7 @@ import {
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';
 import {
   booklogSchema,
@@ -295,26 +295,23 @@ export class BooksV2Controller {
   }
 
   @Post('returned')
-  async createBooklogreturned(
+  @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  async createBooklogReturned(
     @Body() booklogpayload: TCreateBooklogV2DTO,
-    @Req() req: Request,
+    @Req() request: Request,
   ) {
     try {
-      const ipAddress =
-        req.headers['x-forwarded-for']?.[0] ||
-        req.socket.remoteAddress ||
-        'Unknown';
-      const result = await this.booksService.createbookreturned(
+      const result = await this.booksService.createBookReturned(
         booklogpayload,
-        ipAddress,
+        request
       );
 
       return result;
     } catch (error) {
-      if (error instanceof Error) {
-        console.log(error);
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
+      throw error;
     }
   }
   //       @Post('booklibrary')
