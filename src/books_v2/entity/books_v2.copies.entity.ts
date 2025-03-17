@@ -12,7 +12,7 @@ export class BookCopy {
   @Column({ name: 'date_of_acquisition', type: 'date' })
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
-  @Column({ name: 'bill_no', type: 'int' })
+  @Column({ name: 'bill_no', type: 'int' ,nullable:true })
   billNo: "bill_no" = "bill_no";
 
   @Column({ name: 'language', type: 'varchar', length: 255 })
@@ -21,7 +21,7 @@ export class BookCopy {
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
   inventoryNumber: "inventory_number" = "inventory_number";
 
-  @Column({ name: 'accession_number', type: 'int' })
+  @Column({ name: 'accession_number', type: 'int' ,nullable:true})
   accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
