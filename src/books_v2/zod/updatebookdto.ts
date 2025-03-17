@@ -19,6 +19,14 @@ export const createObjectSchema = z.object({
 [createBookTitleObject.department]:z.string(),
 [createBookTitleObject.edition]:z.string(),
 [createBookTitleObject.nameOfPublisher]:z.string(),
+[createBookTitleObject.noPages]:z.number(),
+[createBookTitleObject.noPreliminary]:z.number(),
+[createBookTitleObject.placeOfPublication]:z.string(),
+[createBookTitleObject.subject]:z.string(),
+[createBookTitleObject.titleAdditionalFields]:z.string(),
+[createBookTitleObject.titleImages]:z.string(),
+[createBookTitleObject.yearOfPublication]:z.string()
+
 
 });
 

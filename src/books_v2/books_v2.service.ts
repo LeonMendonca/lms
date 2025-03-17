@@ -12,6 +12,9 @@ import { Booklog_v2 } from './entity/book_logv2.entity';
 import { genBookId } from './create-book-id';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { TRestoreZodDTO } from './zod/restorearchive';
+import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
+import { CreateBookCopyDTO } from './zod/createcopydto';
+import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 
 @Injectable()
 export class BooksV2Service {
@@ -227,9 +230,8 @@ export class BooksV2Service {
 
       return { message: 'Book fetched successfully', book: book[0] };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching copy',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -273,7 +275,7 @@ export class BooksV2Service {
     } catch (error) {
       console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -310,9 +312,8 @@ export class BooksV2Service {
           },
         };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -339,7 +340,7 @@ export class BooksV2Service {
     } catch (error) {
       console.error('Error getting book in library:', error);
       throw new HttpException(
-        'Error getting book in library',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -376,9 +377,8 @@ export class BooksV2Service {
           },
         };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -404,9 +404,8 @@ export class BooksV2Service {
       );
       return result;
     } catch (error) {
-      console.error('Error getting book in library:', error);
       throw new HttpException(
-        'Error getting book in library',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -443,9 +442,8 @@ export class BooksV2Service {
           },
         };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -480,9 +478,8 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -505,9 +502,8 @@ export class BooksV2Service {
         data: logs,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -530,9 +526,8 @@ export class BooksV2Service {
         data: logs,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
-        'Error fetching books',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -553,45 +548,47 @@ export class BooksV2Service {
       await this.booktitleRepository.query(
         `UPDATE book_titles 
         SET 
-        book_title = COALESCE($2, book_title),
-          book_author = COALESCE($3, book_author),
-          name_of_publisher = COALESCE($4, name_of_publisher),
-          place_of_publication = COALESCE($5, place_of_publication),
-          year_of_publication = COALESCE($6, year_of_publication),
-          edition = COALESCE($7, edition),
-          isbn = COALESCE($8, isbn),
-          subject = COALESCE($9, subject),
-          department = COALESCE($10, department),
-          total_count = COALESCE($11, total_count),
-          available_count = COALESCE($12, available_count),
-          images = COALESCE($13, images),
-          additional_fields = COALESCE($14, additional_fields),
-          description = COALESCE($15, description),
-          updated_at = NOW()
-        WHERE book_uuid = $1`,
+          book_title = COALESCE($2, book_title),
+        title_description = COALESCE($3, title_description),
+        author_mark = COALESCE($4, author_mark),
+        book_author = COALESCE($5, book_author),
+        isbn = COALESCE($6, isbn),
+        call_number = COALESCE($7, call_number),
+        department = COALESCE($8, department),
+        edition = COALESCE($9, edition),
+        name_of_publisher = COALESCE($10, name_of_publisher),
+        no_of_pages = COALESCE($11, no_of_pages),
+        no_of_preliminary = COALESCE($12, no_of_preliminary),
+        place_of_publication = COALESCE($13, place_of_publication),
+        subject = COALESCE($14, subject),
+        title_additional_fields = COALESCE($15, title_additional_fields),
+        title_images = COALESCE($16, title_images),
+        year_of_publication = COALESCE($17, year_of_publication)
+    WHERE book_uuid = $1;`,
           [
-          // id,
-          // updateBookPayload.bookTitle,
-          // updateBookPayload.bookAuthor,
-          // updateBookPayload.nameOfPublisher,
-          // updateBookPayload.placeOfPublication,
-          // updateBookPayload.yearOfPublication,
-          // updateBookPayload.edition,
-          // updateBookPayload.isbn,
-          // updateBookPayload.subject,
-          // updateBookPayload.department,
-          // updateBookPayload.totalCount,
-          // updateBookPayload.availableCount,
-          // updateBookPayload.images,
-          // updateBookPayload.additionalFields,
-          // updateBookPayload.description,
+            id,
+            updateBookPayload.book_title,
+            updateBookPayload.title_description,
+            updateBookPayload.author_mark,
+            updateBookPayload.book_author,
+            updateBookPayload.isbn,
+            updateBookPayload.call_number,
+            updateBookPayload.department,
+            updateBookPayload.edition,
+            updateBookPayload.name_of_publisher,
+            updateBookPayload.no_of_pages,
+            updateBookPayload.no_of_preliminary,
+            updateBookPayload.place_of_publication,
+            updateBookPayload.subject,
+            updateBookPayload.title_additional_fields,
+            updateBookPayload.title_images,
+            updateBookPayload.year_of_publication
         ],
       );
 
       return { message: 'Book updated successfully' };
     } catch (error) {
-      console.log(error);
-      throw new HttpException('Error updating book', HttpStatus.BAD_REQUEST);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -700,7 +697,7 @@ export class BooksV2Service {
         return { message: 'Book archived successfully' };
     } catch (error) {
       throw new HttpException(
-        'Error archiving book',
+        error.message,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -791,7 +788,7 @@ export class BooksV2Service {
     }
   }
 
-  async archiveBookCopy(book_copy_uuid: string) {
+  async archiveBookCopy(createbookcopypayload:TCopyarchiveZodDTO) {
     try {
       // Archive the book copy and get the bookTitleUUID
       const archiveResult = await this.bookcopyRepository.query(
@@ -799,7 +796,7 @@ export class BooksV2Service {
         SET is_archived = true 
         WHERE book_copy_uuid = $1 
         RETURNING book_title_uuid`,
-        [book_copy_uuid],
+        [createbookcopypayload.book_copy_uuid],
       );
 
       if (archiveResult.length === 0) {
@@ -817,21 +814,24 @@ export class BooksV2Service {
         total_count = GREATEST(total_count - 1, 0), 
           available_count = GREATEST(available_count - 1, 0)
         WHERE book_uuid = $1`,
-          [bookTitleUUID],
+          [createbookcopypayload.book_copy_uuid],
       );
 
       return { success: true, message: 'Book copy archived successfully' };
     } catch (error) {
-      console.error('Error archiving book copy:', error);
-      throw new Error('Failed to archive book copy');
+     console.log(error);
+      throw new HttpException(
+        error.message,
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
-  async restoreBookCopy(book_uuid: string) {
+  async restoreBookCopy(createbookcopypayload:TRestorecopybookZodDTO) {
     try {
       const book = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies WHERE book_copy_uuid = $1 AND is_archived = true`,
-          [book_uuid],
+          [createbookcopypayload.book_copy_uuid],
       );
 
       if (book.length === 0) {
@@ -843,7 +843,7 @@ export class BooksV2Service {
 
       await this.booktitleRepository.query(
         `UPDATE book_copies SET is_archived = false WHERE book_copy_uuid = $1 RETURNING book_title_uuid`,
-          [book_uuid],
+          [createbookcopypayload.book_copy_uuid],
       );
 
       const bookTitleUUID = book[0].book_title_uuid;
@@ -1083,6 +1083,7 @@ export class BooksV2Service {
         booklogpayload.student_uuid,
         JSON.stringify(newBookTitleData),
         JSON.stringify(oldBookCopy),
+        
         JSON.stringify(newBookCopyData),
         'read',
         'Book has been borrowed to be read in the library',

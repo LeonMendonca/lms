@@ -23,6 +23,8 @@ import {
 } from 'src/book_log/zod/createbooklog';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { TRestoreZodDTO } from './zod/restorearchive';
+import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
+import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -203,12 +205,12 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_book_copy')// what is the use of identifier?? pending
+  @Get('get_book_copy')// what is the use of identifier?? working//
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
     return this.booksService.getSingleCopyInfo(identifier);
   }
 
-  @Patch('update_book_title')
+  @Patch('update_book_title')//working
   async updateBookTitle(
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookZodDTO,
@@ -216,12 +218,12 @@ export class BooksV2Controller {
     return this.booksService.updateBookTitle(book_uuid, bookPayload);
   }
 
-  @Put('archive_book_copy')
-  async archiveBookCopy(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.archiveBookCopy(book_uuid);
+  @Put('archive_book_copy')//working
+  async archiveBookCopy(@Body() createbookcopypayload:TCopyarchiveZodDTO) {
+    return this.booksService.archiveBookCopy(createbookcopypayload);
   }
 
-  @Get('get_archived_book_copy')
+  @Get('get_archived_book_copy')//working
   async getArchivedBooksCopy(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -232,12 +234,12 @@ export class BooksV2Controller {
     });
   }
 
-  @Put('restore_book_copy')
-  async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.restoreBookCopy(book_uuid);
+  @Put('restore_book_copy')// working
+  async restoreBookCopy(@Body() createbookcopypayload:TRestorecopybookZodDTO) {
+    return this.booksService.restoreBookCopy(createbookcopypayload);
   }
 
-  @Patch('update_book_copy')
+  @Patch('update_book_copy')// wait
   async updateBookCopy(
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: any,
@@ -245,7 +247,7 @@ export class BooksV2Controller {
     return this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
 
-  @Get('available')
+  @Get('available')// wait
   async availableBook(@Query('isbn') isbn: string) {
     return await this.booksService.getavailablebookbyisbn(isbn);
   }
