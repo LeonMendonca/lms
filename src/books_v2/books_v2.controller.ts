@@ -251,6 +251,7 @@ export class BooksV2Controller {
   ) {
     try {
       // Extract user IP address properly
+      console.log("here")
       const ipAddress =
         req.headers['x-forwarded-for']?.[0] ||
         req.socket.remoteAddress ||
