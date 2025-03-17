@@ -15,6 +15,7 @@ import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
+import { TVisit_log } from './zod-validation/visitlog';
 
 @Injectable()
 export class StudentsService {
@@ -356,9 +357,9 @@ async getVisitAllLog(){
         HttpStatus.INTERNAL_SERVER_ERROR,);
     }
   }
-  async visitlogentry(student_uuid: string) {
+  async visitlogentry(createvisitpayload:TVisit_log) {
     try {
-     const result=await this.studentsRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+     const result=await this.studentsRepository.query(`SELECT student_uuid,department,student_name, addmore .. FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,[createvisitpayload.student_id])
      if (result.length === 0) {
       throw new HttpException(
         { message: "Invalid student ID" },

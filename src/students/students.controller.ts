@@ -31,6 +31,7 @@ import {
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
+import { TVisit_log } from './zod-validation/visitlog';
 
 @Controller('student')
 export class StudentsController {
@@ -226,9 +227,9 @@ async getVisitlog(@Query('_student_uuid', new ParseUUIDPipe()) studentUUID: stri
 }
 
 @Post("vistlog_entry")
-  async createVisitLog(@Body() body: { student_uuid: string }) {
+  async createVisitLog(@Body()createvisitpayload:TVisit_log) {
     try {
-      return await this.studentsService.visitlogentry(body.student_uuid);
+      return await this.studentsService.visitlogentry(createvisitpayload);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
