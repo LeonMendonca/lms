@@ -5,7 +5,7 @@ import { BookCopy } from './entity/books_v2.copies.entity';
 import { BookTitle } from './entity/books_v2.title.entity';
 import { TCreateBookZodDTO } from './zod/createbookdtozod';
 import { insertQueryHelper } from 'src/misc/custom-query-helper';
-import { UpdateBookTitleDTO } from './zod/updatebookdto';
+import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
@@ -539,7 +539,7 @@ export class BooksV2Service {
   }
 
   // TODO: Edit Functionality PS. Not working properly
-  async updateBookTitle(id: string, updateBookPayload: UpdateBookTitleDTO) {
+  async updateBookTitle(id: string, updateBookPayload: TUpdatebookZodDTO) {
     try {
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = false LIMIT 1 `,
@@ -570,21 +570,21 @@ export class BooksV2Service {
           updated_at = NOW()
         WHERE book_uuid = $1`,
           [
-          id,
-          updateBookPayload.bookTitle,
-          updateBookPayload.bookAuthor,
-          updateBookPayload.nameOfPublisher,
-          updateBookPayload.placeOfPublication,
-          updateBookPayload.yearOfPublication,
-          updateBookPayload.edition,
-          updateBookPayload.isbn,
-          updateBookPayload.subject,
-          updateBookPayload.department,
-          updateBookPayload.totalCount,
-          updateBookPayload.availableCount,
-          updateBookPayload.images,
-          updateBookPayload.additionalFields,
-          updateBookPayload.description,
+          // id,
+          // updateBookPayload.bookTitle,
+          // updateBookPayload.bookAuthor,
+          // updateBookPayload.nameOfPublisher,
+          // updateBookPayload.placeOfPublication,
+          // updateBookPayload.yearOfPublication,
+          // updateBookPayload.edition,
+          // updateBookPayload.isbn,
+          // updateBookPayload.subject,
+          // updateBookPayload.department,
+          // updateBookPayload.totalCount,
+          // updateBookPayload.availableCount,
+          // updateBookPayload.images,
+          // updateBookPayload.additionalFields,
+          // updateBookPayload.description,
         ],
       );
 

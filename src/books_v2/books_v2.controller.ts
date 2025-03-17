@@ -16,7 +16,7 @@ import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
 import { Request } from 'express';
-import { UpdateBookTitleDTO } from './zod/updatebookdto';
+import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import {
   booklogSchema,
   TCreateBooklogDTO,
@@ -211,7 +211,7 @@ export class BooksV2Controller {
   @Patch('update_book_title')
   async updateBookTitle(
     @Body('book_uuid') book_uuid: string,
-    @Body() bookPayload: UpdateBookTitleDTO,
+    @Body() bookPayload: TUpdatebookZodDTO,
   ) {
     return this.booksService.updateBookTitle(book_uuid, bookPayload);
   }

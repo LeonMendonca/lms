@@ -21,16 +21,16 @@ export class BookCopy {
   @Column({ name: 'date_of_acquisition', type: 'date' })
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
-  @Column({ name: 'bill_no', type: 'varchar' })
+  @Column({ name: 'bill_no', type: 'varchar', nullable: true  })
   billNo: "bill_no" = "bill_no";
 
-  @Column({ name: 'language', type: 'varchar', length: 255 })
+  @Column({ name: 'language', type: 'varchar', length: 255  })
   language: "language" = "language";
 
   @Column({ name: 'inventory_number', type: 'varchar', nullable: true })
   inventoryNumber: "inventory_number" = "inventory_number";
 
-  @Column({ name: 'accession_number', type: 'varchar' })
+  @Column({ name: 'accession_number', type: 'varchar' , nullable: true })
   accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
