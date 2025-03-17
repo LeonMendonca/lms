@@ -17,11 +17,19 @@ import { UUID } from 'crypto';
 export class JournalsController {
     constructor(private journalsService: JournalsService) { }
 
-    @Post('post-journal')
-    @UsePipes(new bodyValidationPipe(createJournalSchema))
-    async createJournal(@Body() newJournal: tCreateJournalDTO) {
-        return this.journalsService.createJournal(newJournal)
-    }
+
+    // ----- BOTH TABLE SIMULTAENOUSE FUNCTIONS -----
+
+    // @Post('post-journal')
+    // async createJournal(@Body() body: any) {
+    //     return this.journalsService.createJournal(body)
+    // }
+
+    // @Post('post-journal')
+    // @UsePipes(new bodyValidationPipe(createJournalSchema))
+    // async createJournal(@Body() newJournal: tCreateJournalDTO) {
+    //     return this.journalsService.createJournal(newJournal)
+    // }
 
     // ----- JOURNAL TABLE FUNCTIONS -----
 

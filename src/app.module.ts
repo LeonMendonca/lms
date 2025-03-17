@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-//import { BooksModule } from './books/books.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { config } from 'dotenv';
 import { Students } from './students/students.entity';
@@ -12,6 +11,9 @@ import { JournalsModule } from './journals/journals.module';
 import { JournalsTable } from './journals/entity/journals_table.entity';
 import { JournalsCopy } from './journals/entity/journals_copy.entity';
 import { NotificationsModule } from './notifications/notifications.module';
+import { TrialModule } from './trial/trial.module';
+import { TrialTable } from './trial/entity/trial_table.entity';
+import { TrialCopy } from './trial/entity/trial_copy.entity';
 
 config({ path: '.env' });
 @Module({
@@ -19,7 +21,7 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books, Booklog, JournalsTable, JournalsCopy],
+      entities: [Students, Books, Booklog, JournalsTable, JournalsCopy, TrialTable, TrialCopy],
       ssl: true,
       synchronize: true,
     }),
@@ -28,6 +30,7 @@ config({ path: '.env' });
     BookLogModule,
     JournalsModule,
     NotificationsModule,
+    TrialModule,
   ],
 })
 export class AppModule {

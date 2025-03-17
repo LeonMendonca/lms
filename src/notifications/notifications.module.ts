@@ -4,9 +4,10 @@ import { NotificationsController } from './notifications.controller';
 import { ScheduleModule } from '@nestjs/schedule';
 import { JournalsTable } from 'src/journals/entity/journals_table.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JournalsCopy } from 'src/journals/entity/journals_copy.entity';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), TypeOrmModule.forFeature([JournalsTable])],
+  imports: [ScheduleModule.forRoot(), TypeOrmModule.forFeature([JournalsTable, JournalsCopy])],
   providers: [NotificationsService],
   controllers: [NotificationsController]
 })

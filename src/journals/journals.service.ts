@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JournalsTable } from './entity/journals_table.entity';
 import { DataSource, Repository } from 'typeorm';
-import { tCreateJournalDTO } from './zod-validation/createjournals-zod';
+import { createJournalSchema, tCreateJournalDTO } from './zod-validation/createjournals-zod';
 import { insertQueryHelper, updateQueryHelper } from 'src/custom-query-helper';
 import { tCreateJournalCopyDTO } from './zod-validation/createjournalcopies-zod';
 import { tUpdateJournalCopyDTO } from './zod-validation/updatejournalcopies-zod';
@@ -26,55 +26,44 @@ export class JournalsService {
         private readonly dataSource: DataSource
     ) { }
 
-    async createJournal(journalPayload: tCreateJournalDTO) {
-        // const queryRunner = this.dataSource.createQueryRunner()
-        const queryRunner = this.dataSource.createQueryRunner()
-        await queryRunner.connect()
-        await queryRunner.startTransaction()
+    // ----- BOTH TABLE SIMULTAENOUSE FUNCTIONS -----
 
-        try {
-            // trying just for the journals_table because ive used the dto for it
+    // async createJournal(data: any) {
+    //     const parsedData = createJournalSchema.parse(data);
 
-            // initialize connect and start the transaction
-            // create the variable whih stores the payload
-            // save the variable in the journals_table table
-            // now keep a track of the journals_uuid in the copy table
-            // save the instance in the journals_copy table
+    //     return this.dataSource.transaction(async (manager) => {
+    //         // Step 1: Save journal_table entry
+    //         const savedJournal = await manager.save(JournalsTable, parsedData);
 
-            const queryRunner = this.dataSource.createQueryRunner()
-            await queryRunner.connect()
-            await queryRunner.startTransaction()
+    //         // Step 2: Create journal_copy entries using the same journal_uuid
+    //         const journalCopies = Array.from({ length: parsedData.total_count }).map(() =>
+    //             manager.create(JournalsCopy, {
+    //                 journal: savedJournal,
+    //                 journal_uuid: savedJournal.journal_uuid, // ✅ Using the generated UUID
+    //                 nameOfJournal: parsedData.name_of_journal,
+    //                 nameOfPublisher: parsedData.name_of_publisher,
+    //                 editorName: parsedData.editor_name,
+    //                 language: parsedData.language,
+    //                 department: parsedData.department,
+    //                 volumeNumber: parsedData.volume_number,
+    //                 issueNumber: parsedData.issue_number,
+    //                 isArchived: parsedData.is_archived,
+    //                 issn: parsedData.issn,
+    //                 callNumber: parsedData.call_number,
+    //                 createdAt: parsedData.created_at,
+    //                 updatedAt: parsedData.updated_at,
+    //                 vendorName: parsedData.vendor_name,
+    //                 libraryName: parsedData.library_name,
+    //                 acquisitionDate: parsedData.acquisition_date
+    //             })
+    //         );
 
-            const newJournal = await this.journalsRepository.query(
-                `UPDATE journals_table
-                SET total_count=total_count+1 AND available_count=avaliable_count+1
-                WHERE name_of_journal='${journalPayload.name_of_journal}' 
-                AND name_of_publisher='${journalPayload.name_of_publisher}' 
-                AND volume_number='${journalPayload.volume_number}' 
-                AND volume_number='${journalPayload.volume_number}' 
-                AND is_archived=false`
-            )
+    //         // Step 3: Save all copies at once
+    //         await manager.save(JournalsCopy, journalCopies);
 
-            await this.dataSource.manager.save(JournalsTable, newJournal)
-
-            const journalcopy = new JournalsCopy()
-            await this.journalsCopyRepository.query(
-                ``
-            )
-            await queryRunner.commitTransaction()
-            return {
-                message: "Journal Created Successfully in both the tables",
-            }
-        } catch (error) {
-            await queryRunner.rollbackTransaction()
-            return {
-                message: "Transaction failed, Please Retry",
-                error: error
-            }
-        } finally {
-            await queryRunner.release()
-        }
-    }
+    //         return savedJournal;
+    //     });
+    // }
 
 
     // ----- JOURNAL TABLE FUNCTIONS -----
