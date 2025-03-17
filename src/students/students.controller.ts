@@ -73,6 +73,25 @@ export class StudentsController {
     
   }
 
+  @Get('departments')
+  async getAllDepartments() {
+    try {
+      const result = await this.studentsService.getAllDepartments();
+      if (result) {
+        return result;
+      } else {
+        throw new HttpException('No department found', HttpStatus.NOT_FOUND);
+      } 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      } else {
+        throw error;
+      }
+    }
+    
+  }
+
   //@Get('search')
   //async getStudentBy(@Query() query: UnionUser) {
   //  const result = await this.studentsService.findStudentBy(query);
