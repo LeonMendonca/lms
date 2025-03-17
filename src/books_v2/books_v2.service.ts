@@ -10,6 +10,8 @@ import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
 import { genBookId } from './create-book-id';
+import { TupdatearchiveZodDTO } from './zod/uarchive';
+import { TRestoreZodDTO } from './zod/restorearchive';
 
 @Injectable()
 export class BooksV2Service {
@@ -243,7 +245,7 @@ export class BooksV2Service {
     try {
       console.log(page, limit, search);
       const offset = (page - 1) * limit;
-      const searchQuery = search ? '%${search}%' : '%';
+      const searchQuery = search ? `%${search}%` : '%';
 
       const books = await this.booktitleRepository.query(
         `SELECT * FROM book_titles 
@@ -251,6 +253,7 @@ export class BooksV2Service {
         LIMIT $2 OFFSET $3`,
         [searchQuery, limit, offset],
       );
+      console.log(books);
 
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
@@ -667,11 +670,12 @@ export class BooksV2Service {
     }
   }
 
-  async updateTitleArchive(book_uuid: string) {
+  async updateTitleArchive(creatbookpayload:TupdatearchiveZodDTO) {
     try {
+      console.log(creatbookpayload.book_uuid);
       // Check if the book exists and is not archived
       const book = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_uuid ='${book_uuid}' AND is_archived = false`,
+        `SELECT * FROM book_titles WHERE book_uuid =$1 AND is_archived = false`,[creatbookpayload.book_uuid]
       );
         console.log({ book });
 
@@ -685,17 +689,16 @@ export class BooksV2Service {
         // Update is_archived to true
         await this.booktitleRepository.query(
           `UPDATE book_titles SET is_archived = true WHERE book_uuid = $1`,
-            [book_uuid],
+            [creatbookpayload.book_uuid],
         );
 
         await this.bookcopyRepository.query(
           `UPDATE book_copies SET is_archived = true WHERE book_title_uuid = $1`,
-            [book_uuid],
+            [creatbookpayload.book_uuid],
         );
 
         return { message: 'Book archived successfully' };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         'Error archiving book',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -703,11 +706,11 @@ export class BooksV2Service {
     }
   }
 
-  async restoreBook(book_uuid: string) {
+  async restoreBook(creatbookpayload:TRestoreZodDTO) {
     try {
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = true`,
-          [book_uuid],
+          [creatbookpayload.book_uuid],
       );
 
       if (book.length === 0) {
@@ -719,7 +722,7 @@ export class BooksV2Service {
 
       await this.booktitleRepository.query(
         `UPDATE book_titles SET is_archived = false WHERE book_uuid = $1`,
-          [book_uuid],
+          [creatbookpayload.book_uuid],
       );
 
       return { message: 'Book restored successfully' };
@@ -866,12 +869,17 @@ export class BooksV2Service {
 
   async isbnBook(isbn: string) {
     const result = await this.booktitleRepository.query(`
-                                                        SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_of_pages,book_titles.no_of_preliminary,book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
-                                                        `);
-                                                        if (result.length === 0) {
-                                                          throw new Error('No data found');
-                                                        }
-                                                        return result;
+      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.
+      language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,
+      book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,
+      book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.title_images,
+      book_titles.title_additional_fields,book_titles.title_description,book_titles.no_of_pages,book_titles.no_of_preliminary,
+      book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
+   `);
+      if (result.length === 0) {
+     throw new Error('No data found');
+    }
+   return result;
   }
 
   async createbookreturned(

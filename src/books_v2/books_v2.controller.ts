@@ -21,6 +21,8 @@ import {
   booklogSchema,
   TCreateBooklogDTO,
 } from 'src/book_log/zod/createbooklog';
+import { TupdatearchiveZodDTO } from './zod/uarchive';
+import { TRestoreZodDTO } from './zod/restorearchive';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -41,7 +43,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_copies_with_title')
+  @Get('get_copies_with_title')// workiing add book uuid here
   async getBookCopiesByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -54,7 +56,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_title')
+  @Get('get_logs_of_title')// pending
   async getLogDetailsByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -65,31 +67,31 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_copy')
+  @Get('get_logs_of_copy')// pending
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
     return this.booksService.getLogDetailsByCopy({
       barcode,
     });
   }
 
-  @Get('get_all_available')
+  @Get('get_all_available')// working
   async getAllAvailableBooks() {
     return this.booksService.getAllAvailableBooks();
   }
 
-  @Get('get_available_by_isbn')
+  @Get('get_available_by_isbn')// working 
   async getavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getunavailablebookbyisbn(isbn);
+    return this.booksService.getavailablebookbyisbn(isbn);
   }
 
-  @Get('get_all_unavailable')
+  @Get('get_all_unavailable')// working
   async getAllUnavailableBooks() {
     return this.booksService.getAllUnavailableBooks();
   }
 
-  @Get('get_unavailable_by_isbn')
+  @Get('get_unavailable_by_isbn')// working
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
@@ -100,10 +102,17 @@ export class BooksV2Controller {
   // async AllBooksArchiveTrue() {
   //   return this.booksService.getBooks();
   // }
-  @Put('uparchive')
-  async updateArchive(@Body('book_uuid') book_uuid: string) {
-    console.log('working');
-    return this.booksService.updateTitleArchive(book_uuid);
+
+
+  // @Put('uparchive')
+  // async updateArchive(@Body('book_uuid') book_uuid: string) {
+  //   console.log('working');
+  //   return this.booksService.updateTitleArchive(book_uuid);
+  // }
+
+  @Put('uparchive')//  working
+  async updateArchive(@Body() creatbookpayload:TupdatearchiveZodDTO) {
+      return this.booksService.updateTitleArchive(creatbookpayload);
   }
 
   // @Get('search')
@@ -116,7 +125,7 @@ export class BooksV2Controller {
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
-  @Get('isbn')
+  @Get('isbn')// update by insert query helper or create  own query helper for select part// working
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
@@ -127,7 +136,7 @@ export class BooksV2Controller {
   }
 
   // Create new book
-  @Post('create')
+  @Post('create')// working
   @UsePipes(new bodyValidationPipe(createBookSchema))
   async createBook(@Body() bookPayload: TCreateBookZodDTO) {
     try {
@@ -141,7 +150,7 @@ export class BooksV2Controller {
     }
   }
 
-  @Get('all_archived')
+  @Get('all_archived')// working
   async getAllArchivedBooks(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -154,7 +163,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_all_logs')
+  @Get('get_all_logs') // pending
   async getLogDetails(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -165,12 +174,12 @@ export class BooksV2Controller {
     });
   }
 
-  @Put('restore_archive')
-  async restoreArchive(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.restoreBook(book_uuid);
+  @Put('restore_archive')//working
+  async restoreArchive(@Body() createbookpayload:TRestoreZodDTO) {
+    return this.booksService.restoreBook(createbookpayload);
   }
 
-  @Get('get_book_title_details')
+  @Get('get_book_title_details')// not working 
   async getBookTitleDetails(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -183,7 +192,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_all_book_copy')
+  @Get('get_all_book_copy') // working
   async fetchAllCopyInfo(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -194,7 +203,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_book_copy')
+  @Get('get_book_copy')// what is the use of identifier?? pending
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
     return this.booksService.getSingleCopyInfo(identifier);
   }
