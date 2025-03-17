@@ -248,23 +248,17 @@ export class BooksV2Controller {
   @UsePipes(new bodyValidationPipe(booklogV2Schema))
   async createBooklogIssued(
     @Body() booklogpayload: TCreateBooklogV2DTO,
+    @Req() request: Request
   ) {
     try {
-      const result = await this.booksService.createBookborrowed(
-        booklogpayload,
+      return await this.booksService.createBookBorrowed(
+        booklogpayload, request
       );
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Book borrowed successfully',
-        data: result,
-      };
     } catch (error) {
-      console.error('Error in createBooklogIssued:', error);
-      throw new HttpException(
-        error.message || 'Failed to borrow book',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
     }
   }
 

@@ -1,16 +1,9 @@
-import { createObjectIncludeProperties } from 'src/misc/create-object-from-class';
 import { z } from 'zod';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 
-const booklogCreateObject = createObjectIncludeProperties(new Booklog_v2(), [
-  'bookCopyUUID',
-  'borrowerId',
-]);
-// const boologCopyObject= createObjectIncludeProperties( new )
-
 export const booklogV2Schema = z.object({
-  [booklogCreateObject.borrowerId]: z.string().uuid(),
-  [booklogCreateObject.bookCopyUUID]: z.string(),
+  student_id: z.string().min(10),
+  book_copy_id: z.string(),
   barcode: z.string(),
 });
 

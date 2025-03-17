@@ -13,7 +13,7 @@ export class Booklog_v2 {
   //student uuid
   @ManyToOne(() => Students, (students) => students.studentUUID)
   @JoinColumn({ name: "borrower_uuid" })
-  borrowerId:'borrower_uuid'='borrower_uuid'; 
+  borrowerUUID:'borrower_uuid'='borrower_uuid'; 
 
   @ManyToOne(() => BookTitle, (book_title) => book_title.bookUUID)
   @JoinColumn({ name: "book_title_uuid" })
@@ -21,27 +21,36 @@ export class Booklog_v2 {
 
   @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
   @JoinColumn({ name:'book_copy_uuid' })
-  bookCopyUUID:'book_copy_uuid'='book_copy_uuid'; 
+  bookCopyUUID:'book_copy_uuid'='book_copy_uuid';  
 
-  //@Column({ name: 'old_booktitle', type: 'json',  nullable:true })
-  //oldBookTitle: "old_booktitle" = 'old_booktitle';
+  @Column({ name: 'old_book_copy', type: 'jsonb' }) 
+  oldBookCopy: 'old_book_copy' = "old_book_copy";
 
-  //@Column({ name: 'new_booktitle', type: 'json',  nullable: true })
-  //newBookTitle: "new_booktitle" = 'new_booktitle';
-
-  //@Column({ name: 'old_bookcopy', type: 'json', nullable:true })
-  //oldBookCopy: "old_bookcopy" = 'old_bookcopy';
-
-  //@Column({ name: 'new_bookcopy', type: 'json', nullable: true })
-  //newBookCopy: "new_bookcopy" = 'new_bookcopy'
+  @Column({ name: 'new_book_copy', type: 'jsonb' })
+  newBookCopy: 'new_book_copy' = "new_book_copy";
   
+  @Column({ name: 'old_book_title', type: 'jsonb' }) 
+  oldBookTitle: 'old_book_copy' = "old_book_copy";
+
+  @Column({ name: 'new_book_title', type: 'jsonb' }) 
+  newBookTitle: 'old_book_copy' = "old_book_copy";
+
   @Column({ name: 'action', type: 'varchar', length:255 })
   action: "action" = 'action';
 
-  @Column({  name:'description' ,type:'varchar', length:255  })
+  @Column({  name: 'description' ,type:'varchar', length:255  })
   description:'description'='description'; 
 
-  @Column({  name:'time' ,type:'timestamp' ,default: () => 'CURRENT_TIMESTAMP' })
+  @Column({  name: 'time' ,type:'timestamp' ,default: () => 'CURRENT_TIMESTAMP' })
   time:'time'='time';
 
+  @Column({ name: 'ip_address', type: 'varchar', length: 255, nullable: true })
+  ipAddress: 'ip_address' = 'ip_address';
+
 } 
+
+export const booklogV2 = new Booklog_v2();
+
+export type TBooklog_v2 = {
+  [P in keyof typeof booklogV2 as typeof booklogV2[P]]: any;
+}
