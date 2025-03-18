@@ -244,23 +244,23 @@ export class BooksV2Controller {
 
   //logs part
 
-  @Post('borrowed')
-  @UsePipes(new bodyValidationPipe(booklogV2Schema))
-  async createBooklogIssued(
-    @Body() booklogpayload: TCreateBooklogV2DTO,
-    @Req() request: Request
-  ) {
-    try {
-      return await this.booksService.createBookBorrowed(
-        booklogpayload, request
-      );
-    } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-      throw error;
-    }
-  }
+  //@Post('borrowed')
+  //@UsePipes(new bodyValidationPipe(booklogV2Schema))
+  //async createBooklogBorrowed(
+  //  @Body() booklogPayload: TCreateBooklogV2DTO,
+  //  @Req() request: Request
+  //) {
+  //  try {
+  //    return await this.booksService.createBookBorrowed(
+  //      booklogPayload, request
+  //    );
+  //  } catch (error) {
+  //    if(!(error instanceof HttpException)) {
+  //      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  //    }
+  //    throw error;
+  //  }
+  //}
 
   @Post('library')
   @UsePipes(new bodyValidationPipe(booklogSchema))
@@ -294,18 +294,23 @@ export class BooksV2Controller {
     }
   }
 
-  @Post('returned')
+  //Implements Borrow and Return
+  @Post('update-book-log')
   @UsePipes(new bodyValidationPipe(booklogV2Schema))
-  async createBooklogReturned(
-    @Body() booklogpayload: TCreateBooklogV2DTO,
+  async updateBookLog(
+    @Body() booklogPayload: TCreateBooklogV2DTO,
     @Req() request: Request,
   ) {
     try {
-      const result = await this.booksService.createBookReturned(
-        booklogpayload,
-        request
-      );
-
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+      let result: Record<string, string | number> = {};
+      if(booklogPayload.action === 'borrow') {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
+      } else if (booklogPayload.action === 'return') {
+        result = await this.booksService.bookReturned(booklogPayload, request, status = 'returned')
+      } else {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'in_library_borrowed');
+      }
       return result;
     } catch (error) {
       if(!(error instanceof HttpException)) {

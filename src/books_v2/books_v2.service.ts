@@ -884,9 +884,10 @@ export class BooksV2Service {
     return result;
   }
 
-  async createBookReturned(
-    booklogPayload: TCreateBooklogV2DTO,
+  async bookReturned(
+    booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
     request: Request,
+    status: 'returned'
   ) {
     try {
       if(!request.ip) {
@@ -899,14 +900,9 @@ export class BooksV2Service {
 
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
-      }
+      } 
 
-      //Unimplemeneted
-      //Intially no Status
-      let action: TCreateBooklogV2DTO[keyof Pick<TCreateBooklogV2DTO, 'action'>] | undefined = undefined;
-      action = undefined; 
-
-      //Check if Book exists in Book Copies
+      //Check if Book exists in Book Copies as not available
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
       (
@@ -923,7 +919,7 @@ export class BooksV2Service {
         [studentExists[0].student_uuid, bookPayloadFromBookCopies[0].book_copy_uuid]
       );
 
-      //if student doesn't exist in Booklog table (it hasn't borrowed), or it isn't the book that it borrowed, but returning it
+      //if student doesn't exist in Booklog table (it hasn't borrowed), or it isn't the book that it borrowed, but attempting to return it
       if(!bookBorrowedPayload.length) {
         throw new HttpException('Student hasn\'t borrowed at all, or Invalid Book is being returned', HttpStatus.NOT_FOUND);
       }
@@ -983,20 +979,21 @@ export class BooksV2Service {
           old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, 
         [
-          studentExists[0].student_uuid, bookCopyUUID, 'returned', 'Book has been returned', bookTitleUUID,
+          studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been returned', bookTitleUUID,
           oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
         ]
       );
 
-      return { statusCode: 200, message: "Book returned successfully" };
+      return { statusCode: HttpStatus.CREATED, message: "Book returned successfully" };
     } catch (error) {
       throw error;
     }
   }
 
-  async createBookBorrowed(
-    booklogPayload: TCreateBooklogV2DTO,
-    request: Request
+  async bookBorrowed(
+    booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
+    request: Request,
+    status: 'borrowed' | 'in_library_borrowed'
   ) {
     try {
       if(!request.ip) {
@@ -1010,7 +1007,7 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }      
 
-      //Check if Book exists in in Book Copies
+      //Check if Book exists in Book Copies
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
       (
@@ -1079,7 +1076,7 @@ export class BooksV2Service {
           old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, 
         [
-          studentExists[0].student_uuid, bookCopyUUID, 'borrowed', 'Book has been borrowed', bookTitleUUID,
+          studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been borrowed', bookTitleUUID,
           oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
         ]
       );
