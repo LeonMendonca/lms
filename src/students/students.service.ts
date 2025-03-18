@@ -359,7 +359,7 @@ async getVisitAllLog(){
   }
   async visitlogentry(createvisitpayload:TVisit_log) {
     try {
-     const result=await this.studentsRepository.query(`SELECT student_uuid,department,student_name, addmore .. FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,[createvisitpayload.student_id])
+     const result:{student_uuid:string;department:string;student_name:string;}[]=await this.studentsRepository.query(`SELECT student_uuid,department,student_name FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,[createvisitpayload.student_id])
      if (result.length === 0) {
       throw new HttpException(
         { message: "Invalid student ID" },
@@ -367,12 +367,12 @@ async getVisitAllLog(){
       );
     }
      await this.studentsRepository.query(
-        `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'entry')`,
-        [student_uuid]
+        `INSERT INTO visit_log (student_uuid ,visitor_name ,department ,student_id ,action  ,in_time ,out_time) VALUES ($1, $2, $3, $4, 'entry', now(), null)`,
+        [result[0].student_uuid, result[0].student_name, result[0].department, createvisitpayload.student_id ]
       );
       return {
         message: "Visit log entry created successfully",
-        student_uuid: student_uuid,
+         student_id: createvisitpayload.student_id,
         timestamp: new Date().toISOString(), // Adding timestamp for clarity
       };
     } catch (error) {
