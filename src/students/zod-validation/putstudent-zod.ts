@@ -1,11 +1,10 @@
 import { z } from 'zod';
-import { createObjectOmitProperties } from '../../create-object-from-class';
+import { createObjectOmitProperties } from '../../misc/create-object-from-class';
 import { Students } from '../students.entity';
 
 let studentUpdateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
-  'count',
   'isArchived',
 ]);
 

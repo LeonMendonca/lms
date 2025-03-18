@@ -22,8 +22,8 @@ export class Books {
   @Column({ name: 'year_of_publication', type: 'date' })
   yearOfPublication: "year_of_publication" = "year_of_publication";
 
-  @Column({ name: 'language', type: 'varchar', length: 255 })
-  language: "language" = "language";
+  @Column({ name: 'language', type: 'varchar', length: 255, nullable:true })
+  language: "language" = "language";//bc
 
   @Column({ name: 'edition', type: 'varchar', length: 255 })
   edition: "edition" = "edition";
@@ -32,10 +32,10 @@ export class Books {
   isbn: "isbn" = "isbn";
 
   @Column({ name: 'no_of_pages', type: 'int' })
-  noOfPages: "no_of_pages" = "no_of_pages";
+  noOfPages: "no_of_pages" = "no_of_pages";//bc
 
   @Column({ name: 'no_of_preliminary_pages', type: 'int' })
-  noOfPreliminaryPages: "no_of_preliminary_pages" = "no_of_preliminary_pages";
+  noOfPreliminaryPages: "no_of_preliminary_pages" = "no_of_preliminary_pages";//bc
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
   subject: "subject" = "subject";
@@ -58,35 +58,35 @@ export class Books {
   // Acquisition Details
 
   @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
-  sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
+  sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";//bc
 
-  @Column({ name: 'date_of_acquisition', type: 'date' })
+  @Column({ name: 'date_of_acquisition', type: 'date', nullable:true })   //bc
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
   @Column({ name: 'bill_no', type: 'int' })
-  billNo: "bill_no" = "bill_no";
+  billNo: "bill_no" = "bill_no";//bc
 
   // ----- //
 
   // Inventory and Identification
 
   @Column({ name: 'inventory_number', type: 'bigint', nullable: true })
-  inventoryNumber: "inventory_number" = "inventory_number";
+  inventoryNumber: "inventory_number" = "inventory_number";//bc
 
   @Column({ name: 'accession_number', type: 'int' })
-  accessionNumber: "accession_number" = "accession_number";
+  accessionNumber: "accession_number" = "accession_number";//bc
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
-  barcode: "barcode" = "barcode";
+  barcode: "barcode" = "barcode";//bx
 
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
-  itemType: "item_type" = "item_type";
+  itemType: "item_type" = "item_type";//bc
 
   // ----- //
 
   // Institute
   @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: "institute_id" = "institute_id";
+  instituteId: "institute_id" = "institute_id";//bc
 
   // ----- //
 
@@ -95,7 +95,7 @@ export class Books {
     default: false,
     type: 'boolean',
     nullable: true,
-  })
+  })//bc
   isArchived: "is_archived" = "is_archived";
 
   @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
@@ -103,4 +103,11 @@ export class Books {
 
   @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
   availableCount: "available_count" = "available_count";
+
+  //createdby
+  //createdat
+  //updated at
+  //images
+  // remarks
+  //.json
 }

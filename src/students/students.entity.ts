@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, Check } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 export const Department = {
   ELECTRICAL: 'electrical',
@@ -11,17 +11,13 @@ export const Gender = {
 } as const;
 
 @Entity('students_table')
-//@Check(`"email" ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}$'`)
 export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
-  studentUUID = 'student_uuid';
+  studentUUID: "student_uuid" = 'student_uuid';
 
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
-
-  @Column({ name: 'count', type: 'int', nullable: true })
-  count: 'count' = 'count';
-
+ 
   @Column({
     name: 'email',
     type: 'varchar',
@@ -94,4 +90,17 @@ export class Students {
     default: false,
   })
   isArchived: 'is_archived' = 'is_archived';
+
+  @CreateDateColumn({ name: "created_at" })
+  createdAt: "created_at" = "created_at";
+
+  @UpdateDateColumn({ name: "updated_at"})
+  updatedAt: "updated_at" = "updated_at";
+}
+
+const student = new Students();
+
+//Type that represents the table Columns
+export type TStudents = {
+  [P in keyof typeof student as typeof student[P]]: typeof student[P];
 }
