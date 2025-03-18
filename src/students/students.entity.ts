@@ -98,7 +98,7 @@ export class Students {
   updatedAt: "updated_at" = "updated_at";
 }
 
-const student = new Students();
+export const student = new Students();
 
 //Type that represents the table Columns
 export type TStudents = {

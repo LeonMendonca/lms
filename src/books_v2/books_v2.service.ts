@@ -4,10 +4,10 @@ import { Repository } from 'typeorm';
 import { BookCopy, TBookCopy } from './entity/books_v2.copies.entity';
 import { BookTitle, TBookTitle } from './entity/books_v2.title.entity';
 import { TCreateBookZodDTO } from './zod/createbookdtozod';
-import { insertQueryHelper } from 'src/misc/custom-query-helper';
+import { insertQueryHelper, selectQueryHelper } from 'src/misc/custom-query-helper';
 import { UpdateBookTitleDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
-import { Students } from 'src/students/students.entity';
+import { student, Students, TStudents } from 'src/students/students.entity';
 import { Booklog_v2, booklogV2, TBooklog_v2 } from './entity/book_logv2.entity';
 import { genBookId } from './create-book-id';
 import { TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
@@ -466,11 +466,11 @@ export class BooksV2Service {
       );
 
       const booksCopiesLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid;`
+        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`
       );
 
       const studentLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid;`
+        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid LIMIT $1 OFFSET $2;`
       );
 
       const total = await this.booklogRepository.query
@@ -488,36 +488,36 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
   async getLogDetailsByTitle({
-    book_uuid,
+    book_title_id,
     isbn,
   }: {
-    book_uuid: string;
+    book_title_id: string;
     isbn: string;
   }) {
     try {
-      const logs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 
-        WHERE book_uuid = $1`,
-          [book_uuid],
-      );
+      let query = `SELECT book_copy_uuid, action, time, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
+      FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`
+      const queryValue: string[] = [];
+
+      if(book_title_id) {
+        query = query.concat(` AND book_titles.book_title_id = $${queryValue.length + 1}`)
+        queryValue.push(book_title_id);
+      }
+      if(isbn) {
+        query = query.concat(` AND book_titles.isbn = $${queryValue.length + 1}`)
+        queryValue.push(isbn)
+      }
+      const logs = await this.booklogRepository.query(query, queryValue);
       return {
         data: logs,
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -529,6 +529,8 @@ export class BooksV2Service {
           [barcode],
       );
 
+      console.log("Book", book[0]);
+
       const logs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
         WHERE book_copy_uuid = $1`,
@@ -538,11 +540,24 @@ export class BooksV2Service {
         data: logs,
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      throw error;
+    }
+  }
+
+  async getLogDetailsOfStudent(studentId: string) {
+    try {
+      const result: any[] = await this.booklogRepository.query
+      (
+        `SELECT book_copy_uuid, action, time, ip_address, email, institute_id, department, student_uuid, date_of_birth, gender, institute_name 
+        FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid 
+        AND students_table.student_id = $1`,
+        [studentId]
       );
+      return {
+        data: result 
+      }
+    } catch (error) {
+      throw error;
     }
   }
 

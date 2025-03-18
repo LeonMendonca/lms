@@ -30,10 +30,10 @@ export class Booklog_v2 {
   newBookCopy: 'new_book_copy' = "new_book_copy";
   
   @Column({ name: 'old_book_title', type: 'jsonb' }) 
-  oldBookTitle: 'old_book_copy' = "old_book_copy";
+  oldBookTitle: 'old_book_title' = "old_book_title";
 
   @Column({ name: 'new_book_title', type: 'jsonb' }) 
-  newBookTitle: 'old_book_copy' = "old_book_copy";
+  newBookTitle: 'new_book_title' = "new_book_title";
 
   @Column({ name: 'action', type: 'varchar', length:255 })
   action: "action" = 'action';

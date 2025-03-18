@@ -57,20 +57,43 @@ export class BooksV2Controller {
 
   @Get('get_logs_of_title')
   async getLogDetailsByTitle(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getLogDetailsByTitle({
-      book_uuid,
-      isbn,
-    });
+    try {
+      return await this.booksService.getLogDetailsByTitle({book_title_id, isbn}); 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_logs_of_copy')
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
-    return this.booksService.getLogDetailsByCopy({
-      barcode,
-    });
+    try {
+      return this.booksService.getLogDetailsByCopy({
+        barcode,
+      }); 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  @Get('get_logs_of_student')
+  async getLogDetailsOfStudent(@Query('_student_id') studentId: string) {
+    try {
+      return this.booksService.getLogDetailsOfStudent(studentId);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_all_available')
