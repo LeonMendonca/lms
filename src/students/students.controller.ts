@@ -217,30 +217,48 @@ export class StudentsController {
     }
   }
   @Get('visitlog_by_uuid')
-async getVisitlog(@Query('_student_uuid', new ParseUUIDPipe()) studentUUID: string) {
+async getVisitlog(@Query('_student_id') student_ID: string) {
   try {
-    console.log(studentUUID)
-    return await this.studentsService.getVisitLogByStudentUUID(studentUUID);
+    console.log(student_ID)
+    return await this.studentsService.getVisitLogByStudentUUID(student_ID);
   } catch (error) {
     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   }
 }
 
-@Post("vistlog_entry")
-  async createVisitLog(@Body()createvisitpayload:TVisit_log) {
-    try {
-      return await this.studentsService.visitlogentry(createvisitpayload);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
+// @Post("vistlog_entry")
+//   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
+//     try {
+//       return await this.studentsService.visitlogentry(createvisitpayload);
+//     } catch (error) {
+//       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//     }
+//   }
 
-  @Post("vistlog_exit")
-  async createVisitExit(@Body() body: { student_uuid: string }) {
-    try {
-      return await this.studentsService.visitlogexit(body.student_uuid);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
+//   @Post("vistlog_exit")
+//   async createVisitExit(@Body() createvlogpayload:TVisit_log) {
+//     try {
+//       return await this.studentsService.visitlogexit(createvlogpayload);
+//     } catch (error) {
+//       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//     }
+//   }
+@Post('visitlog')
+async visitlog(@Body() createvlogpayload:TVisit_log){
+ try {
+  if(createvlogpayload.action==='entry'){
+    return await this.studentsService.visitlogentry(createvlogpayload)
+      }
+      else if(createvlogpayload.action==='exit'){
+       return await this.studentsService.visitlogexit(createvlogpayload) 
+      }
+      else{
+        throw new HttpException("Invalid action. Use 'entry' or 'exit'.", HttpStatus.BAD_REQUEST);
+      }
+    
+ } catch (error) {
+  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+ }
+  
+}
 }

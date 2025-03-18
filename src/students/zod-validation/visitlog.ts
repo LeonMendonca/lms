@@ -1,12 +1,12 @@
 import { createObjectIncludeProperties, createObjectOmitProperties } from 'src/misc/create-object-from-class'
 import z from 'zod'
 import { VisitLog } from '../visitlog.entity';
-import { Students } from '../students.entity';
 
 
-const createVisitlog= createObjectIncludeProperties(new Students(),['studentId'])
+const createVisitlog= createObjectIncludeProperties(new VisitLog(),['student_ID','action'])
 
 export const visitlog = z.object({
- [createVisitlog.studentId]:z.string()
+ [createVisitlog.student_ID]:z.string(),
+ [createVisitlog.action]:z.string()
 }) 
 export type TVisit_log = z.infer<typeof visitlog>;
