@@ -4,10 +4,10 @@ import { Repository } from 'typeorm';
 import { BookCopy, TBookCopy } from './entity/books_v2.copies.entity';
 import { BookTitle, TBookTitle } from './entity/books_v2.title.entity';
 import { TCreateBookZodDTO } from './zod/createbookdtozod';
-import { insertQueryHelper } from 'src/misc/custom-query-helper';
+import { insertQueryHelper, selectQueryHelper } from 'src/misc/custom-query-helper';
 import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
-import { Students } from 'src/students/students.entity';
+import { student, Students, TStudents } from 'src/students/students.entity';
 import { Booklog_v2, booklogV2, TBooklog_v2 } from './entity/book_logv2.entity';
 import { genBookId } from './create-book-id';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
@@ -470,11 +470,11 @@ console.log(query,queryParams)
       );
 
       const booksCopiesLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid;`
+        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`
       );
 
       const studentLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid;`
+        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid LIMIT $1 OFFSET $2;`
       );
 
       const total = await this.booklogRepository.query
@@ -492,34 +492,36 @@ console.log(query,queryParams)
         },
       };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
   async getLogDetailsByTitle({
-    book_uuid,
+    book_title_id,
     isbn,
   }: {
-    book_uuid: string;
+    book_title_id: string;
     isbn: string;
   }) {
     try {
-      const logs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 
-        WHERE book_uuid = $1`,
-          [book_uuid],
-      );
+      let query = `SELECT book_copy_uuid, action, time, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
+      FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`
+      const queryValue: string[] = [];
+
+      if(book_title_id) {
+        query = query.concat(` AND book_titles.book_title_id = $${queryValue.length + 1}`)
+        queryValue.push(book_title_id);
+      }
+      if(isbn) {
+        query = query.concat(` AND book_titles.isbn = $${queryValue.length + 1}`)
+        queryValue.push(isbn)
+      }
+      const logs = await this.booklogRepository.query(query, queryValue);
       return {
         data: logs,
       };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -531,6 +533,8 @@ console.log(query,queryParams)
           [barcode],
       );
 
+      console.log("Book", book[0]);
+
       const logs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
         WHERE book_copy_uuid = $1`,
@@ -540,10 +544,24 @@ console.log(query,queryParams)
         data: logs,
       };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      throw error;
+    }
+  }
+
+  async getLogDetailsOfStudent(studentId: string) {
+    try {
+      const result: any[] = await this.booklogRepository.query
+      (
+        `SELECT book_copy_uuid, action, time, ip_address, email, institute_id, department, student_uuid, date_of_birth, gender, institute_name 
+        FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid 
+        AND students_table.student_id = $1`,
+        [studentId]
       );
+      return {
+        data: result 
+      }
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -717,11 +735,11 @@ console.log(query,queryParams)
     }
   }
 
-  async restoreBook(creatbookpayload:TRestoreZodDTO) {
+  async restoreBook(book_uuid: string) {
     try {
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = true`,
-          [creatbookpayload.book_uuid],
+          [book_uuid],
       );
 
       if (book.length === 0) {
@@ -733,7 +751,7 @@ console.log(query,queryParams)
 
       await this.booktitleRepository.query(
         `UPDATE book_titles SET is_archived = false WHERE book_uuid = $1`,
-          [creatbookpayload.book_uuid],
+          [book_uuid],
       );
 
       return { message: 'Book restored successfully' };
@@ -802,7 +820,7 @@ console.log(query,queryParams)
     }
   }
 
-  async archiveBookCopy(createbookcopypayload:TCopyarchiveZodDTO) {
+  async archiveBookCopy(book_copy_uuid: string) {
     try {
       // Archive the book copy and get the bookTitleUUID
       const archiveResult = await this.bookcopyRepository.query(
@@ -810,7 +828,7 @@ console.log(query,queryParams)
         SET is_archived = true 
         WHERE book_copy_uuid = $1 
         RETURNING book_title_uuid`,
-        [createbookcopypayload.book_copy_uuid],
+        [book_copy_uuid],
       );
 
       if (archiveResult.length === 0) {
@@ -828,7 +846,7 @@ console.log(query,queryParams)
         total_count = GREATEST(total_count - 1, 0), 
           available_count = GREATEST(available_count - 1, 0)
         WHERE book_uuid = $1`,
-          [createbookcopypayload.book_copy_uuid],
+          [book_copy_uuid],
       );
 
       return { success: true, message: 'Book copy archived successfully' };
@@ -841,11 +859,11 @@ console.log(query,queryParams)
     }
   }
 
-  async restoreBookCopy(createbookcopypayload:TRestorecopybookZodDTO) {
+  async restoreBookCopy(book_copy_uuid: string) {
     try {
       const book = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies WHERE book_copy_uuid = $1 AND is_archived = true`,
-          [createbookcopypayload.book_copy_uuid],
+          [book_copy_uuid],
       );
 
       if (book.length === 0) {
@@ -857,7 +875,7 @@ console.log(query,queryParams)
 
       await this.booktitleRepository.query(
         `UPDATE book_copies SET is_archived = false WHERE book_copy_uuid = $1 RETURNING book_title_uuid`,
-          [createbookcopypayload.book_copy_uuid],
+          [book_copy_uuid],
       );
 
       const bookTitleUUID = book[0].book_title_uuid;

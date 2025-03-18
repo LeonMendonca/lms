@@ -63,44 +63,67 @@ export class BooksV2Controller {
 
   @Get('get_logs_of_title')
   async getLogDetailsByTitle(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getLogDetailsByTitle({
-      book_uuid,
-      isbn,
-    });
+    try {
+      return await this.booksService.getLogDetailsByTitle({book_title_id, isbn}); 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_logs_of_copy')
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
-    return this.booksService.getLogDetailsByCopy({
-      barcode,
-    });
+    try {
+      return await this.booksService.getLogDetailsByCopy({
+        barcode,
+      }); 
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  @Get('get_logs_of_student')
+  async getLogDetailsOfStudent(@Query('_student_id') studentId: string) {
+    try {
+      return await this.booksService.getLogDetailsOfStudent(studentId);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_all_available')// working
   async getAllAvailableBooks() {
-    return this.booksService.getAllAvailableBooks();
+    return await this.booksService.getAllAvailableBooks();
   }
 
   @Get('get_available_by_isbn')// working 
   async getavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getavailablebookbyisbn(isbn);
+    return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
   @Get('get_all_unavailable')// working
   async getAllUnavailableBooks() {
-    return this.booksService.getAllUnavailableBooks();
+    return await this.booksService.getAllUnavailableBooks();
   }
 
   @Get('get_unavailable_by_isbn')// working
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getunavailablebookbyisbn(isbn);
+    return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
   // @Get('isarchiveT')
@@ -161,7 +184,7 @@ export class BooksV2Controller {
     @Query('_limit') limit: string,
     @Query('_search') search: string,
   ) {
-    return this.booksService.getArchivedBooks({
+    return await this.booksService.getArchivedBooks({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
@@ -173,15 +196,15 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getLogDetails({
+    return await this.booksService.getLogDetails({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
   }
 
-  @Put('restore_archive')//working
-  async restoreArchive(@Body() createbookpayload:TRestoreZodDTO) {
-    return this.booksService.restoreBook(createbookpayload);
+  @Put('restore_archive')
+  async restoreArchive(@Body('book_uuid', new ParseUUIDPipe()) book_uuid: string) {
+    return await this.booksService.restoreBook(book_uuid);
   }
 
   @Get('get_book_title_details')// not working 
@@ -190,7 +213,7 @@ export class BooksV2Controller {
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
   ) {
-    return this.booksService.getBookTitleDetails({
+    return await this.booksService.getBookTitleDetails({
       book_uuid: book_uuid ?? undefined,
       isbn: isbn ?? undefined,
       titlename: titlename ?? undefined,
@@ -202,7 +225,7 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getBookCopies({
+    return await this.booksService.getBookCopies({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
@@ -210,7 +233,7 @@ export class BooksV2Controller {
 
   @Get('get_book_copy')// what is the use of identifier?? working//
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
-    return this.booksService.getSingleCopyInfo(identifier);
+    return await this.booksService.getSingleCopyInfo(identifier);
   }
 
   @Patch('update_book_title')//working
@@ -218,12 +241,12 @@ export class BooksV2Controller {
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookZodDTO,
   ) {
-    return this.booksService.updateBookTitle(book_uuid, bookPayload);
+    return await this.booksService.updateBookTitle(book_uuid, bookPayload);
   }
 
-  @Put('archive_book_copy')//working
-  async archiveBookCopy(@Body() createbookcopypayload:TCopyarchiveZodDTO) {
-    return this.booksService.archiveBookCopy(createbookcopypayload);
+  @Put('archive_book_copy')
+  async archiveBookCopy(@Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string) {
+    return await this.booksService.archiveBookCopy(book_copy_uuid);
   }
 
   @Get('get_archived_book_copy')//working
@@ -231,15 +254,15 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getArchivedBooksCopy({
+    return await this.booksService.getArchivedBooksCopy({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
   }
 
-  @Put('restore_book_copy')// working
-  async restoreBookCopy(@Body() createbookcopypayload:TRestorecopybookZodDTO) {
-    return this.booksService.restoreBookCopy(createbookcopypayload);
+  @Put('restore_book_copy')
+  async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
+    return await this.booksService.restoreBookCopy(book_uuid);
   }
 
   @Patch('update_book_copy')// wait
@@ -247,7 +270,7 @@ export class BooksV2Controller {
     @Body('book_copy_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookcopyZodDTO,
   ) {
-    return this.booksService.updateBookCopy(book_uuid, bookPayload);
+    return await this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
 
   @Get('available')// wait

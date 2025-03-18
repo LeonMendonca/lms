@@ -103,7 +103,7 @@ export class Students {
   //   visitlog: 'visit_log' = 'visit_log';
 }
 
-const student = new Students();
+export const student = new Students();
 
 //Type that represents the table Columns
 export type TStudents = {
