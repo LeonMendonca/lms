@@ -345,7 +345,8 @@ export class BooksV2Controller {
  
 
   @Patch('instituteid')
-  async updateinstitute(book_copy_uuid:string,institute_uuid:string ){
-  await this.booksService.updateinstituteid(book_copy_uuid,institute_uuid)
+  async updateinstitute(@Body() body: any){
+    return body;
+  //await this.booksService.updateinstituteid(book_copy_uuid)
   }
 }

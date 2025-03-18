@@ -15,6 +15,7 @@ import { TRestoreZodDTO } from './zod/restorearchive';
 import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
 import { CreateBookCopyDTO } from './zod/createcopydto';
 import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
+import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
 
 @Injectable()
 export class BooksV2Service {
@@ -731,7 +732,7 @@ export class BooksV2Service {
     }
   }
 
-  async updateBookCopy(id: string, updateBookCopyPayload: any) {
+  async updateBookCopy(id: string, updateBookCopyPayload: TUpdatebookcopyZodDTO) {
     try {
       const bookCopy = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies WHERE book_copy_uuid = $1 LIMIT 1`,
@@ -1104,7 +1105,7 @@ export class BooksV2Service {
   }
 
  async updateinstituteid(book_copy_uuid:string,institute_uuid:string){
-const result = await this.bookcopyRepository.query(`SELECT * FROM book_copies WHERE book_copy_uuid='${book_copy_uuid}' AND institute_uuid='${institute_uuid}' ` )
+const result = await this.bookcopyRepository.query(`SELECT * FROM book_copies WHERE book_copy_uuid=$1`,[book_copy_uuid])
 console.log(result) 
 }
 }
