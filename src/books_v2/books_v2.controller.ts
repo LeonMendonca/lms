@@ -25,6 +25,7 @@ import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { TRestoreZodDTO } from './zod/restorearchive';
 import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
 import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
+import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -241,8 +242,8 @@ export class BooksV2Controller {
 
   @Patch('update_book_copy')// wait
   async updateBookCopy(
-    @Body('book_uuid') book_uuid: string,
-    @Body() bookPayload: any,
+    @Body('book_copy_uuid') book_uuid: string,
+    @Body() bookPayload: TUpdatebookcopyZodDTO,
   ) {
     return this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
@@ -341,12 +342,10 @@ export class BooksV2Controller {
       }
     }
   }
-  //       @Post('booklibrary')
-  //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
-  // try {
-  //    const result= await this.BooklogService.setbooklibrary(booklogpayload)
-  // } catch (error) {
+ 
 
-  // }
-  //       }
+  @Patch('instituteid')
+  async updateinstitute(book_copy_uuid:string,institute_uuid:string ){
+  await this.booksService.updateinstituteid(book_copy_uuid,institute_uuid)
+  }
 }

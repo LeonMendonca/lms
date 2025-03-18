@@ -1102,4 +1102,9 @@ export class BooksV2Service {
       );
     }
   }
+
+ async updateinstituteid(book_copy_uuid:string,institute_uuid:string){
+const result = await this.bookcopyRepository.query(`SELECT * FROM book_copies WHERE book_copy_uuid='${book_copy_uuid}' AND institute_uuid='${institute_uuid}' ` )
+console.log(result) 
+}
 }
