@@ -470,11 +470,13 @@ console.log(query,queryParams)
       );
 
       const booksCopiesLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`
+        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`,
+        [limit, offset]
       );
 
       const studentLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid LIMIT $1 OFFSET $2;`
+        `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid LIMIT $1 OFFSET $2;`,
+        [limit, offset]
       );
 
       const total = await this.booklogRepository.query
