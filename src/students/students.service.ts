@@ -74,8 +74,8 @@ export class StudentsService {
   
     // const students = await this.studentsRepository.query(query, queryParams);
   
-    // const totalQuery = `SELECT COUNT(*) FROM students_table WHERE is_archived = false`;
-    // const total = await this.studentsRepository.query(totalQuery);
+    // const totalQuery = `SELECT COUNT(*) FROM students_tab
+    
   
     return {
       data: students,
