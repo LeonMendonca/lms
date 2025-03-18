@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { VisitLog } from './visitlog.entity';
 
 export const Department = {
   ELECTRICAL: 'electrical',
@@ -17,6 +18,7 @@ export class Students {
 
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
+  // relation 
  
   @Column({
     name: 'email',
@@ -96,6 +98,9 @@ export class Students {
 
   @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
+
+  //  @OneToMany(() => VisitLog, (visit_log) => visit_log.student_UUID)
+  //   visitlog: 'visit_log' = 'visit_log';
 }
 
 const student = new Students();

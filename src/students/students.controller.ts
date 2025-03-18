@@ -31,27 +31,29 @@ import {
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
+import { TVisit_log } from './zod-validation/visitlog';
 
 @Controller('student')
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
+  
   @Get('all')
   async getAllStudents(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
     @Query('_search') search: string,
+    @Query('_department') department: string,
+    @Query('_year') year: string
   ) {
-    try {
-      return await this.studentsService.findAllStudents({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-        search: search ?? undefined,
-      }); 
-    } catch (error) { 
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-    
+    return await this.studentsService.findAllStudents({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search ?? undefined,
+      department: department ?? undefined,
+      year: year ?? undefined,
+    });
   }
+  
 
   @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
@@ -287,4 +289,60 @@ export class StudentsController {
       };
     }
   }
+
+  //Visitlog
+
+  @Get('alllog')
+  async getAllLog(){
+    try {
+      return await this.studentsService.getVisitAllLog()
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  @Get('visitlog_by_uuid')
+async getVisitlog(@Query('_student_id') student_ID: string) {
+  try {
+    console.log(student_ID)
+    return await this.studentsService.getVisitLogByStudentUUID(student_ID);
+  } catch (error) {
+    throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  }
+}
+
+// @Post("vistlog_entry")
+//   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
+//     try {
+//       return await this.studentsService.visitlogentry(createvisitpayload);
+//     } catch (error) {
+//       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//     }
+//   }
+
+//   @Post("vistlog_exit")
+//   async createVisitExit(@Body() createvlogpayload:TVisit_log) {
+//     try {
+//       return await this.studentsService.visitlogexit(createvlogpayload);
+//     } catch (error) {
+//       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//     }
+//   }
+@Post('visitlog')
+async visitlog(@Body() createvlogpayload:TVisit_log){
+ try {
+  if(createvlogpayload.action==='entry'){
+    return await this.studentsService.visitlogentry(createvlogpayload)
+      }
+      else if(createvlogpayload.action==='exit'){
+       return await this.studentsService.visitlogexit(createvlogpayload) 
+      }
+      else{
+        throw new HttpException("Invalid action. Use 'entry' or 'exit'.", HttpStatus.BAD_REQUEST);
+      }
+    
+ } catch (error) {
+  throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+ }
+  
+}
 }

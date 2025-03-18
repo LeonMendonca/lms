@@ -48,7 +48,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_copies_with_title')// workiing add book uuid here
+  @Get('get_copies_with_title')
   async getBookCopiesByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -61,7 +61,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_title')// pending
+  @Get('get_logs_of_title')
   async getLogDetailsByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -72,7 +72,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_copy')// pending
+  @Get('get_logs_of_copy')
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
     return this.booksService.getLogDetailsByCopy({
       barcode,
@@ -329,22 +329,14 @@ export class BooksV2Controller {
       if(!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
-      throw error;
     }
   }
- 
+  //       @Post('booklibrary')
+  //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
+  // try {
+  //    const result= await this.BooklogService.setbooklibrary(booklogpayload)
+  // } catch (error) {
 
-  @Patch('instituteid')
-  async updateinstitute(@Body() createinstitutepayload: TUpdateInstituteZodDTO){
-  
-  try {
-   const result =await this.booksService.updateinstituteid(createinstitutepayload)
-    return result
-  } catch (error) {
-    if(!(error instanceof HttpException)) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-    throw error;
-  }  
-  }
+  // }
+  //       }
 }
