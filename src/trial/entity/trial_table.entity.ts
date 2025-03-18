@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Generated } from 'typeorm';
 import { TrialCopy } from './trial_copy.entity'
+import { boolean } from 'zod';
 
 @Entity('trial_table')
 export class TrialTable {
@@ -7,6 +8,7 @@ export class TrialTable {
     id: number;
 
     @Column({ type: 'uuid', unique: true, generated: 'uuid' })
+    // @Generated('uuid')
     uuid: string;
 
     @Column({ type: 'varchar', length: 255 })
@@ -17,6 +19,9 @@ export class TrialTable {
 
     @Column({ type: 'int' })
     available_count: number;
+
+    @Column({ type: 'boolean' })
+    is_archived: boolean;
 
     @OneToMany(() => TrialCopy, (trialCopy) => trialCopy.trial)
     copies: TrialCopy[];

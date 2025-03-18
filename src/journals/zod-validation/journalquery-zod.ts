@@ -5,7 +5,6 @@ import { JournalsTable } from "../entity/journals_table.entity"
 
 export const findJournalQuery = createObjectIncludeProperties(new JournalsTable(), ['journalUUID', 'nameOfJournal', 'nameOfPublisher', 'placeOfPublisher', 'editorName', 'language', 'department', 'isArchived', 'totalCount', 'availableCount', 'itemType', 'issn', 'callNumber', 'vendorName', 'libraryName', 'subscriptionPrice', 'volumeNumber', 'issueNumber'])
 
-
 export const findJournalQuerySchema = z.object({
     [findJournalQuery.journalUUID]: z.string().uuid().optional(),
     [findJournalQuery.nameOfJournal]: z.string().min(1, { message: "Name of the Journal Not Provided" }).optional(),

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { JournalsService } from './journals.service';
 import { createJournalSchema, tCreateJournalDTO } from './zod-validation/createjournals-zod';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
@@ -18,18 +18,8 @@ export class JournalsController {
     constructor(private journalsService: JournalsService) { }
 
 
-    // ----- BOTH TABLE SIMULTAENOUSE FUNCTIONS -----
+    // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
-    // @Post('post-journal')
-    // async createJournal(@Body() body: any) {
-    //     return this.journalsService.createJournal(body)
-    // }
-
-    // @Post('post-journal')
-    // @UsePipes(new bodyValidationPipe(createJournalSchema))
-    // async createJournal(@Body() newJournal: tCreateJournalDTO) {
-    //     return this.journalsService.createJournal(newJournal)
-    // }
 
     // ----- JOURNAL TABLE FUNCTIONS -----
 
@@ -59,7 +49,7 @@ export class JournalsController {
         }
     }
 
-    @Put('update-journal/:journal_uuid')
+    @Patch('update-journal/:journal_uuid') //PUT --> PATCH
     @UsePipes(new putBodyValidationPipe(updateJournalSchema))
     async updateJournalInTable(
         @Param(
@@ -84,30 +74,33 @@ export class JournalsController {
         }
     }
 
-    @Delete('delete-journal/:journal_uuid')
+    // Delete Logic - only need uuid 
+    @Put('delete-journal/:journal_uuid')
     async deleteJournalFromTable(
         @Param(
             'journal_uuid',
-            new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })
+            new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
         )
-        journal_uuid: UUID
+        journal_uuid: UUID,
     ) {
         try {
             const result = await this.journalsService.deleteJournalFromTable(journal_uuid)
             if (result[1]) {
                 return {
                     message: "Journal Deleted Successfully!",
-                    updated_journal: result
+                    deleted_journal: result
                 }
             } else {
-                throw new Error(`Journal With ID ${journal_uuid} Not found`)
+                throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
             }
         } catch (error) {
-            throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+            // throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
+            return {
+                message: "Journal Not Found"
+            }
         }
-        // return this.journalsService.deleteJournalFromTable()
-    }
 
+    }
 
     // ----- JOURNAL COPY TABLE FUNCTIONS -----
 
@@ -137,7 +130,7 @@ export class JournalsController {
         }
     }
 
-    @Put('update-journal-incopy/:journal_id')
+    @Patch('update-journal-incopy/:journal_id') // PUT --> PATCH
     @UsePipes(new putBodyValidationPipe(updateJournalCopySchema))
     async updateJournalInCopy(
         @Param(
@@ -162,33 +155,31 @@ export class JournalsController {
         }
     }
 
-    @Delete('delete-journal-incopy/:journal_id')
+    // Delete Logic - only need journal_id
+    @Put('delete-journal-incopy/:journal_id')
     async deleteJournalFromCopy(
         @Param(
             'journal_id',
-            new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })
+            new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
         )
-        journal_id: number
+        journal_id: number,
     ) {
         try {
             const result = await this.journalsService.deleteJournalFromCopy(journal_id)
             if (result[1]) {
                 return {
                     message: "Journal Deleted Successfully!",
-                    updated_journal: result
+                    deleted_journal: result
                 }
             } else {
-                throw new Error(`Journal With ID ${journal_id} Not found`)
+                throw new Error(`Journal With UUID ${journal_id} Not Found`)
             }
         } catch (error) {
-            throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
+            // throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
+            return {
+                message: "Journal Not Found"
+            }
         }
     }
 }
 
-
-// get journal - done
-// create journal
-// update journal
-// delete journal
-// find journal
