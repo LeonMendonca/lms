@@ -73,7 +73,7 @@ export class BooksV2Controller {
   @Get('get_logs_of_copy')
   async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
     try {
-      return this.booksService.getLogDetailsByCopy({
+      return await this.booksService.getLogDetailsByCopy({
         barcode,
       }); 
     } catch (error) {
@@ -87,7 +87,7 @@ export class BooksV2Controller {
   @Get('get_logs_of_student')
   async getLogDetailsOfStudent(@Query('_student_id') studentId: string) {
     try {
-      return this.booksService.getLogDetailsOfStudent(studentId);
+      return await this.booksService.getLogDetailsOfStudent(studentId);
     } catch (error) {
       if(!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -98,26 +98,26 @@ export class BooksV2Controller {
 
   @Get('get_all_available')
   async getAllAvailableBooks() {
-    return this.booksService.getAllAvailableBooks();
+    return await this.booksService.getAllAvailableBooks();
   }
 
   @Get('get_available_by_isbn')
   async getavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getunavailablebookbyisbn(isbn);
+    return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
   @Get('get_all_unavailable')
   async getAllUnavailableBooks() {
-    return this.booksService.getAllUnavailableBooks();
+    return await this.booksService.getAllUnavailableBooks();
   }
 
   @Get('get_unavailable_by_isbn')
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return this.booksService.getunavailablebookbyisbn(isbn);
+    return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
   // @Get('isarchiveT')
@@ -127,7 +127,7 @@ export class BooksV2Controller {
   @Put('uparchive')
   async updateArchive(@Body('book_uuid') book_uuid: string) {
     console.log('working');
-    return this.booksService.updateTitleArchive(book_uuid);
+    return await this.booksService.updateTitleArchive(book_uuid);
   }
 
   // @Get('search')
@@ -171,7 +171,7 @@ export class BooksV2Controller {
     @Query('_limit') limit: string,
     @Query('_search') search: string,
   ) {
-    return this.booksService.getArchivedBooks({
+    return await this.booksService.getArchivedBooks({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
@@ -183,7 +183,7 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getLogDetails({
+    return await this.booksService.getLogDetails({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
@@ -191,7 +191,7 @@ export class BooksV2Controller {
 
   @Put('restore_archive')
   async restoreArchive(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.restoreBook(book_uuid);
+    return await this.booksService.restoreBook(book_uuid);
   }
 
   @Get('get_book_title_details')
@@ -200,7 +200,7 @@ export class BooksV2Controller {
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
   ) {
-    return this.booksService.getBookTitleDetails({
+    return await this.booksService.getBookTitleDetails({
       book_uuid: book_uuid ?? undefined,
       isbn: isbn ?? undefined,
       titlename: titlename ?? undefined,
@@ -212,7 +212,7 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getBookCopies({
+    return await this.booksService.getBookCopies({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
@@ -220,7 +220,7 @@ export class BooksV2Controller {
 
   @Get('get_book_copy')
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
-    return this.booksService.getSingleCopyInfo(identifier);
+    return await this.booksService.getSingleCopyInfo(identifier);
   }
 
   @Patch('update_book_title')
@@ -228,12 +228,12 @@ export class BooksV2Controller {
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: UpdateBookTitleDTO,
   ) {
-    return this.booksService.updateBookTitle(book_uuid, bookPayload);
+    return await this.booksService.updateBookTitle(book_uuid, bookPayload);
   }
 
   @Put('archive_book_copy')
   async archiveBookCopy(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.archiveBookCopy(book_uuid);
+    return await this.booksService.archiveBookCopy(book_uuid);
   }
 
   @Get('get_archived_book_copy')
@@ -241,7 +241,7 @@ export class BooksV2Controller {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
-    return this.booksService.getArchivedBooksCopy({
+    return await this.booksService.getArchivedBooksCopy({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
@@ -249,7 +249,7 @@ export class BooksV2Controller {
 
   @Put('restore_book_copy')
   async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
-    return this.booksService.restoreBookCopy(book_uuid);
+    return await this.booksService.restoreBookCopy(book_uuid);
   }
 
   @Patch('update_book_copy')
@@ -257,7 +257,7 @@ export class BooksV2Controller {
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: any,
   ) {
-    return this.booksService.updateBookCopy(book_uuid, bookPayload);
+    return await this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
 
   @Get('available')
