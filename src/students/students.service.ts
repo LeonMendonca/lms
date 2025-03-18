@@ -31,7 +31,7 @@ export class StudentsService {
     },
   ) {
     const offset = (page - 1) * limit;
-    const searchQuery = search ? '%${search}%' : '%';
+    const searchQuery = search ? `%${search}%` : '%';
 
     const students = await this.studentsRepository.query(
       'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
@@ -52,6 +52,18 @@ export class StudentsService {
         totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
       },
     };
+  }
+
+  async getAllDepartments(): Promise<string[]> {
+    try {
+      console.log("Fetching departments...");
+      const departments = await this.studentsRepository.query(
+        'SELECT DISTINCT department FROM students_table WHERE is_archived = false'
+      );
+      return departments?.map((dept: { department: string }) => dept.department) || [];
+    } catch (error) {
+      throw error;
+    }
   }
 
   async findStudentBy(query: UnionUser) {

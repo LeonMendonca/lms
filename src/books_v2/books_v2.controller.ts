@@ -15,8 +15,8 @@ import {
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
-import { Request } from 'express';
 import { TUpdatebookZodDTO } from './zod/updatebookdto';
+import type { Request } from 'express';
 import {
   booklogSchema,
   TCreateBooklogDTO,
@@ -26,6 +26,8 @@ import { TRestoreZodDTO } from './zod/restorearchive';
 import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
 import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
+import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
+import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -255,42 +257,28 @@ export class BooksV2Controller {
 
   //logs part
 
-  @Post('borrowed')
-  @UsePipes(new bodyValidationPipe(booklogSchema))
-  async createBooklogIssued(
-    @Body() booklogpayload: TCreateBooklogDTO,
-    @Req() req: Request,
-  ) {
-    try {
-      // Extract user IP address properly
-      const ipAddress =
-        req.headers['x-forwarded-for']?.[0] ||
-        req.socket.remoteAddress ||
-        'Unknown';
-
-      const result = await this.booksService.createBookborrowed(
-        booklogpayload,
-        ipAddress,
-      );
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Book borrowed successfully',
-        data: result,
-      };
-    } catch (error) {
-      console.error('Error in createBooklogIssued:', error);
-      throw new HttpException(
-        error.message || 'Failed to borrow book',
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
+  //@Post('borrowed')
+  //@UsePipes(new bodyValidationPipe(booklogV2Schema))
+  //async createBooklogBorrowed(
+  //  @Body() booklogPayload: TCreateBooklogV2DTO,
+  //  @Req() request: Request
+  //) {
+  //  try {
+  //    return await this.booksService.createBookBorrowed(
+  //      booklogPayload, request
+  //    );
+  //  } catch (error) {
+  //    if(!(error instanceof HttpException)) {
+  //      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  //    }
+  //    throw error;
+  //  }
+  //}
 
   @Post('library')
   @UsePipes(new bodyValidationPipe(booklogSchema))
   async setbooklibrary(
-    @Body() booklogpayload: TCreateBooklogDTO,
+    @Body() booklogpayload: TCreateBooklogV2DTO,
     @Req() req: Request,
   ) {
     try {
@@ -319,34 +307,44 @@ export class BooksV2Controller {
     }
   }
 
-  @Post('returned')
-  async createBooklogreturned(
-    @Body() booklogpayload: TCreateBooklogDTO,
-    @Req() req: Request,
+  //Implements Borrow and Return
+  @Post('update-book-log')
+  @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  async updateBookLog(
+    @Body() booklogPayload: TCreateBooklogV2DTO,
+    @Req() request: Request,
   ) {
     try {
-      const ipAddress =
-        req.headers['x-forwarded-for']?.[0] ||
-        req.socket.remoteAddress ||
-        'Unknown';
-      const result = await this.booksService.createbookreturned(
-        booklogpayload,
-        ipAddress,
-      );
-
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+      let result: Record<string, string | number> = {};
+      if(booklogPayload.action === 'borrow') {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
+      } else if (booklogPayload.action === 'return') {
+        result = await this.booksService.bookReturned(booklogPayload, request, status = 'returned')
+      } else {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'in_library_borrowed');
+      }
       return result;
     } catch (error) {
-      if (error instanceof Error) {
-        console.log(error);
-        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
+      throw error;
     }
   }
  
 
   @Patch('instituteid')
-  async updateinstitute(@Body() body: any){
-    return body;
-  //await this.booksService.updateinstituteid(book_copy_uuid)
+  async updateinstitute(@Body() createinstitutepayload: TUpdateInstituteZodDTO){
+  
+  try {
+   const result =await this.booksService.updateinstituteid(createinstitutepayload)
+    return result
+  } catch (error) {
+    if(!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    throw error;
+  }  
   }
 }
