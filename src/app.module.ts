@@ -15,6 +15,8 @@ import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { BooksV2Module } from './books_v2/books_v2.module';
 import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { VisitLog } from './students/visitlog.entity';
+import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
+import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
 
 config({ path: '.env' });
 @Module({
@@ -24,22 +26,18 @@ config({ path: '.env' });
       url: process.env.DB_URL,
       entities: [
         Students,
-        Books,
-        Booklog,
-        Bookcount,
         BookCopy,
         BookTitle,
         Booklog_v2,
-        VisitLog
+        VisitLog,
+        FeesPenalties
       ],
       ssl: true,
       synchronize: true,
     }),
     StudentsModule,
-    BooksModule,
-    BooklogModule,
-    BookcountModule,
     BooksV2Module,
+    FeesPenaltiesModule,
   ],
 })
 export class AppModule {
