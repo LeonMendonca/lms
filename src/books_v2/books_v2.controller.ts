@@ -50,12 +50,12 @@ export class BooksV2Controller {
 
   @Get('get_copies_with_title')
   async getBookCopiesByTitle(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
   ) {
     return this.booksService.getBookCopiesByTitle({
-      book_uuid,
+      book_title_id,
       isbn,
       titlename,
     });
@@ -104,32 +104,67 @@ export class BooksV2Controller {
 
   @Get('get_all_available')// working
   async getAllAvailableBooks() {
-    return await this.booksService.getAllAvailableBooks();
+    try {
+      return await this.booksService.getAllAvailableBooks();
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_available_by_isbn')// working 
   async getavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return await this.booksService.getunavailablebookbyisbn(isbn);
+    try {
+      return await this.booksService.getunavailablebookbyisbn(isbn);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_all_unavailable')// working
   async getAllUnavailableBooks() {
-    return await this.booksService.getAllUnavailableBooks();
+    try {
+      return await this.booksService.getAllUnavailableBooks();
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Get('get_unavailable_by_isbn')// working
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
   ) {
-    return await this.booksService.getunavailablebookbyisbn(isbn);
+ try {
+  return await this.booksService.getunavailablebookbyisbn(isbn);
+ } catch (error) {
+  if(!(error instanceof HttpException)) {
+    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+ }
   }
 
 
   @Put('uparchive')//  working
   async updateArchive(@Body() creatbookpayload:TupdatearchiveZodDTO) {
-      return this.booksService.updateTitleArchive(creatbookpayload);
+      try {
+        return this.booksService.updateTitleArchive(creatbookpayload);
+      } catch (error) {
+        if(!(error instanceof HttpException)) {
+          throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        throw error;
+      }
   }
 
   @Get('isbn')// update by insert query helper or create  own query helper for select part// working
@@ -138,8 +173,11 @@ export class BooksV2Controller {
       const result = await this.booksService.isbnBook(isbn);
       return result[0];
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
-    }
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+        }
   }
 
   // Create new book
@@ -181,24 +219,36 @@ export class BooksV2Controller {
     });
   }
 
-  @Put('restore_archive')
-  async restoreArchive(@Body('book_uuid', new ParseUUIDPipe()) book_uuid: string) {
-    return await this.booksService.restoreBook(book_uuid);
+  @Put('restore_archive')// copies part is not restored// working
+  async restoreArchive(@Body('book_title_id', ) book_title_id: string) {
+   try {
+    return await this.booksService.restoreBook(book_title_id);
+   } catch (error) {
+    if(!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    throw error;
+   }
   }
+  
+
+
 
   @Get('get_book_title_details')// not working 
   async getBookTitleDetails(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
   ) {
     return await this.booksService.getBookTitleDetails({
-      book_uuid: book_uuid ?? undefined,
+      book_title_id: book_title_id ?? undefined,
       isbn: isbn ?? undefined,
       titlename: titlename ?? undefined,
     });
   }
 
+
+  ////   stop for personal work
   @Get('get_all_book_copy') // working
   async fetchAllCopyInfo(
     @Query('_page') page: string,
@@ -212,22 +262,42 @@ export class BooksV2Controller {
 
   @Get('get_book_copy')// what is the use of identifier?? working//
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
+   try {
     return await this.booksService.getSingleCopyInfo(identifier);
+   } catch (error) {
+    if(!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    throw error;
+   }
   }
 
   @Patch('update_book_title')//working
   async updateBookTitle(
-    @Body('book_uuid') book_uuid: string,
+    @Body('book_title_id') book_title_id: string,
     @Body() bookPayload: TUpdatebookZodDTO,
   ) {
-    return await this.booksService.updateBookTitle(book_uuid, bookPayload);
+    try {
+      return await this.booksService.updateBookTitle(book_title_id, bookPayload);
+
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
   @Put('archive_book_copy')
-  async archiveBookCopy(@Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string) {
-    return await this.booksService.archiveBookCopy(book_copy_uuid);
-  }
-
+  async archiveBookCopy(@Body('book_copy_id') book_copy_id: string) {
+    try {
+      return await this.booksService.archiveBookCopy(book_copy_id);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }}
   @Get('get_archived_book_copy')//working
   async getArchivedBooksCopy(
     @Query('_page') page: string,
@@ -240,16 +310,32 @@ export class BooksV2Controller {
   }
 
   @Put('restore_book_copy')
-  async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
-    return await this.booksService.restoreBookCopy(book_uuid);
-  }
+  async restoreBookCopy(@Body('book_copy_id') book_copy_id: string) {
+   try {
+   return await this.booksService.restoreBookCopy(book_copy_id);
 
-  @Patch('update_book_copy')// wait
+   } catch (error) {
+    if(!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    throw error;
+   }
+  }
+  
+
+  @Patch('update_book_copy')
   async updateBookCopy(
-    @Body('book_copy_uuid') book_uuid: string,
+    @Body('book_copy_id') book_copy_id: string,
     @Body() bookPayload: TUpdatebookcopyZodDTO,
   ) {
-    return await this.booksService.updateBookCopy(book_uuid, bookPayload);
+   try {
+    return await this.booksService.updateBookCopy(book_copy_id, bookPayload);
+   } catch (error) {
+    if(!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    throw error;
+   }
   }
 
   @Get('available')// wait

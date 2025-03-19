@@ -75,11 +75,11 @@ export class BooksV2Service {
   }
 
   async getBookTitleDetails({
-    book_uuid,
+    book_title_id,
     isbn,
     titlename,
   }: {
-    book_uuid: string;
+    book_title_id: string;
     isbn: string;
     titlename: string;
   }) {
@@ -87,9 +87,9 @@ export class BooksV2Service {
       const queryParams: string[] = [];
       let query = `SELECT * FROM book_titles WHERE 1=1`;
 
-      if (book_uuid) {
-        query += ` AND book_uuid = $${queryParams.length + 1}`;
-        queryParams.push(book_uuid);
+      if (book_title_id) {
+        query += ` AND book_title_id = $${queryParams.length + 1}`;
+        queryParams.push(book_title_id);
       }
       if (isbn) {
         query += ` AND isbn = $${queryParams.length + 1}`;
@@ -108,6 +108,7 @@ export class BooksV2Service {
 
       return book; // Return only the first matching book
     } catch (error) {
+     console.log(error);
       throw error;
     }
   }
@@ -149,21 +150,21 @@ export class BooksV2Service {
 
   //----------
   async getBookCopiesByTitle({
-    book_uuid,
+    book_title_id,
     isbn,
     titlename,
   }: {
-    book_uuid: string;
+    book_title_id: string;
     isbn: string;
     titlename: string;
   }) {
     try {
       const queryParams: string[] = [];
-      let query = `SELECT book_uuid, book_title FROM book_titles WHERE 1=1`;
+      let query = `SELECT book_title_id, book_title FROM book_titles WHERE 1=1`;
 
-      if (book_uuid) {
+      if (book_title_id) {
         query += ` AND book_uuid = $${queryParams.length + 1}`;
-        queryParams.push(book_uuid);
+        queryParams.push(book_title_id);
       }
       if (isbn) {
         query += ` AND isbn = $${queryParams.length + 1}`;
@@ -197,7 +198,7 @@ console.log(query,queryParams)
         copies: books,
       };
     } catch (error) {
-      throw error;
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
   }
 
@@ -210,7 +211,7 @@ console.log(query,queryParams)
         query += `(barcode = $1 OR inventory_number = $1) `;
         params.push(Number(identifier)); // Convert to BIGINT
       } else {
-        query += `book_copy_uuid = $1 `;
+        query += `book_copy_id = $1 `;
         params.push(identifier);
       }
 
@@ -529,11 +530,11 @@ console.log(query,queryParams)
   }
 
   // TODO: Edit Functionality PS. Not working properly
-  async updateBookTitle(id: string, updateBookPayload: TUpdatebookZodDTO) {
+  async updateBookTitle(book_title_id: string, updateBookPayload: TUpdatebookZodDTO) {
     try {
       const book = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = false LIMIT 1 `,
-          [id],
+        `SELECT * FROM book_titles WHERE book_title_id = $1 AND is_archived = false LIMIT 1 `,
+          [book_title_id],
       );
 
       if (!book) {
@@ -558,10 +559,11 @@ console.log(query,queryParams)
         subject = COALESCE($14, subject),
         title_additional_fields = COALESCE($15, title_additional_fields),
         title_images = COALESCE($16, title_images),
-        year_of_publication = COALESCE($17, year_of_publication)
-    WHERE book_uuid = $1;`,
+        year_of_publication = COALESCE($17, year_of_publication),
+          updated_at = NOW()
+    WHERE book_title_id = $1;`,
           [
-            id,
+            book_title_id,
             updateBookPayload.book_title,
             updateBookPayload.title_description,
             updateBookPayload.author_mark,
@@ -583,8 +585,8 @@ console.log(query,queryParams)
 
       return { message: 'Book updated successfully' };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+  throw error;
+   }
   }
 
   // Create a new book
@@ -664,12 +666,12 @@ console.log(query,queryParams)
 
   async updateTitleArchive(creatbookpayload:TupdatearchiveZodDTO) {
     try {
-      console.log(creatbookpayload.book_uuid);
+      console.log(creatbookpayload.book_title_id);
       // Check if the book exists and is not archived
-      const book = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_uuid =$1 AND is_archived = false`,[creatbookpayload.book_uuid]
+      const book:{book_uuid:string;}[] = await this.booktitleRepository.query(
+        `SELECT book_uuid FROM book_titles WHERE book_title_id =$1 AND is_archived = false`,[creatbookpayload.book_title_id]
       );
-        console.log({ book });
+        console.log({ book});
 
         if (book.length === 0) {
           throw new HttpException(
@@ -680,13 +682,13 @@ console.log(query,queryParams)
 
         // Update is_archived to true
         await this.booktitleRepository.query(
-          `UPDATE book_titles SET is_archived = true WHERE book_uuid = $1`,
-            [creatbookpayload.book_uuid],
+          `UPDATE book_titles SET is_archived = true WHERE book_title_id = $1`,
+            [creatbookpayload.book_title_id],
         );
 
         await this.bookcopyRepository.query(
           `UPDATE book_copies SET is_archived = true WHERE book_title_uuid = $1`,
-            [creatbookpayload.book_uuid],
+            [book[0].book_uuid]
         );
 
         return { message: 'Book archived successfully' };
@@ -698,11 +700,11 @@ console.log(query,queryParams)
     }
   }
 
-  async restoreBook(book_uuid: string) {
+  async restoreBook(book_title_id: string) {
     try {
-      const book = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_uuid = $1 AND is_archived = true`,
-          [book_uuid],
+      const book:{book_uuid}[] = await this.booktitleRepository.query(
+        `SELECT book_uuid FROM book_titles WHERE book_title_id = $1 AND is_archived = true`,
+          [book_title_id],
       );
 
       if (book.length === 0) {
@@ -711,12 +713,14 @@ console.log(query,queryParams)
           HttpStatus.NOT_FOUND,
         );
       }
-
       await this.booktitleRepository.query(
-        `UPDATE book_titles SET is_archived = false WHERE book_uuid = $1`,
-          [book_uuid],
+        `UPDATE book_titles SET is_archived = false WHERE book_title_id = $1`,
+          [book_title_id],
       );
-
+      //?? copies part will update ??
+      await this.bookcopyRepository.query(
+        `UPDATE book_copies SET is_archived = false WHERE book_title_uuid = $1`,[book[0].book_uuid],
+      );
       return { message: 'Book restored successfully' };
     } catch (error) {
       throw new HttpException(
@@ -726,19 +730,20 @@ console.log(query,queryParams)
     }
   }
 
-  async updateBookCopy(id: string, updateBookCopyPayload: TUpdatebookcopyZodDTO) {
+  async updateBookCopy(book_copy_id: string, updateBookCopyPayload: TUpdatebookcopyZodDTO) {
     try {
+     console.log("working"); 
       const bookCopy = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE book_copy_uuid = $1 LIMIT 1`,
-          [id],
+        `SELECT * FROM book_copies WHERE book_copy_id = $1 LIMIT 1`,
+          [book_copy_id],
       );
 
       console.log({ bookCopy });
-
+      console.log("working1");
       if (!bookCopy || bookCopy.length === 0) {
         throw new HttpException('Book copy not found', HttpStatus.NOT_FOUND);
       }
-
+      console.log("working query process");
       await this.bookcopyRepository.query(
         `UPDATE book_copies 
         SET 
@@ -755,9 +760,9 @@ console.log(query,queryParams)
           copy_additional_fields = COALESCE($12, copy_additional_fields),
           copy_description = COALESCE($13, copy_description),
           updated_at = NOW()
-        WHERE book_copy_uuid = $1`,
+        WHERE book_copy_id = $1`,
           [
-          id,
+            book_copy_id,
           updateBookCopyPayload.source_of_acquisition,
           updateBookCopyPayload.date_of_acquisition,
           updateBookCopyPayload.bill_no,
@@ -773,6 +778,10 @@ console.log(query,queryParams)
         ],
       );
 
+
+
+      
+      console.log("working query process completed");
       return { message: 'Book copy updated successfully' };
     } catch (error) {
       console.log(error);
@@ -783,15 +792,15 @@ console.log(query,queryParams)
     }
   }
 
-  async archiveBookCopy(book_copy_uuid: string) {
+  async archiveBookCopy(book_copy_id: string) {
     try {
       // Archive the book copy and get the bookTitleUUID
       const archiveResult = await this.bookcopyRepository.query(
         `UPDATE book_copies 
         SET is_archived = true 
-        WHERE book_copy_uuid = $1 
+        WHERE book_copy_id = $1 
         RETURNING book_title_uuid`,
-        [book_copy_uuid],
+        [book_copy_id],
       );
 
       if (archiveResult.length === 0) {
@@ -809,7 +818,7 @@ console.log(query,queryParams)
         total_count = GREATEST(total_count - 1, 0), 
           available_count = GREATEST(available_count - 1, 0)
         WHERE book_uuid = $1`,
-          [book_copy_uuid],
+          [bookTitleUUID],
       );
 
       return { success: true, message: 'Book copy archived successfully' };
@@ -819,11 +828,11 @@ console.log(query,queryParams)
     }
   }
 
-  async restoreBookCopy(book_copy_uuid: string) {
+  async restoreBookCopy(book_copy_id: string) {
     try {
       const book = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE book_copy_uuid = $1 AND is_archived = true`,
-          [book_copy_uuid],
+        `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_archived = true`,
+          [book_copy_id],
       );
 
       if (book.length === 0) {
@@ -834,8 +843,8 @@ console.log(query,queryParams)
       }
 
       await this.booktitleRepository.query(
-        `UPDATE book_copies SET is_archived = false WHERE book_copy_uuid = $1 RETURNING book_title_uuid`,
-          [book_copy_uuid],
+        `UPDATE book_copies SET is_archived = false WHERE book_copy_id = $1 RETURNING book_title_uuid`,
+          [book_copy_id],
       );
 
       const bookTitleUUID = book[0].book_title_uuid;
@@ -1166,7 +1175,8 @@ console.log(query,queryParams)
   
       return { message: 'Institute ID updated successfully', statusCode: HttpStatus.OK };
     } catch (error) {
-      throw error;
+          throw error;
+
     }
   }
   
