@@ -1,13 +1,14 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { BeforeInsert, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { JournalsCopy } from "./journals_copy.entity";
 
 @Entity('journals_table')
 export class JournalsTable {
+
     @PrimaryGeneratedColumn('uuid', { name: 'journal_uuid' })
     journalUUID: "journal_uuid" = "journal_uuid";
 
-    // join added
-    @OneToMany(() => JournalsCopy, (copy) => copy.journal_uuid, { onDelete: "CASCADE" })
+    // // join added
+    @OneToMany(() => JournalsCopy, (copy) => copy.journal, { onDelete: "CASCADE" })
     journal_uuid: JournalsCopy[]
 
     // General Information
@@ -76,7 +77,7 @@ export class JournalsTable {
     @Column({ name: "call_number", type: "varchar", length: 255 }) //given in frontend
     callNumber: "call_number" = "call_number";
 
-    @Column({ name: "created_at", type: "date" }) // added on my own
+    @Column({ name: "created_at", type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     createdAt: "created_at" = "created_at";
 
     @Column({ name: "updated_at", type: "date" }) // added on my own

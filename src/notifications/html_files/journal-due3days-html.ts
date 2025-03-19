@@ -1,4 +1,4 @@
-export const due3Days = `
+export const journalDue3Days = `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -80,21 +80,16 @@ export const due3Days = `
 <body>
     <div class="mail-content">
 
-        <img src="vighnotech_logo.png" class="logo" alt="">
+        <img src="../images/vighnotech_logo.png" class="logo" alt="">
 
         <div class="content">
-            <h1 class="reminder">Reminder: Book Return Due in 3 Days</h1>
+            <h1 class="reminder">Reminder: Journal Return Due in 3 Days</h1>
 
-            <h1 class="subject">Subject: 📚 Friendly Reminder: Return Your Book by [Return Date]</h1>
+            <h1 class="subject">Subject: 📚 Friendly Reminder: Return Your Journal by [Return Date]</h1>
 
             <h1 class="greetings">Dear [User's Name],</h1>
 
-            <p class="message">We hope you're enjoying your borrowed book, "[Book Title]". This is a friendly reminder
-                that
-                the due date for returning the book is [Return Date], which is just 3 days away.
-                To avoid late fees, please return the book on time. If you need an extension, kindly renew your book via
-                the
-                library portal or visit us in person.</p>
+            <p class="message">We hope you're enjoying your borrowed journal, "[Journal Title]". This is a friendly reminder that the due date for returning the journal is [Return Date], which is just 3 days away. To avoid late fees, please return the journal on time. If you need an extension, kindly renew your journal via the library portal or visit us in person.</p>
 
             <h1 class="regards">Happy Reading !</h1>
 
@@ -102,7 +97,7 @@ export const due3Days = `
         </div>
 
         <div class="footer">
-            <img src="vighnotech_icon.png" alt="" class="footer-img">
+            <img src="../images/vighnotech_icon.png" alt="" class="footer-img">
 
             <div class="social-media-icons">
                 <a href=""><i class="fa fa-linkedin"></i></a>

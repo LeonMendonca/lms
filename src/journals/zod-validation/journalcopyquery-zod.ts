@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { createObjectIncludeProperties } from "src/create-object-from-class";
+import { createObjectIncludeProperties } from "src/misc/create-object-from-class";
 import { JournalsCopy } from "../entity/journals_copy.entity";
 
-export const findJournalCopyQuery = createObjectIncludeProperties(new JournalsCopy(), ['nameOfJournal', 'nameOfPublisher', 'editorName', 'language', 'department', 'volumeNumber', 'issueNumber', 'isArchived', 'issn', 'callNumber', 'journal_uuid', 'journalID', 'vendorName', 'libraryName'])
+export const findJournalCopyQuery = createObjectIncludeProperties(new JournalsCopy(), ['nameOfJournal', 'nameOfPublisher', 'editorName', 'language', 'department', 'volumeNumber', 'issueNumber', 'isArchived', 'isAvailable', 'issn', 'callNumber', 'journal_uuid', 'journalID', 'vendorName', 'libraryName'])
 
 export const findJournalCopyQuerySchema = z.object({
     [findJournalCopyQuery.journal_uuid]: z.string().uuid().optional(),
@@ -18,6 +18,7 @@ export const findJournalCopyQuerySchema = z.object({
     [findJournalCopyQuery.issueNumber]: z.string().min(1, { message: "Issue Number is Not Provided" }).optional().transform((val) => (typeof val === 'string' ? parseInt(val, 10) : undefined)),
     // [findJournalQuery.isArchived]: z.boolean().optional(),
     [findJournalCopyQuery.isArchived]: z.string().optional().transform((val) => val === 'true'),
+    [findJournalCopyQuery.isAvailable]: z.string().optional().transform((val) => val === 'true'),
     [findJournalCopyQuery.issn]: z.string().min(1, { message: "ISSN is Not Provided" }).optional(),
     [findJournalCopyQuery.callNumber]: z.string().min(1, { message: "Call Number is Not Provided" }).optional(),
     [findJournalCopyQuery.vendorName]: z.string().min(1, { message: "Vendor Name is Not Provided" }).optional(),

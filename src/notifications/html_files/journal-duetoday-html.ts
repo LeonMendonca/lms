@@ -1,4 +1,4 @@
-export const dueToday = `
+export const journalDueToday = `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -80,21 +80,16 @@ export const dueToday = `
 <body>
     <div class="mail-content">
 
-        <img src="vighnotech_logo.png" class="logo" alt="">
+        <img src="../images/vighnotech_logo.png" class="logo" alt="">
 
         <div class="content">
-            <h1 class="reminder">Reminder: Book Return Due Today</h1>
+            <h1 class="reminder">Reminder: Journal Return Due Today</h1>
 
-            <h1 class="subject">Subject: ⏳ Book Return Due Today – Avoid Late Fees!</h1>
+            <h1 class="subject">Subject: ⏳ Journal Return Due Today – Avoid Late Fees!</h1>
 
             <h1 class="greetings">Dear [User's Name],</h1>
 
-            <p class="message">This is a gentle reminder that your borrowed book, "[Book Title]", is due for return
-                today, [Return Date].
-                Please return it to the library by the end of the day to avoid any late fees. If you need more time,
-                check if renewal is
-                available through your library account.
-                We appreciate your cooperation!
+            <p class="message">This is a gentle reminder that your borrowed journal, "[Journal Title]", is due for return today, [Return Date]. Please return it to the library by the end of the day to avoid any late fees. If you need more time, check if renewal is available through your library account. We appreciate your cooperation!
             </p>
 
             <h1 class="regards">Best Regards,</h1>
@@ -103,7 +98,7 @@ export const dueToday = `
         </div>
 
         <div class="footer">
-            <img src="vighnotech_icon.png" alt="" class="footer-img">
+            <img src="../images/vighnotech_icon.png" alt="" class="footer-img">
 
             <div class="social-media-icons">
                 <a href="https://www.linkedin.com/"><i class="fa fa-linkedin"></i></a>

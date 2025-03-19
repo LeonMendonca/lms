@@ -12,6 +12,7 @@ import { journalQueryValidator, JournalValidate } from './validators/journal.que
 import { findJournalQuerySchema } from './zod-validation/journalquery-zod';
 import { tUpdateJournalDTO, updateJournalSchema } from './zod-validation/updatejournal-zod';
 import { UUID } from 'crypto';
+import { retry } from 'rxjs';
 
 @Controller('journals')
 export class JournalsController {
@@ -28,6 +29,43 @@ export class JournalsController {
         return this.journalsService.allJournalsFromTable();
     }
 
+    @Get('get-all-available-journals')
+    async getAllAvailableJournals() {
+        return this.journalsService.getAllAvailableJournals()
+    }
+
+    @Get('get-available-by-issn')
+    async getAvailableJournalByIssn(@Query('issn') issn: string) {
+        return this.journalsService.getAvailableJournalByIssn(issn)
+    }
+
+    @Get('get-all-unavailable-journals')
+    async getAllUnavailableJournals() {
+        return this.journalsService.getAllUnavailableJournals();
+    }
+
+    @Get('get-all-unavailable-journals-by-issn')
+    async getAllUnavailableJournalsByIssn(
+        @Query('issn') issn: string,
+    ) {
+        return this.journalsService.getAllUnavailableJournalsByIssn(issn);
+    }
+
+    @Put('uparchive')
+    async updateArchive(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.updateTitleArchive(journal_uuid)
+    }
+
+    // @Get('issn')
+    // async searchJournalIssn(@Query('issn') issn: string) {
+    //     try {
+    //         const result = await this.journalsService.issnJournal(issn)
+    //         return result[0]
+    //     } catch (error) {
+    //         throw new HttpException(error.message, HttpStatus.NOT_FOUND)
+    //     }
+    // }
+
     @Post('create-journal')
     @UsePipes(new bodyValidationPipe(createJournalSchema))
     async createJournalInTable(@Body() journalPayload: tCreateJournalDTO) {
@@ -37,6 +75,21 @@ export class JournalsController {
             return { error: error };
         }
     }
+
+    @Get('all_archived')
+    async getAllArchivedJournals(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
+        @Query('_search') search: string,
+    ) {
+        return this.journalsService.getArchivedJournals({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? undefined,
+        });
+    }
+
+
 
     @Get('search')
     @UsePipes(new QueryValidationPipe(findJournalQuerySchema, journalQueryValidator))
@@ -59,6 +112,7 @@ export class JournalsController {
         journal_uuid: UUID,
         @Body() journalPayload: tUpdateJournalDTO
     ) {
+        console.log(journalPayload)
         try {
             const result = await this.journalsService.updateJournalInTable(journal_uuid, journalPayload)
             if (result[1]) {

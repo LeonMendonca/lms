@@ -3,13 +3,16 @@ import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JournalsCopy } from 'src/journals/entity/journals_copy.entity';
 import { JournalsTable } from 'src/journals/entity/journals_table.entity';
-import { Repository } from 'typeorm';
+import { CircularRelationsError, Repository } from 'typeorm';
 
 import { Resend } from 'resend';
-import { dueToday } from './html_files/duetoday-html';
-import { due3Days } from './html_files/due3days-html';
-import { overDue } from './html_files/overdue-html';
 
+import { bookDueToday } from './html_files/book-duetoday-html';
+import { bookDue3Days } from './html_files/book-due3days-html';
+import { bookOverDue } from './html_files/book-overdue-html';
+import { journalDueToday } from './html_files/journal-duetoday-html';
+import { journalDue3Days } from './html_files/journal-due3days-html';
+import { journalOverDue } from './html_files/journal-overdue-html';
 
 @Injectable()
 export class NotificationsService {
@@ -26,49 +29,35 @@ export class NotificationsService {
     }
 
 
+    // ---------------------- BOOKS NOTIFICATION --------------------------
 
-    @Cron('0 0 13 * * *')
-    async lunchUpdate() {
-        console.log("Lunch Time It Is!!!")
-    }
-
-    // NOTIFY STUDENT ON THE DAY OF DUE - dynamic scheduled function
-    @Cron('0 0 9 * * *') // calls function at 9AM on the day of returning the book
-    async notifyOnDueDate(returnDate: string, bookName: string) {
-        const from = "jigishaghanekar18@gmail.com"
+    @Cron('0 0 9 * * *')
+    async notifyForBookOnDueDate(returnDate: string, bookName: string) {
         try {
-            // take the student email from the student table
-            // load the template file
-            // replaceAll the changes
-            // in const variable store the response that is sent
-            //  return the const variable
+            let template = bookDueToday
+            // things to change
+            const student_name = "Jigisha Ghanekar"
+            const library_name = "Library 1"
 
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
 
-
-
+            return template
         } catch (error) {
             return {
                 error: error
             }
         }
-
-
-
-
-
     }
 
-    // NOTIFY STUDENT WHEN THERE ARE 3 DAYS TO THE DUE_DATE
-    @Cron('0 0 10 * * *') // calls function at 10AM before three days of returning the book
-    async notifyBefore3Days(returnDate: string, bookName: string) {
+    @Cron('0 0 10 * * *')
+    async notifyForBookBefore3Days(returnDate: string, bookName: string) {
         try {
-            let template = due3Days
-
+            let template = bookDue3Days
             // things to change
             const student_name = "Jigisha Ghanekar"
             const library_name = "Library 1"
 
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
 
             return template
         } catch (error) {
@@ -77,22 +66,77 @@ export class NotificationsService {
         }
     }
 
-    // NOTIFY STUDENT EVERY WEEK AFTER THE DAY OF DUE - recurring function
-    @Cron('0 0 10 * * 1') // calls function everyday at 10AM every Monday if the date exceeds
-    async notifyIfNotReturned(returnDate: string, bookName: string, total_fine: number, fine: number) {
+    @Cron('0 0 10 * * 1')
+    async notifyForBookIfNotReturned(returnDate: string, bookName: string, total_fine: number, fine: number) {
         try {
-            let template = overDue
-
+            let template = bookOverDue
             // things to change
             const student_name = "Jigisha Ghanekar"
             const library_name = "Library 1"
 
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name).replaceAll("[Total Fine]", String(total_fine)).replaceAll("[Fine Amount]", String(fine))
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name).replaceAll("[Total Fine]", String(total_fine)).replaceAll("[Fine Amount]", String(fine))
 
             return template
         } catch (error) {
             throw new Error("Error While Sending Email", error)
         }
     }
+
+
+
+    // ---------------------- JOURNALS NOTIFICATION --------------------------------
+
+    @Cron('0 0 9 * * *')
+    async notifyForJouralOnDueDate(returnDate: string, journalName: string) {
+        try {
+            let template = journalDueToday
+            // things to change
+            const student_name = "Jigisha Ghanekar"
+            const library_name = "Library 1"
+
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
+
+            return template
+        } catch (error) {
+            return {
+                error: error
+            }
+        }
+    }
+
+    @Cron('0 0 10 * * *')
+    async notifyForJournalBefore3Days(returnDate: string, journalName: string) {
+        try {
+            let template = journalDue3Days
+            // things to change
+            const student_name = "Jigisha Ghanekar"
+            const library_name = "Library 1"
+
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
+
+            return template
+        } catch (error) {
+            throw new Error("Error While Sending Email: ", error)
+
+        }
+    }
+
+    @Cron('0 0 10 * * 1')
+    async notifyForJournalIfNotReturned(returnDate: string, journalName: string, total_fine: number, fine: number) {
+        try {
+            let template = journalOverDue
+            // things to change
+            const student_name = "Jigisha Ghanekar"
+            const library_name = "Library 1"
+
+            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name).replaceAll("[Total Fine]", String(total_fine)).replaceAll("[Fine Amount]", String(fine))
+
+            return template
+        } catch (error) {
+            throw new Error("Error While Sending Email", error)
+        }
+    }
+
+
 
 }

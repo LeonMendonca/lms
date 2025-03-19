@@ -1,27 +1,23 @@
-import { Column, Entity, ManyToMany, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 import { JournalsTable } from "./journals_table.entity";
+import { boolean } from "zod";
 
 
 @Entity('journals_copy')
 export class JournalsCopy {
-    // written because the PrimaryGeneratedColumn was missing, i will have to write the code for uuid for joining them together
-    // @PrimaryGeneratedColumn({ name: "serial_number", type: "int" })
-    // serialNumber: "serial_number" = "serial_number";
+    // need to create journal_id manually, so create a function, this was below general info
+    @Column('uuid', { name: "journal_uuid" }) //added on my own
+    journal_uuid: "journal_uuid" = "journal_uuid";
 
-    // need to create book_id manually, so create a function, this was below general info
     @PrimaryGeneratedColumn({ name: "journal_id" })
     journalID: "journal_id" = "journal_id";
 
-    @Column({ name: "journal_uuid", type: "uuid" }) //added on my own
-    journal_uuid: "journal_uuid" = "journal_uuid";
-
-    // join added
     @ManyToOne(() => JournalsTable, (journal) => journal.journal_uuid, { onDelete: "CASCADE" })
-    journal: JournalsTable;
+    @JoinColumn({ name: "journal_uuid" })
+    journal: "journal_uuid" = "journal_uuid";
 
 
     // General Information
-
 
     @Column({ name: "name_of_journal", type: "varchar", length: 255 }) //given in frontend
     nameOfJournal: "name_of_journal" = "name_of_journal";
@@ -51,13 +47,14 @@ export class JournalsCopy {
     @Column({ name: "is_archived", type: "boolean", default: false }) // added on my own
     isArchived: "is_archived" = "is_archived";
 
+    @Column({ name: "is_available", type: "boolean", default: true }) // added acording to books
+    isAvailable: "is_available" = "is_available"
+
+
     // Publication & Classification
 
     @Column({ name: "issn", type: "varchar", length: 255 }) //given in frontend
     issn: "issn" = "issn";
-
-    // @Column({ name: "journal_uuid", type: "varchar", length: 255 }) //added on my own
-    // journal_uuid: "journal_uuid" = "journal_uuid";
 
     @Column({ name: "call_number", type: "varchar", length: 255 }) //given in frontend
     callNumber: "call_number" = "call_number";

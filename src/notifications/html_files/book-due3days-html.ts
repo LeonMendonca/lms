@@ -1,4 +1,4 @@
-export const overDue = `
+export const bookDue3Days = `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -62,7 +62,7 @@ export const overDue = `
         .social-media-icons {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
             font-size: 1.2rem;
             margin: 0.2rem 0 0;
         }
@@ -80,40 +80,34 @@ export const overDue = `
 <body>
     <div class="mail-content">
 
-        <img src="vighnotech_logo.png" class="logo" alt="">
+        <img src="../images/vighnotech_logo.png" class="logo" alt="">
 
         <div class="content">
-            <h1 class="reminder">Reminder: Late Fee Notification (Weekly Reminder)</h1>
+            <h1 class="reminder">Reminder: Book Return Due in 3 Days</h1>
 
-            <h1 class="subject">Subject: ⚠️ Overdue Book Alert – Late Fee Applies</h1>
+            <h1 class="subject">Subject: 📚 Friendly Reminder: Return Your Book by [Return Date]</h1>
 
             <h1 class="greetings">Dear [User's Name],</h1>
 
-            <p class="message">We noticed that your borrowed book, "[Book Title]", was due on [Return Date] and has not
-                been returned yet. As of today,
-                a late fee of ₹[Total Fine] has been applied to your account.
-                📢 Late Fee Policy: ₹[Fine Amount] per day after the due date.
-                To avoid further penalties, please return the book at your earliest convenience. If you have already
-                returned it, kindly
-                ignore this email.
-            </p>
+            <p class="message">We hope you're enjoying your borrowed book, "[Book Title]". This is a friendly reminder that the due date for returning the book is [Return Date], which is just 3 days away. To avoid late fees, please return the book on time. If you need an extension, kindly renew your book via the library portal or visit us in person.</p>
 
-            <h1 class="regards">Best Regards,</h1>
+            <h1 class="regards">Happy Reading !</h1>
 
             <h1 class="library">[Library Name]</h1>
         </div>
 
         <div class="footer">
-            <img src="vighnotech_icon.png" alt="" class="footer-img">
+            <img src="../images/vighnotech_icon.png" alt="" class="footer-img">
 
             <div class="social-media-icons">
-                <a href="https://www.linkedin.com/"><i class="fa fa-linkedin"></i></a>
-                <a href="https://www.instagram.com/"><i class="fa fa-instagram"></i></a>
-                <a href="https://www.facebook.com/"><i class="fa fa-facebook"></i></a>
-                <a href="https://www.x.com/"><i class="fa fa-twitter"></i></a>
+                <a href=""><i class="fa fa-linkedin"></i></a>
+                <a href=""></a><i class="fa fa-instagram"></i></a>
+                <a href=""></a><i class="fa fa-facebook"></i></a>
+                <a href=""></a><i class="fa fa-twitter"></i></a>
             </div>
         </div>
     </div>
 </body>
 
-</html>`
+</html>
+`

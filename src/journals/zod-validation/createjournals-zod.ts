@@ -1,4 +1,4 @@
-import { createObjectOmitProperties } from 'src/create-object-from-class'
+import { createObjectOmitProperties } from 'src/misc/create-object-from-class'
 import { z } from 'zod'
 import { JournalsTable } from '../entity/journals_table.entity'
 

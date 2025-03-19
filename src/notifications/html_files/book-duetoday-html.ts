@@ -1,3 +1,4 @@
+export const bookDueToday = `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -88,12 +89,7 @@
 
             <h1 class="greetings">Dear [User's Name],</h1>
 
-            <p class="message">This is a gentle reminder that your borrowed book, "[Book Title]", is due for return
-                today, [Return Date].
-                Please return it to the library by the end of the day to avoid any late fees. If you need more time,
-                check if renewal is
-                available through your library account.
-                We appreciate your cooperation!
+            <p class="message">This is a gentle reminder that your borrowed book, "[Book Title]", is due for return today, [Return Date]. Please return it to the library by the end of the day to avoid any late fees. If you need more time, check if renewal is available through your library account. We appreciate your cooperation!
             </p>
 
             <h1 class="regards">Best Regards,</h1>
@@ -115,3 +111,4 @@
 </body>
 
 </html>
+`

@@ -1,3 +1,4 @@
+export const bookOverDue = `
 <!DOCTYPE html>
 <html lang="en">
 
@@ -82,18 +83,13 @@
         <img src="../images/vighnotech_logo.png" class="logo" alt="">
 
         <div class="content">
-            <h1 class="reminder">Reminder: Book Return Due Today</h1>
+            <h1 class="reminder">Reminder: Late Fee Notification (Weekly Reminder)</h1>
 
-            <h1 class="subject">Subject: ⏳ Book Return Due Today – Avoid Late Fees!</h1>
+            <h1 class="subject">Subject: ⚠️ Overdue Book Alert – Late Fee Applies</h1>
 
             <h1 class="greetings">Dear [User's Name],</h1>
 
-            <p class="message">This is a gentle reminder that your borrowed book, "[Book Title]", is due for return
-                today, [Return Date].
-                Please return it to the library by the end of the day to avoid any late fees. If you need more time,
-                check if renewal is
-                available through your library account.
-                We appreciate your cooperation!
+            <p class="message">We noticed that your borrowed book, "[Book Title]", was due on [Return Date] and has not been returned yet. As of today, a late fee of ₹[Total Fine] has been applied to your account. 📢 Late Fee Policy: ₹[Fine Amount] per day after the due date. To avoid further penalties, please return the book at your earliest convenience. If you have already returned it, kindly ignore this email.
             </p>
 
             <h1 class="regards">Best Regards,</h1>
@@ -114,4 +110,4 @@
     </div>
 </body>
 
-</html>
+</html>`

@@ -1,4 +1,4 @@
-import { createObjectIncludeProperties } from "src/create-object-from-class"
+import { createObjectIncludeProperties } from "src/misc/create-object-from-class"
 import { z } from "zod"
 import { JournalsTable } from "../entity/journals_table.entity"
 

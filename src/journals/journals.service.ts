@@ -1,10 +1,10 @@
 import { JournalsCopy } from './entity/journals_copy.entity';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JournalsTable } from './entity/journals_table.entity';
 import { DataSource, Repository } from 'typeorm';
 import { createJournalSchema, tCreateJournalDTO } from './zod-validation/createjournals-zod';
-import { insertQueryHelper, updateQueryHelper } from 'src/custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
 import { tCreateJournalCopyDTO } from './zod-validation/createjournalcopies-zod';
 import { tUpdateJournalCopyDTO } from './zod-validation/updatejournalcopies-zod';
 import { journalCopyQueryValidator, JournalCopyValidate } from './validators/journalcopy.query-validator';
@@ -74,6 +74,177 @@ export class JournalsService {
         )
     }
 
+    async getAllAvailableJournals(
+        { page, limit }: { page: number; limit: number } = {
+            page: 1,
+            limit: 10,
+        },
+    ) {
+        try {
+            const offset = (page - 1) * limit;
+
+            const journals = await this.journalsRepository.query(
+                `SELECT * FROM journals_copy 
+        WHERE is_archived = false AND is_available = true
+        LIMIT $1 OFFSET $2`,
+                [limit, offset],
+            );
+
+            const total = await this.journalsCopyRepository.query(
+                `SELECT COUNT(*) as count FROM journals_copy
+        WHERE is_archived = false AND is_available = true`,
+            );
+
+            return {
+                data: journals,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
+        } catch (error) {
+            console.log(error)
+            throw new HttpException(
+                'Error fetching journals',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    async getAvailableJournalByIssn(issn: string) {
+        try {
+            const journalTitle = await this.journalsRepository.query(
+                `
+        SELECT * FROM journals_table
+        WHERE issn = $1
+        LIMIT 1
+        `,
+                [issn],
+            );
+            console.log({ journalTitle });
+            const result = await this.journalsCopyRepository.query(
+                `
+        SELECT *
+          FROM journals_copy 
+        WHERE journal_uuid = $1 AND is_available = false AND is_archived = false`,
+                [journalTitle[0].journal_uuid],
+            );
+            return result;
+        } catch (error) {
+            console.error('Error getting book in library:', error);
+            throw new HttpException(
+                'Error getting journal in library',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    async getAllUnavailableJournals(
+        { page, limit }: { page: number; limit: number } = {
+            page: 1,
+            limit: 10,
+        },
+    ) {
+        try {
+            const offset = (page - 1) * limit;
+
+            const journals = await this.journalsCopyRepository.query(
+                `SELECT * FROM journals_copy 
+        WHERE is_archived = false AND is_available = false
+        LIMIT $1 OFFSET $2`,
+                [limit, offset],
+            );
+
+            const total = await this.journalsCopyRepository.query(
+                `SELECT COUNT(*) as count FROM journals_copy 
+        WHERE is_archived = false AND is_available = false`,
+            );
+
+            return {
+                data: journals,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
+        } catch (error) {
+            console.log(error);
+            throw new HttpException(
+                'Error fetching journals',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+
+    async getAllUnavailableJournalsByIssn(issn: string) {
+        try {
+            const journals = await this.journalsRepository.query(
+                `
+        SELECT * FROM journals_table
+        WHERE issn = $1
+        LIMIT 1
+        `,
+                [issn],
+            );
+            const result = await this.journalsCopyRepository.query(
+                `
+        SELECT * FROM journals_copy
+        WHERE journal_uuid = $1 AND is_available = false AND is_archived = false`,
+                [journals[0].journal_uuid],
+            );
+            return result;
+        } catch (error) {
+            console.error('Error getting book in library:', error);
+            throw new HttpException(
+                'Error getting journal in library',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    async updateTitleArchive(journal_uuid: string) {
+        try {
+            // Check if the book exists and is not archived
+            const journal = await this.journalsRepository.query(
+                `SELECT * FROM journals_table WHERE journal_uuid ='${journal_uuid}' AND is_archived = false`,
+            );
+
+            if (journal.length === 0) {
+                throw new HttpException(
+                    'Journal not found or already archived',
+                    HttpStatus.NOT_FOUND,
+                );
+            }
+
+            // Update is_archived to true
+            await this.journalsRepository.query(
+                `UPDATE journals_table SET is_archived = true WHERE journal_uuid = $1`,
+                [journal_uuid],
+            );
+
+            await this.journalsCopyRepository.query(
+                `UPDATE journals_copy SET is_archived = true WHERE journal_uuid = $1`,
+                [journal_uuid],
+            );
+
+            return { message: 'Journal archived successfully' };
+        } catch (error) {
+            console.log(error);
+            throw new HttpException(
+                'Error archiving journal',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    // async issnJournal(issn: string) {
+    // }
+
     async createJournalInTable(journalPayload: tCreateJournalDTO) {
         try {
             // this function updates the number of available_count when the book already exists
@@ -104,6 +275,48 @@ export class JournalsService {
                 message: "Journal Not Created",
                 error: error
             }
+        }
+    }
+
+    async getArchivedJournals(
+        { page, limit, search }: { page: number; limit: number; search: string } = {
+            page: 1,
+            limit: 10,
+            search: '',
+        },) {
+        try {
+            console.log(page, limit, search);
+            const offset = (page - 1) * limit;
+            const searchQuery = search ? '%${search}%' : '%';
+
+            const journals = await this.journalsRepository.query(
+                `SELECT * FROM journals_table 
+        WHERE is_archived = true AND name_of_journal ILIKE $1
+        LIMIT $2 OFFSET $3`,
+                [searchQuery, limit, offset],
+            );
+
+            const total = await this.journalsRepository.query(
+                `SELECT COUNT(*) as count FROM journals_table
+        WHERE is_archived = true AND name_of_journal ILIKE $1`,
+                [searchQuery],
+            );
+
+            return {
+                data: journals,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
+        } catch (error) {
+            console.log(error);
+            throw new HttpException(
+                'Error fetching journals',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
         }
     }
 
