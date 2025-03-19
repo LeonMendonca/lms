@@ -24,7 +24,6 @@ config({ path: '.env' });
       url: process.env.DB_URL,
       entities: [
         Students,
-        Books,
         Booklog,
         Bookcount,
         BookCopy,

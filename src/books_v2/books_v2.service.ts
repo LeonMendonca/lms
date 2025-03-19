@@ -70,11 +70,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -112,10 +108,7 @@ export class BooksV2Service {
 
       return book; // Return only the first matching book
     } catch (error) {
-      throw new HttpException(
-        'Error fetching book details',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -150,11 +143,7 @@ export class BooksV2Service {
           },
         };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -208,11 +197,7 @@ console.log(query,queryParams)
         copies: books,
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error fetching books',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -235,10 +220,7 @@ console.log(query,queryParams)
 
       return { message: 'Book fetched successfully', book: book[0] };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -278,11 +260,7 @@ console.log(query,queryParams)
         },
       };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -317,10 +295,7 @@ console.log(query,queryParams)
           },
         };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -344,10 +319,7 @@ console.log(query,queryParams)
       return result;
     } catch (error) {
       console.error('Error getting book in library:', error);
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error; 
     }
   }
 
@@ -382,10 +354,7 @@ console.log(query,queryParams)
           },
         };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -410,10 +379,7 @@ console.log(query,queryParams)
       console.log(result);
       return result;
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -448,10 +414,7 @@ console.log(query,queryParams)
           },
         };
     } catch (error) {
-      throw new HttpException(
-        error.message,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -852,10 +815,7 @@ console.log(query,queryParams)
       return { success: true, message: 'Book copy archived successfully' };
     } catch (error) {
      console.log(error);
-      throw new HttpException(
-        error.message,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw error;
     }
   }
 
@@ -891,11 +851,7 @@ console.log(query,queryParams)
 
       return { message: 'Book restored successfully' };
     } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error restoring book',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -1210,8 +1166,7 @@ console.log(query,queryParams)
   
       return { message: 'Institute ID updated successfully', statusCode: HttpStatus.OK };
     } catch (error) {
-      console.error(error);
-      throw new HttpException(error.message || 'Internal Server Error', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error;
     }
   }
   

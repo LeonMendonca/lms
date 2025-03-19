@@ -126,33 +126,12 @@ export class BooksV2Controller {
     return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
-  // @Get('isarchiveT')
-  // async AllBooksArchiveTrue() {
-  //   return this.booksService.getBooks();
-  // }
-
-
-  // @Put('uparchive')
-  // async updateArchive(@Body('book_uuid') book_uuid: string) {
-  //   console.log('working');
-  //   return this.booksService.updateTitleArchive(book_uuid);
-  // }
 
   @Put('uparchive')//  working
   async updateArchive(@Body() creatbookpayload:TupdatearchiveZodDTO) {
       return this.booksService.updateTitleArchive(creatbookpayload);
   }
 
-  // @Get('search')
-  // //@UsePipes(new QueryValidationPipe(bookQuerySchema)) // Ensure the schema is passed correctly
-  // async getBookBy(@Query() query: UnionBook) {
-  //   const result = await this.booksService.findBookBy(query);
-
-  //   if (result) {
-  //     return result;
-  //   } else {
-  //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
-  //   }}//see query for nestjs
   @Get('isbn')// update by insert query helper or create  own query helper for select part// working
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
