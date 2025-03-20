@@ -1170,42 +1170,14 @@ console.log(query,queryParams)
     }
   }
   
-  // visit log
+  //fees and penalties
 
+  // to get pending fees for single student
+  async pending_fees_and_penalties(student_id){
 
-
+  }
   
 
-//   async visitlogexit(student_uuid: string) {
-//     try {
-//      const data=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
-//      if (data.length === 0) {
-//       throw new HttpException(
-//         { message: "Invalid student ID" },
-//         HttpStatus.BAD_REQUEST
-//       );
-//     }
-//     const validation=await this.booktitleRepository.query(
-//       `SELECT * FROM visit_log WHERE student_uuid=$1 AND action='entry' ORDER BY timestamp DESC LIMIT 1`,
-//       [student_uuid]    )
-//     // console.log(`validation${validation}`);
-//     // console.log("Validation result:", JSON.stringify(validation, null, 2));
-//  if(validation===0) console.log('invalid');
-//     await this.booktitleRepository.query(
-//         `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
-//         [student_uuid]
-//       );
-//       return {
-//         message: "Visit log entry created successfully",
-//         student_uuid: student_uuid,
-//         timestamp: new Date().toISOString(), // Adding timestamp for clarity
-//       };
-//     } catch (error) {
-//       throw new HttpException(
-//         `Error ${error} setting book in library`,
-//         HttpStatus.INTERNAL_SERVER_ERROR,);
-//     }
-//   } 
 
 
 

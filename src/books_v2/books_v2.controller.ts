@@ -333,12 +333,21 @@ export class BooksV2Controller {
       }
     }
   }
-  //       @Post('booklibrary')
-  //       async setBooktoLibrary(@Body() booklogpayload:TCreateBooklogDTO){
-  // try {
-  //    const result= await this.BooklogService.setbooklibrary(booklogpayload)
-  // } catch (error) {
+  
+//fees and penalties
 
-  // }
-  //       }
+// to get pending fees for single student
+@Get("pending_fess")
+async pending_fees(
+  @Query('_student_id') student_id: string,
+){
+  try {
+    await this.booksService.pending_fees_and_penalties(student_id)
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
+
 }
