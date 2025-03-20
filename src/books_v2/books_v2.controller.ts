@@ -28,6 +28,7 @@ import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
 import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
+import { TUpdateFeesPenaltiesZod, updateFeesPenaltiesZod } from './zod/update-fp-zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -371,4 +372,79 @@ export class BooksV2Controller {
 
   // }
   //       }
+
+
+  //fees and penalties
+
+// to get pending fees for single student
+// @Get("pending_fees")
+// async pendingFees(
+//   @Query('_student_id') student_id: string,
+// ){
+//   try {
+//     // await this.booksService.pendingfees_and_penalties(student_id)
+//   } catch (error) {
+//   }
+// }
+
+@Put("pay_student_fee")
+@UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
+async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod){
+try {
+  return await this.booksService.payStudentFee(feesPayload);
+} catch (error) {
+  if(!(error instanceof HttpException)) {
+    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
+}
+@Get("get_student_fee") 
+async getStudentFeeHistory(
+  @Query('_student_id') studentId: string,
+  @Query('_ispenalised') isPenalty: boolean,
+  @Query('_iscompleted') isCompleted: boolean,
+){
+ try {
+if(studentId){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted) 
+}
+else if(isPenalty){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
+}  
+else if(isCompleted){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
+}
+ } catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.BAD_REQUEST)
+  }
+  throw error;
+ }
+}
+@Get("get_full_feelist")
+async getFullFeeList(){
+try {
+  return await  this.booksService.getFullFeeList();
+} catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
+}
+@Get("generate_fee_report")
+async generateFeeReport(
+  @Query('start') start: Date,
+  @Query('end') end: Date
+){
+ try {
+   return await this.booksService.generateFeeReport(start,end)
+ } catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+ }
+}
 }
