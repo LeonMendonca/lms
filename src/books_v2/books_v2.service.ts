@@ -464,15 +464,15 @@ console.log(query,queryParams)
     try {
       const offset = (page - 1) * limit;
 
-      const booksTitleLogs = await this.booklogRepository.query(
-        `SELECT * from book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
+      // const booksTitleLogs = await this.booklogRepository.query(
+      //   `SELECT * from book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid LIMIT $1 OFFSET $2`,
+      //   [limit, offset],
+      // );
 
-      const booksCopiesLogs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`,
-        [limit, offset]
-      );
+      // const booksCopiesLogs = await this.booklogRepository.query(
+      //   `SELECT * FROM book_logv2 INNER JOIN book_copies ON book_copies.book_copy_uuid = book_logv2.book_copy_uuid LIMIT $1 OFFSET $2;`,
+      //   [limit, offset]
+      // );
 
       const studentLogs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid LIMIT $1 OFFSET $2;`,
@@ -485,7 +485,8 @@ console.log(query,queryParams)
       );
 
       return {
-        data: { booksTitleLogs, booksCopiesLogs, studentLogs },
+        // data: { booksTitleLogs, booksCopiesLogs, studentLogs },
+        data: studentLogs,
         pagination: {
           total: parseInt(total[0].count, 10),
           page,
