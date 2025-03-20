@@ -717,10 +717,8 @@ console.log(query,queryParams)
         `UPDATE book_titles SET is_archived = false WHERE book_title_id = $1`,
           [book_title_id],
       );
-      //?? copies part will update ??
-      await this.bookcopyRepository.query(
-        `UPDATE book_copies SET is_archived = false WHERE book_title_uuid = $1`,[book[0].book_uuid],
-      );
+      
+    
       return { message: 'Book restored successfully' };
     } catch (error) {
       throw new HttpException(
