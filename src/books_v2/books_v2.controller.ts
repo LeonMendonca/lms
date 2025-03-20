@@ -386,27 +386,31 @@ export class BooksV2Controller {
 //   }
 // }
 
-@Put("Fee")
-async payStudentFee(@Body()createfeespayload ){
+@Put("pay_student_fee")
+async payStudentFee(@Body() feesPayload ){
 try {
   
 } catch (error) {
-  
+  if(!(error instanceof HttpException)) {
+    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
 }
-} 
-@Get("getstudentfee_history") 
+}
+@Get("get_student_fee") 
 async getStudentFeeHistory(
-  @Query('_ispenalised') student_id: string,
-  @Query('_iscompleted') student_id2: string,
+  @Query('_student_id') studentId: string,
+  @Query('_ispenalised') isPenalty: boolean,
+  @Query('_iscompleted') isCompleted: boolean,
 ){
-  
+  // await this.booksService.
 
 }
-@Get("getFullFeeList")
+@Get("get_full_feelist")
 async getFullFeeList(){
 
 }
-@Get("generateFeeReport")
+@Get("generate_fee_report")
 async generateFeeReport(){
 
 }
