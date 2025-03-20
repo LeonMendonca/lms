@@ -1023,7 +1023,7 @@ console.log(query,queryParams)
       }
 
       //Get the date of book being returned
-      const returnedAt: Date = new Date('2025-03-30');
+      const returnedAt: Date = new Date();
       //Get return date from database (when the book has to be returned)
       const returnDate: Date = new Date(feesPenaltiesPayload[0].return_date);
 
