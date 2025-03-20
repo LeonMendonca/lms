@@ -1338,16 +1338,63 @@ console.log(query,queryParams)
 //     }
 //   } 
 
-  async getStudentFee(student_id: string) {
-
+  async getStudentFee(student_id: string,isPenalty:boolean,is_completed:boolean) {
+  try {
+    if(student_id){
+      const result:{student_uuid:string}[]=await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id=$1`,[student_id])
+      if(result.length===0){
+        throw new HttpException({message:"Invaid Student ID !!"},HttpStatus.ACCEPTED)  
+      }
+      const data= await this.booktitleRepository.query(`SELECT penalty_amount FROM fees_penalties WHERE borrower_uuid=$1 and penalty_amount>0`,[result[0].student_uuid]) 
+      if(data.length===0){
+        throw new HttpException({message:"No Penalties are There!!"},HttpStatus.ACCEPTED)  
+      }
+      return data
+    }
+    //00008-Tech University-2025
+    else if(isPenalty){
+      const data=await this.bookcopyRepository.query(`SELECT * FROM fees_penalties WHERE is_penalised=$1`,[isPenalty])
+      if(data.length===0){
+        throw new HttpException({message:"No Penalties are Found!!"},HttpStatus.ACCEPTED)  
+      }
+      return data
+    }
+    else if(is_completed){
+      const data=await this.bookcopyRepository.query(`SELECT * FROM fees_penalties WHERE is_completed=$1`,[is_completed])
+      if(data.length===0){
+        throw new HttpException({message:"No data are Found!!"},HttpStatus.ACCEPTED)  
+      }
+      return data
+    }
+  } catch (error) {
+    throw error
   }
-
+  }
   async getFullFeeList() {
-
+try {
+  const result= await this.booktitleRepository.query(`SELECT * FROM  fees_penalties`);
+  if(result.length===0){
+    throw new HttpException({message:"No data found!!"},HttpStatus.ACCEPTED)
   }
-
+  return result
+} catch (error) {
+  throw error
+}
+  }
   async generateFeeReport(start: Date, end: Date) {
-
+    try {
+      const result = await this.booktitleRepository.query(
+        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2;`, 
+        [start, end]
+    );
+      //  console.log(result);
+      if(result.length===0){
+        throw new HttpException({message:"No data found!!"},HttpStatus.ACCEPTED)
+      }
+      
+    } catch (error) {
+    throw error
+    }
   }
 
   async payStudentFee(updateFeesPayload: TUpdateFeesPenaltiesZod) {

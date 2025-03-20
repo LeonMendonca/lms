@@ -405,18 +405,46 @@ async getStudentFeeHistory(
   @Query('_ispenalised') isPenalty: boolean,
   @Query('_iscompleted') isCompleted: boolean,
 ){
-  // await this.booksService.
-
+ try {
+if(studentId){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted) 
+}
+else if(isPenalty){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
+}  
+else if(isCompleted){
+  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
+}
+ } catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.BAD_REQUEST)
+  }
+  throw error;
+ }
 }
 @Get("get_full_feelist")
 async getFullFeeList(){
-
+try {
+  return await  this.booksService.getFullFeeList();
+} catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
 }
 @Get("generate_fee_report")
 async generateFeeReport(
   @Query('start') start: Date,
   @Query('end') end: Date
 ){
-
+ try {
+   return await this.booksService.generateFeeReport(start,end)
+ } catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+ }
 }
 }
