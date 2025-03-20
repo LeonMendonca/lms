@@ -1337,6 +1337,20 @@ console.log(query,queryParams)
 //     }
 //   } 
 
+  async getStudentFee(student_id: string) {
 
+  }
+
+  async getFullFeeList() {
+
+  }
+
+  async generateFeeReport(start: Date, end: Date) {
+
+  }
+
+  async payStudentFee(student_id: string) {
+
+  }
 
 }
