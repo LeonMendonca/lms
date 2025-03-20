@@ -13,14 +13,15 @@ import { BookCopy } from './books_v2/entity/books_v2.copies.entity';
 import { BooksV2Module } from './books_v2/books_v2.module';
 import { BookLogModule } from './book_log/book_log.module';
 import { JournalsModule } from './journals/journals.module';
-import { JournalsTable } from './journals/entity/journals_table.entity';
-import { JournalsCopy } from './journals/entity/journals_copy.entity';
+import { JournalCopy } from './journals/entity/journals_copy.entity';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TrialModule } from './trial/trial.module';
 import { TrialTable } from './trial/entity/trial_table.entity';
 import { TrialCopy } from './trial/entity/trial_copy.entity';
 import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { BookTitle } from './books_v2/entity/books_v2.title.entity';
+import { JournalTitle } from './journals/entity/journals_title.entity';
+import { JournalLogs } from './journals/entity/journals_log.entity';
 
 config({ path: '.env' });
 @Module({
@@ -28,7 +29,7 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalsTable, JournalsCopy, TrialTable, TrialCopy],
+      entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy],
       ssl: true,
       synchronize: true,
     }),

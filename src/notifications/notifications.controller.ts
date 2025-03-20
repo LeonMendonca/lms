@@ -4,7 +4,6 @@ import { parse, differenceInDays, startOfDay } from 'date-fns';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ReturnDocument } from 'typeorm';
 import { UUID } from 'crypto';
-import { JournalsTable } from 'src/journals/entity/journals_table.entity';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 import { DateTime } from 'luxon';
 
@@ -15,7 +14,7 @@ export class NotificationsController {
 
         @InjectRepository(Booklog_v2) private bookLogRepo: Repository<Booklog_v2>,
 
-        @InjectRepository(JournalsTable) private journalRepo: Repository<JournalsTable>,
+        // @InjectRepository(JournalsTable) private journalRepo: Repository<JournalsTable>,
     ) { }
 
     @Post('books')
@@ -56,30 +55,30 @@ export class NotificationsController {
     @Post('journals')
     async notifyStudentAboutJournals(@Body('journal_uuid') journal_uuid: UUID, @Body('student_uuid') student_uuid: string) {
 
-        const journal = await this.journalRepo.query(
-            `SELECT * FROM journals_table WHERE journal_uuid='${journal_uuid}' AND is_archived=false`
-        )
+        // const journal = await this.journalRepo.query(
+        //     `SELECT * FROM journals_table WHERE journal_uuid='${journal_uuid}' AND is_archived=false`
+        // )
 
-        const startDate = this.convertToIST(startOfDay(journal[0].subscription_start_date));
-        const returnDate = this.convertToIST(new Date(journal[0].subscription_end_date));
-        const diffInDays = differenceInDays(startDate, returnDate)
-        const isBorrowed = true
+        // const startDate = this.convertToIST(startOfDay(journal[0].subscription_start_date));
+        // const returnDate = this.convertToIST(new Date(journal[0].subscription_end_date));
+        // const diffInDays = differenceInDays(startDate, returnDate)
+        // const isBorrowed = true
 
-        const journalName = journal[0].name_of_journal
+        // const journalName = journal[0].name_of_journal
 
-        const fine = 50
-        const total_fine = fine * Math.abs(diffInDays)
+        // const fine = 50
+        // const total_fine = fine * Math.abs(diffInDays)
 
 
-        if (diffInDays === 0 && isBorrowed) {
-            return this.notificationsService.notifyForJouralOnDueDate(returnDate, journalName)
-        } else if (diffInDays === 3 && isBorrowed) {
-            return this.notificationsService.notifyForJournalBefore3Days(returnDate, journalName)
-        } else if (diffInDays < 0 && isBorrowed) {
-            return this.notificationsService.notifyForJournalIfNotReturned(returnDate, journalName, total_fine, fine)
-        } else {
-            return "Take Care If There Are Edge Cases"
-        }
+        // if (diffInDays === 0 && isBorrowed) {
+        //     return this.notificationsService.notifyForJouralOnDueDate(returnDate, journalName)
+        // } else if (diffInDays === 3 && isBorrowed) {
+        //     return this.notificationsService.notifyForJournalBefore3Days(returnDate, journalName)
+        // } else if (diffInDays < 0 && isBorrowed) {
+        //     return this.notificationsService.notifyForJournalIfNotReturned(returnDate, journalName, total_fine, fine)
+        // } else {
+        //     return "Take Care If There Are Edge Cases"
+        // }
     }
     private convertToIST(date: Date): string {
         return DateTime.fromJSDate(date).setZone("Asia/Kolkata").toFormat("yyyy-MM-dd");

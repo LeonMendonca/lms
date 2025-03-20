@@ -1,78 +1,87 @@
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
-import { JournalsTable } from "./journals_table.entity";
-import { boolean } from "zod";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { JournalTitle } from "./journals_title.entity";
 
+@Entity('journal_copy')
+export class JournalCopy {
+    @PrimaryGeneratedColumn('uuid', { name: 'journal_copy_uuid' })
+    journalCopyUUID: "journal_copy_uuid" = "journal_copy_uuid";
 
-@Entity('journals_copy')
-export class JournalsCopy {
-    // need to create journal_id manually, so create a function, this was below general info
-    @Column('uuid', { name: "journal_uuid" }) //added on my own
-    journal_uuid: "journal_uuid" = "journal_uuid";
+    @Column({
+        name: 'journal_copy_id',
+        type: 'varchar',
+        length: 255,
+        unique: true,
+        nullable: true,
+    })
+    journalCopyId: 'journal_copy_id' = 'journal_copy_id';
 
-    @PrimaryGeneratedColumn({ name: "journal_id" })
-    journalID: "journal_id" = "journal_id";
+    @Column({ name: 'source_of_acquisition', type: 'varchar', length: 255 })
+    sourceOfAcquisition: "source_of_acquisition" = "source_of_acquisition";
 
-    @ManyToOne(() => JournalsTable, (journal) => journal.journal_uuid, { onDelete: "CASCADE" })
-    @JoinColumn({ name: "journal_uuid" })
-    journal: "journal_uuid" = "journal_uuid";
+    @Column({ name: 'date_of_acquisition', type: 'date' })
+    dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
+    @Column({ name: 'bill_no', type: 'varchar' })
+    billNo: "bill_no" = "bill_no";
 
-    // General Information
-
-    @Column({ name: "name_of_journal", type: "varchar", length: 255 }) //given in frontend
-    nameOfJournal: "name_of_journal" = "name_of_journal";
-
-    @Column({ name: "name_of_publisher", type: "varchar", length: 255 }) //given in frontend
-    nameOfPublisher: "name_of_publisher" = "name_of_publisher";
-
-    @Column({ name: "editor_name", type: "varchar", length: 255 }) //given in frontend
-    editorName: "editor_name" = "editor_name";
-
-    @Column({ name: "language", type: "varchar", length: 255 }) // added on my own
+    @Column({ name: 'language', type: 'varchar', length: 255 })
     language: "language" = "language";
 
-    @Column({ name: "department", type: "varchar", length: 255 }) // added on my own
-    department: "department" = "department";
+    @Column({ name: 'inventory_number', type: 'varchar', nullable: true })
+    inventoryNumber: "inventory_number" = "inventory_number";
 
-    // Subscription Details
+    @Column({ name: 'accession_number', type: 'varchar' })
+    accessionNumber: "accession_number" = "accession_number";
 
-    // Volume & Issue Details
+    @Column({ name: 'barcode', type: 'varchar', length: 255 })
+    barcode: "barcode" = "barcode";
 
-    @Column({ name: "volume_number", type: "int" }) //given in frontend
-    volumeNumber: "volume_number" = "volume_number";
+    @Column({ name: 'item_type', type: 'varchar', length: 255 })
+    itemType: "item_type" = "item_type";
 
-    @Column({ name: "issue_number", type: "int" }) //given in frontend
-    issueNumber: "issue_number" = "issue_number";
+    @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+    instituteUUID: "institute_uuid" = "institute_uuid";
 
-    @Column({ name: "is_archived", type: "boolean", default: false }) // added on my own
+    @Column({
+        name: 'is_archived',
+        default: false,
+        type: 'boolean',
+        nullable: true,
+    })
     isArchived: "is_archived" = "is_archived";
 
-    @Column({ name: "is_available", type: "boolean", default: true }) // added acording to books
-    isAvailable: "is_available" = "is_available"
-
-
-    // Publication & Classification
-
-    @Column({ name: "issn", type: "varchar", length: 255 }) //given in frontend
-    issn: "issn" = "issn";
-
-    @Column({ name: "call_number", type: "varchar", length: 255 }) //given in frontend
-    callNumber: "call_number" = "call_number";
-
-    @Column({ name: "created_at", type: "date" }) // added on my own
+    @CreateDateColumn({ name: 'created_at' })
     createdAt: "created_at" = "created_at";
 
-    @Column({ name: "updated_at", type: "date" }) // added on my own
+    @UpdateDateColumn({ name: 'updated_at' })
     updatedAt: "updated_at" = "updated_at";
 
-    // Acquisition & Library Management
+    @Column({ name: 'created_by', type: 'uuid', nullable: true })
+    createdBy: "created_by" = "created_by";
 
-    @Column({ name: "vendor_name", type: "varchar", length: 255 }) //given in frontend
-    vendorName: "vendor_name" = "vendor_name";
+    @Column({ name: 'remarks', type: 'simple-array', nullable: true })
+    remarks: "remarks" = "remarks";
 
-    @Column({ name: "library_name", type: "varchar", length: 255 }) //given in frontend
-    libraryName: "library_name" = "library_name";
+    @Column({ name: 'copy_images', type: 'simple-array', nullable: true })
+    copyImages: "copy_images" = "copy_images";
 
-    @Column({ name: "acquisition_date", type: "date" }) // added on my own
-    acquisitionDate: "acquisition_date" = "acquisition_date";
+    @Column({ name: 'copy_additional_fields', type: 'json', nullable: true })
+    copyAdditionalFields: "copy_additional_fields" = "copy_additional_fields";
+
+    @Column({ name: 'copy_description', type: 'text', nullable: true })
+    copyDescription: "copy_description" = "copy_description";
+
+    @Column({ name: 'is_available', type: 'boolean', nullable: true, default: true })
+    isAvailable: "is_available" = "is_available";
+
+    @ManyToOne(() => JournalTitle, (journalTitle) => journalTitle.journalCopies)
+    @JoinColumn({ name: "journal_title_uuid" })
+    journalTitleUUID: "journal_title_uuid" = "journal_title_uuid";
+}
+
+const journal_copy = new JournalCopy();
+
+//Type that represents the table Columns
+export type TJournalCopy = {
+    [P in keyof typeof journal_copy as typeof journal_copy[P]]: any;
 }

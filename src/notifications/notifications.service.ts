@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JournalsCopy } from 'src/journals/entity/journals_copy.entity';
-import { JournalsTable } from 'src/journals/entity/journals_table.entity';
+import { JournalCopy } from 'src/journals/entity/journals_copy.entity';
 import { CircularRelationsError, Repository } from 'typeorm';
 
 import { Resend } from 'resend';
@@ -19,9 +18,9 @@ export class NotificationsService {
     private resend: Resend
 
     constructor(
-        @InjectRepository(JournalsTable) private journalsTableRepo: Repository<JournalsTable>,
+        // @InjectRepository(JournalsTable) private journalsTableRepo: Repository<JournalsTable>,
 
-        @InjectRepository(JournalsCopy) private journalsCopyRepo: Repository<JournalsCopy>,
+        @InjectRepository(JournalCopy) private journalsCopyRepo: Repository<JournalCopy>,
 
         private schedulerRegistry: SchedulerRegistry,
     ) {

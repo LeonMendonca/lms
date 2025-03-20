@@ -1,78 +1,113 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Put, Query, Req, UsePipes } from '@nestjs/common';
 import { JournalsService } from './journals.service';
-import { createJournalSchema, tCreateJournalDTO } from './zod-validation/createjournals-zod';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-import { createJournalCopySchema, tCreateJournalCopyDTO } from './zod-validation/createjournalcopies-zod';
-import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
-import { tUpdateJournalCopyDTO, updateJournalCopySchema } from './zod-validation/updatejournalcopies-zod';
-import { journalCopyQueryValidator, JournalCopyValidate } from './validators/journalcopy.query-validator';
-import { QueryValidationPipe } from 'src/pipes/query-validation.pipe';
-import { findJournalCopyQuerySchema } from './zod-validation/journalcopyquery-zod';
-import { journalQueryValidator, JournalValidate } from './validators/journal.query-validation';
-import { findJournalQuerySchema } from './zod-validation/journalquery-zod';
-import { tUpdateJournalDTO, updateJournalSchema } from './zod-validation/updatejournal-zod';
-import { UUID } from 'crypto';
-import { retry } from 'rxjs';
+import { createJournalSchema, TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
+import { UpdateJournalTitleDTO } from './zod-validation/updatejournaldto';
+import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
+
+
 
 @Controller('journals')
 export class JournalsController {
     constructor(private journalsService: JournalsService) { }
 
-
-    // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
-
-
-    // ----- JOURNAL TABLE FUNCTIONS -----
-
+    // Get all journals
     @Get('all')
-    async allJournalsFromTable() {
-        return this.journalsService.allJournalsFromTable();
+    async getAllJournals(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
+        @Query('_search') search: string,
+    ) {
+        console.log(page, limit, search);
+        return this.journalsService.getJournals({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? undefined,
+        });
     }
 
-    @Get('get-all-available-journals')
+    @Get('get_copies_with_title')
+    async getJournalCopiesByTitle(
+        @Query('_journal_uuid') journal_uuid: string,
+        @Query('_issn') issn: string,
+        @Query('_titlename') titlename: string,
+    ) {
+        return this.journalsService.getJournalCopiesByTitle({
+            journal_uuid,
+            issn,
+            titlename,
+        });
+    }
+
+    @Get('get_logs_of_title')
+    async getJournalLogDetailsByTitle(
+        @Query('journal_log_uuid') journal_log_uuid: string,
+        @Query('_issn') issn: string,
+    ) {
+        return this.journalsService.getJournalLogDetailsByTitle({
+            journal_log_uuid,
+            issn,
+        });
+    }
+
+    @Get('get_logs_of_copy')
+    async getJournalLogDetailsByCopy(@Query('_barcode') barcode: string) {
+        return this.journalsService.getJournalLogDetailsByCopy({
+            barcode,
+        });
+    }
+
+    @Get('get_all_available')
     async getAllAvailableJournals() {
-        return this.journalsService.getAllAvailableJournals()
+        return this.journalsService.getAllAvailableJournals();
     }
 
-    @Get('get-available-by-issn')
-    async getAvailableJournalByIssn(@Query('issn') issn: string) {
-        return this.journalsService.getAvailableJournalByIssn(issn)
+    @Get('get_available_by_issn')
+    async getAvailableJournalByIssn(
+        @Query('_issn') issn: string,
+    ) {
+        return this.journalsService.getAvailableJournalByIssn(issn);
     }
 
-    @Get('get-all-unavailable-journals')
+    @Get('get_all_unavailable')
     async getAllUnavailableJournals() {
         return this.journalsService.getAllUnavailableJournals();
     }
 
-    @Get('get-all-unavailable-journals-by-issn')
-    async getAllUnavailableJournalsByIssn(
-        @Query('issn') issn: string,
+    @Get('get_unavailable_by_issn')
+    async getUnavailableJournalByIssn(
+        @Query('_issn') issn: string,
     ) {
-        return this.journalsService.getAllUnavailableJournalsByIssn(issn);
+        return this.journalsService.getUnavailableJournalByIssn(issn);
     }
 
     @Put('uparchive')
-    async updateArchive(@Body('journal_uuid') journal_uuid: string) {
-        return this.journalsService.updateTitleArchive(journal_uuid)
+    async updateJournalTitleArchive(@Body('journal_uuid') journal_uuid: string) {
+        console.log('working');
+        return this.journalsService.updateJournalTitleArchive(journal_uuid);
     }
 
-    // @Get('issn')
-    // async searchJournalIssn(@Query('issn') issn: string) {
-    //     try {
-    //         const result = await this.journalsService.issnJournal(issn)
-    //         return result[0]
-    //     } catch (error) {
-    //         throw new HttpException(error.message, HttpStatus.NOT_FOUND)
-    //     }
-    // }
-
-    @Post('create-journal')
-    @UsePipes(new bodyValidationPipe(createJournalSchema))
-    async createJournalInTable(@Body() journalPayload: tCreateJournalDTO) {
+    @Get('issn')
+    async searchJournalIssn(@Query('_issn') issn: string) {
         try {
-            return this.journalsService.createJournalInTable(journalPayload);
+            const result = await this.journalsService.searchJournalIssn(issn);
+            return result[0];
         } catch (error) {
-            return { error: error };
+            throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Post('create')
+    @UsePipes(new bodyValidationPipe(createJournalSchema))
+    async createJournal(@Body() journalPayload: TCreateJournalZodDTO) {
+        try {
+            const result = await this.journalsService.createJournal(journalPayload);
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
         }
     }
 
@@ -89,151 +124,154 @@ export class JournalsController {
         });
     }
 
-
-
-    @Get('search')
-    @UsePipes(new QueryValidationPipe(findJournalQuerySchema, journalQueryValidator))
-    async getJournal(@Query() query: JournalValidate) {
-        const result = await this.journalsService.findJournal(query)
-        if (result.length != 0) {
-            return result[0]
-        } else {
-            throw new HttpException('No Journal Found', HttpStatus.NOT_FOUND)
-        }
-    }
-
-    @Patch('update-journal/:journal_uuid') //PUT --> PATCH
-    @UsePipes(new putBodyValidationPipe(updateJournalSchema))
-    async updateJournalInTable(
-        @Param(
-            'journal_uuid',
-            new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-        )
-        journal_uuid: UUID,
-        @Body() journalPayload: tUpdateJournalDTO
+    @Get('get_all_logs')
+    async getJournalLogDetails(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
     ) {
-        console.log(journalPayload)
-        try {
-            const result = await this.journalsService.updateJournalInTable(journal_uuid, journalPayload)
-            if (result[1]) {
-                return {
-                    message: "Journal Updated Successfully!",
-                    updated_journal: result
-                }
-            } else {
-                throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
-            }
-        } catch (error) {
-            throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
-        }
+        return this.journalsService.getJournalLogDetails({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+        });
     }
 
-    // Delete Logic - only need uuid 
-    @Put('delete-journal/:journal_uuid')
-    async deleteJournalFromTable(
-        @Param(
-            'journal_uuid',
-            new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-        )
-        journal_uuid: UUID,
+    @Put('restore_archive')
+    async restoreJournal(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.restoreJournal(journal_uuid);
+    }
+
+    @Get('get_journal_title_details')
+    async getJournalTitleDetails(
+        @Query('_journal_uuid') journal_uuid: string,
+        @Query('_issn') issn: string,
+        @Query('_titlename') titlename: string,
     ) {
-        try {
-            const result = await this.journalsService.deleteJournalFromTable(journal_uuid)
-            if (result[1]) {
-                return {
-                    message: "Journal Deleted Successfully!",
-                    deleted_journal: result
-                }
-            } else {
-                throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
-            }
-        } catch (error) {
-            // throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
-            return {
-                message: "Journal Not Found"
-            }
-        }
-
+        return this.journalsService.getJournalTitleDetails({
+            journal_uuid: journal_uuid ?? undefined,
+            issn: issn ?? undefined,
+            titlename: titlename ?? undefined,
+        });
     }
 
-    // ----- JOURNAL COPY TABLE FUNCTIONS -----
-
-    @Get('all-incopy')
-    async allJournalsFromCopy() {
-        return this.journalsService.allJournalsFromCopy();
-    }
-
-    @Post('create-journal-incopy')
-    @UsePipes(new bodyValidationPipe(createJournalCopySchema))
-    async createJournalInCopy(@Body() journalCopyPayload: tCreateJournalCopyDTO) {
-        try {
-            return this.journalsService.createJournalInCopy(journalCopyPayload);
-        } catch (error) {
-            return { error: error };
-        }
-    }
-
-    @Get('search-incopy')
-    @UsePipes(new QueryValidationPipe(findJournalCopyQuerySchema, journalCopyQueryValidator))
-    async getJournalInCopy(@Query() query: JournalCopyValidate) {
-        const result = await this.journalsService.findJournalFromCopy(query)
-        if (result.length != 0) {
-            return result[0]
-        } else {
-            throw new HttpException('No Journal Found', HttpStatus.NOT_FOUND)
-        }
-    }
-
-    @Patch('update-journal-incopy/:journal_id') // PUT --> PATCH
-    @UsePipes(new putBodyValidationPipe(updateJournalCopySchema))
-    async updateJournalInCopy(
-        @Param(
-            'journal_id',
-            new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-        )
-        journal_id: number,
-        @Body() journalPayload: tUpdateJournalCopyDTO,
+    @Get('get_all_journal_copy')
+    async fetchAllJournalCopyInfo(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
     ) {
-        try {
-            const result = await this.journalsService.updateJournalInCopy(journal_id, journalPayload)
-            if (result[1]) {
-                return {
-                    message: "Journal Updated Successfully!",
-                    updated_journal: result
-                }
-            } else {
-                throw new Error(`Journal With ID ${journal_id} Not found`)
-            }
-        } catch (error) {
-            throw new HttpException(error.message, HttpStatus.BAD_REQUEST)
-        }
+        return this.journalsService.getJournalCopies({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+        });
     }
 
-    // Delete Logic - only need journal_id
-    @Put('delete-journal-incopy/:journal_id')
-    async deleteJournalFromCopy(
-        @Param(
-            'journal_id',
-            new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-        )
-        journal_id: number,
-    ) {
-        try {
-            const result = await this.journalsService.deleteJournalFromCopy(journal_id)
-            if (result[1]) {
-                return {
-                    message: "Journal Deleted Successfully!",
-                    deleted_journal: result
-                }
-            } else {
-                throw new Error(`Journal With UUID ${journal_id} Not Found`)
-            }
-        } catch (error) {
-            // throw new Error(`Journal With UUID ${journal_uuid} Not Found`)
-            return {
-                message: "Journal Not Found"
-            }
-        }
+    @Get('get_journal_copy')
+    async fetchSingleJournalCopyInfo(@Query('_identifier') identifier: string) {
+        return this.journalsService.getSingleJournalCopyInfo(identifier);
     }
+
+    @Patch('update_journal_title')
+    async updateJournalTitle(
+        @Body('journal_uuid') journal_uuid: string,
+        @Body() journalPayload: UpdateJournalTitleDTO,
+    ) {
+        return this.journalsService.updateJournalTitle(journal_uuid, journalPayload)
+    }
+
+    @Put('archive_journal_copy')
+    async archiveJournalCopy(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.archiveJournalCopy(journal_uuid);
+    }
+
+    @Get('get_archived_journal_copy')
+    async getArchivedJournalsCopy(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
+    ) {
+        return this.journalsService.getArchivedJournalsCopy({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+        });
+    }
+
+    @Put('restore_journal_copy')
+    async restoreJournalCopy(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.restoreJournalCopy(journal_uuid);
+    }
+
+
+    @Patch('update_journal_copy')
+    async updateJournalCopy(
+        @Body('journal_uuid') journal_uuid: string,
+        @Body() journalPayload: any,
+    ) {
+        return this.journalsService.updateJournalCopy(journal_uuid, journalPayload);
+    }
+
+    @Get('available')
+    async availableJournal(@Query('issn') issn: string) {
+        return await this.journalsService.getAvailableJournalByIssn(issn);
+    }
+
+
+    // @Post('library')
+    // @UsePipes(new bodyValidationPipe(journalLogsSchema))
+    // async setJournalLibrary(
+    //     @Body() journallogPayload: TCreateJournalLogDTO,
+    //     @Req() req: Request,
+    // ) {
+    //     try {
+    //         // Extract user IP address properly
+    //         const ipAddress =
+    //             req.headers['x-forwarded-for']?.[0] ||
+    //             req.socket.remoteAddress ||
+    //             'Unknown';
+
+    //         const result = await this.journalsService.setJournalLibrary(
+    //             journallogPayload,
+    //             ipAddress,
+    //         );
+
+    //         return {
+    //             statusCode: HttpStatus.OK,
+    //             message: 'Journal borrowed successfully',
+    //             data: result,
+    //         };
+    //     } catch (error) {
+    //         console.error('Error in createJournalLogIssued:', error);
+    //         throw new HttpException(
+    //             error.message || 'Failed to borrow journal',
+    //             error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+    //         );
+    //     }
+    // }
+
+    // @Post('update-journal-log')
+    // @UsePipes(new bodyValidationPipe(journalLogsSchema))
+    // async updateJournalLog(
+    //     @Body() journalLogPayload: TCreateJournalLogDTO,
+    //     @Req() request: Request,
+    // ) {
+    //     try {
+
+    //         let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+    //         let result: Record<string, string | number> = {};
+    //         if (journalLogPayload.action === 'borrow') {
+    //             result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'borrowed');
+    //         } else if (journalLogPayload.action === 'return') {
+    //             result = await this.journalsService.journalReturned(journalLogPayload, request, status = 'returned')
+    //         } else {
+    //             result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
+    //         }
+    //         return result;
+    //     } catch (error) {
+    //         if (!(error instanceof HttpException)) {
+    //             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+    //         throw error;
+    //     }
+    // }
+
+
+
 }
 

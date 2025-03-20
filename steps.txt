@@ -137,12 +137,9 @@ P0 : Refatored half of the journals according to books
 P1 : Made Notifications for journals
 
 19 March 
-
-
-
-- Journal Delayed
-- Journal Available
-- Journal Returned
+P0 : Journals Refactoring done
+P1 : Testing the routes
+P2 : Simultaenuously making changes in the journals notifications
 
 
 
