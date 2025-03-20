@@ -20,6 +20,9 @@ import { TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import type { Request } from "express";
 import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
+import { FeesPenalties, TFeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
+import { createNewDate } from 'src/misc/create-new-date';
 
 @Injectable()
 export class BooksV2Service {
@@ -35,6 +38,9 @@ export class BooksV2Service {
 
     @InjectRepository(Booklog_v2)
     private readonly booklogRepository: Repository<Booklog_v2>,
+
+    @InjectRepository(FeesPenalties)
+    private readonly fpRepository: Repository<FeesPenalties>,
   ) {}
 
   async getBooks(
@@ -927,7 +933,7 @@ console.log(query,queryParams)
         throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
       }
       const studentExists: { student_uuid: string }[] = await this.sudentRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id = $1`,
+        `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
       );
 
@@ -939,7 +945,7 @@ console.log(query,queryParams)
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
       (
-        `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = FALSE`,
+        `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = FALSE AND is_archived = FALSE`,
         [booklogPayload.book_copy_id, booklogPayload.barcode]
       );
 
@@ -948,9 +954,11 @@ console.log(query,queryParams)
       }
 
       const bookBorrowedPayload: TBooklog_v2[] = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND action = 'borrowed'`,
+        `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 AND book_copy_uuid = $2 
+        AND (action = 'borrowed' OR action = 'in_library_borrowed')`,
         [studentExists[0].student_uuid, bookPayloadFromBookCopies[0].book_copy_uuid]
       );
+
 
       //if student doesn't exist in Booklog table (it hasn't borrowed), or it isn't the book that it borrowed, but attempting to return it
       if(!bookBorrowedPayload.length) {
@@ -961,7 +969,7 @@ console.log(query,queryParams)
       //Insert into old_book_title COLUMN
       const bookPayloadFromBookTitle: TBookTitle[] = await this.bookcopyRepository.query
       (
-        `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count != total_count`,
+        `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count != total_count AND is_archived = FALSE`,
         [bookPayloadFromBookCopies[0].book_title_uuid]
       )
 
@@ -973,8 +981,8 @@ console.log(query,queryParams)
       //Insert into new_book_copy
       const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] = await this.bookcopyRepository.query
       (
-        `UPDATE book_copies SET is_available = TRUE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = FALSE
-        RETURNING *`,
+        `UPDATE book_copies SET is_available = TRUE WHERE book_copy_uuid = $1 AND barcode = $2 
+        AND is_available = FALSE AND is_archived = FALSE RETURNING *`,
         [bookPayloadFromBookCopies[0].book_copy_uuid, bookPayloadFromBookCopies[0].barcode],
       );
 
@@ -995,7 +1003,7 @@ console.log(query,queryParams)
       //Insert into new_book_copy COLUMN
       const updatedBookTitlePayload: [TBookTitle[], 0 | 1] = await this.booktitleRepository.query
       (
-        `UPDATE book_titles SET available_count = available_count + 1 WHERE book_uuid = $1 RETURNING *`,
+        `UPDATE book_titles SET available_count = available_count + 1 WHERE book_uuid = $1 AND is_archived = FALSE RETURNING *`,
         [bookTitleUUID]
       );
 
@@ -1005,15 +1013,62 @@ console.log(query,queryParams)
       const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
       const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
 
+      const feesPenaltiesPayload: TFeesPenalties[] = await this.fpRepository.query(
+        `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND is_completed = FALSE`,
+        [studentExists[0].student_uuid, bookBorrowedPayload[0].book_copy_uuid]
+      );
+
+      if(!feesPenaltiesPayload.length) {
+        throw new HttpException('Cannot find Fees and Penalties record', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      //Get the date of book being returned
+      const returnedAt: Date = new Date('2025-03-30');
+      //Get return date from database (when the book has to be returned)
+      const returnDate: Date = new Date(feesPenaltiesPayload[0].return_date);
+
+      let delayedDays = CalculateDaysFromDate(returnedAt, returnDate);
+      let isPenalised = true;
+      let isCompleted = false;
+
+      if(delayedDays <= 0) {
+        //re intialize it to 0, since no delay
+        delayedDays = 0;
+        //No delay, no penalty, and return process Completed
+        isPenalised = false;
+        isCompleted = true;
+      }
+
+      //Assuming penalty amount per day is 50
+      let penaltyAmount = delayedDays * 50;
+
+      console.log(delayedDays, returnDate, returnedAt, isPenalised, penaltyAmount);
+      const fpUUID: [{ fp_uuid: string }[], 0 | 1] = await this.fpRepository.query
+      (
+        `UPDATE fees_penalties SET days_delayed = $1, penalty_amount = $2, is_penalised = $3, 
+        returned_at = $4, is_completed = $5, updated_at = NOW()
+        WHERE borrower_uuid = $6 AND book_copy_uuid = $7 AND is_completed = FALSE RETURNING fp_uuid`,
+        [
+          delayedDays, penaltyAmount, isPenalised, returnedAt, isCompleted, 
+          bookBorrowedPayload[0].borrower_uuid, bookBorrowedPayload[0].book_copy_uuid
+        ]
+      );
+
+      const updateStatusFP = fpUUID[1];
+      //if update fails
+      if(!updateStatusFP) {
+        throw new HttpException('Failed to update fees_penalties table', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
       await this.booklogRepository.query
       (
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, 
+          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, 
         [
           studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been returned', bookTitleUUID,
-          oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
+          oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip, fpUUID[0][0].fp_uuid
         ]
       );
 
@@ -1044,7 +1099,7 @@ console.log(query,queryParams)
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
       (
-        `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = TRUE`,
+        `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = TRUE AND is_archived = FALSE`,
         [booklogPayload.book_copy_id, booklogPayload.barcode]
       );
 
@@ -1058,7 +1113,7 @@ console.log(query,queryParams)
       //Insert into old_book_title COLUMN
       const bookPayloadFromBookTitle: TBookTitle[] = await this.bookcopyRepository.query
       (
-        `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count > 0`,
+        `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count > 0 AND is_archived = FALSE`,
         [bookPayloadFromBookCopies[0].book_title_uuid]
       )
 
@@ -1066,11 +1121,21 @@ console.log(query,queryParams)
         throw new HttpException("Book doesn't seems to be available in Book Titles, but exists in Book Copies", HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
+      //assuming that borower is trying to borrow penalised book
+      const feesPenaltiesPayload: TFeesPenalties[] = await this.fpRepository.query(
+        `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND is_completed = FALSE AND is_penalised = TRUE`,
+        [studentExists[0].student_uuid, bookPayloadFromBookCopies[0].book_copy_uuid]
+      );
+
+      if(feesPenaltiesPayload.length) {
+        throw new HttpException('Cannot borrow this book, complete the penalty first', HttpStatus.BAD_REQUEST);
+      }
+
       //UPDATING now is safe
       //Insert into new_book_copy
       const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] = await this.bookcopyRepository.query
       (
-        `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE 
+        `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE AND is_archived = FALSE
         RETURNING *`,
         [bookPayloadFromBookCopies[0].book_copy_uuid, bookPayloadFromBookCopies[0].barcode],
       );
@@ -1092,7 +1157,7 @@ console.log(query,queryParams)
       //Insert into new_book_copy COLUMN
       const updatedBookTitlePayload: [TBookTitle[], 0 | 1] = await this.booktitleRepository.query
       (
-        `UPDATE book_titles SET available_count = available_count - 1 WHERE book_uuid = $1 RETURNING *`,
+        `UPDATE book_titles SET available_count = available_count - 1 WHERE book_uuid = $1 AND is_archived = FALSE RETURNING *`,
         [bookTitleUUID]
       );
 
@@ -1102,15 +1167,32 @@ console.log(query,queryParams)
       const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
       const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
 
+      
+
+      let returnDays = 0;
+      //if borrowed in library then return day 0, else incremented date
+      if(status === 'in_library_borrowed')  {
+        returnDays = 0;
+      } else {
+        returnDays = 7;
+      }
+      const createReturnDate = createNewDate(returnDays);
+
+      const fpUUID: { fp_uuid: string }[] = await this.fpRepository.query
+      (
+        `INSERT INTO fees_penalties (payment_method, borrower_uuid, book_copy_uuid, return_date) values ($1, $2, $3, $4) RETURNING fp_uuid`,
+        ['offline', studentExists[0].student_uuid, bookCopyUUID, createReturnDate]
+      )
+
       await this.booklogRepository.query
       (
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, 
+          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, 
         [
           studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been borrowed', bookTitleUUID,
-          oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
+          oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip, fpUUID[0].fp_uuid
         ]
       );
 
