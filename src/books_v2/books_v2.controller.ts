@@ -188,12 +188,12 @@ export class BooksV2Controller {
 
   @Get('get_book_title_details')// not working 
   async getBookTitleDetails(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
   ) {
     return await this.booksService.getBookTitleDetails({
-      book_uuid: book_uuid ?? undefined,
+      book_title_id: book_title_id ?? undefined,
       isbn: isbn ?? undefined,
       titlename: titlename ?? undefined,
     });

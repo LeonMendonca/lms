@@ -75,11 +75,11 @@ export class BooksV2Service {
   }
 
   async getBookTitleDetails({
-    book_uuid,
+    book_title_id,
     isbn,
     titlename,
   }: {
-    book_uuid: string;
+    book_title_id: string;
     isbn: string;
     titlename: string;
   }) {
@@ -87,9 +87,9 @@ export class BooksV2Service {
       const queryParams: string[] = [];
       let query = `SELECT * FROM book_titles WHERE 1=1`;
 
-      if (book_uuid) {
-        query += ` AND book_uuid = $${queryParams.length + 1}`;
-        queryParams.push(book_uuid);
+      if (book_title_id) {
+        query += ` AND book_title_id = $${queryParams.length + 1}`;
+        queryParams.push(book_title_id);
       }
       if (isbn) {
         query += ` AND isbn = $${queryParams.length + 1}`;
