@@ -411,7 +411,10 @@ async getFullFeeList(){
 
 }
 @Get("generate_fee_report")
-async generateFeeReport(){
+async generateFeeReport(
+  @Query('start') start: Date,
+  @Query('end') end: Date
+){
 
 }
 }
