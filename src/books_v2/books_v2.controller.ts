@@ -371,4 +371,50 @@ export class BooksV2Controller {
 
   // }
   //       }
+
+
+  //fees and penalties
+
+// to get pending fees for single student
+// @Get("pending_fees")
+// async pendingFees(
+//   @Query('_student_id') student_id: string,
+// ){
+//   try {
+//     // await this.booksService.pendingfees_and_penalties(student_id)
+//   } catch (error) {
+//   }
+// }
+
+@Put("pay_student_fee")
+async payStudentFee(@Body() feesPayload ){
+try {
+  
+} catch (error) {
+  if(!(error instanceof HttpException)) {
+    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
+}
+@Get("get_student_fee") 
+async getStudentFeeHistory(
+  @Query('_student_id') studentId: string,
+  @Query('_ispenalised') isPenalty: boolean,
+  @Query('_iscompleted') isCompleted: boolean,
+){
+  // await this.booksService.
+
+}
+@Get("get_full_feelist")
+async getFullFeeList(){
+
+}
+@Get("generate_fee_report")
+async generateFeeReport(
+  @Query('start') start: Date,
+  @Query('end') end: Date
+){
+
+}
 }
