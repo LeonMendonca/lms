@@ -30,9 +30,7 @@ export class FeesPenalties {
     @Column({ name: 'is_penalised', type: 'bool', default: false })
     isPenalised: 'is_penalised' = 'is_penalised';
 
-    @Column({ name: 'return_date', type: 'date',
-        default: () => "CURRENT_DATE + INTERVAL '2 days'"
-    })
+    @Column({ name: 'return_date', type: 'date' })
     returnDate: 'return_date' = 'return_date';
 
     @Column({ name: 'returned_at', type: 'date', nullable: true })

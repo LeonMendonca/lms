@@ -1022,7 +1022,7 @@ console.log(query,queryParams)
       }
 
       //Get the date of book being returned
-      const returnedAt: Date = new Date();
+      const returnedAt: Date = new Date('2025-03-30');
       //Get return date from database (when the book has to be returned)
       const returnDate: Date = new Date(feesPenaltiesPayload[0].return_date);
 
@@ -1120,6 +1120,16 @@ console.log(query,queryParams)
         throw new HttpException("Book doesn't seems to be available in Book Titles, but exists in Book Copies", HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
+      //assuming that borower is trying to borrow penalised book
+      const feesPenaltiesPayload: TFeesPenalties[] = await this.fpRepository.query(
+        `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND is_completed = FALSE AND is_penalised = TRUE`,
+        [studentExists[0].student_uuid, bookPayloadFromBookCopies[0].book_copy_uuid]
+      );
+
+      if(feesPenaltiesPayload.length) {
+        throw new HttpException('Cannot borrow this book, complete the penalty first', HttpStatus.BAD_REQUEST);
+      }
+
       //UPDATING now is safe
       //Insert into new_book_copy
       const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] = await this.bookcopyRepository.query
@@ -1156,13 +1166,21 @@ console.log(query,queryParams)
       const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
       const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
 
-      //if borrowed in library then current date, else incremented date
-      const createReturnDate = createNewDate(0);
+      
+
+      let returnDays = 0;
+      //if borrowed in library then return day 0, else incremented date
+      if(status === 'in_library_borrowed')  {
+        returnDays = 0;
+      } else {
+        returnDays = 7;
+      }
+      const createReturnDate = createNewDate(returnDays);
 
       const fpUUID: { fp_uuid: string }[] = await this.fpRepository.query
       (
         `INSERT INTO fees_penalties (payment_method, borrower_uuid, book_copy_uuid, return_date) values ($1, $2, $3, $4) RETURNING fp_uuid`,
-        ['offline', studentExists[0].student_uuid, bookCopyUUID]
+        ['offline', studentExists[0].student_uuid, bookCopyUUID, createReturnDate]
       )
 
       await this.booklogRepository.query
