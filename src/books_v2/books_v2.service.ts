@@ -1345,7 +1345,7 @@ console.log(query,queryParams)
       if(result.length===0){
         throw new HttpException({message:"Invaid Student ID !!"},HttpStatus.ACCEPTED)  
       }
-      const data= await this.booktitleRepository.query(`SELECT penalty_amount FROM fees_penalties WHERE borrower_uuid=$1 and penalty_amount>0`,[result[0].student_uuid]) 
+      const data= await this.booktitleRepository.query(`SELECT * FROM fees_penalties WHERE borrower_uuid=$1 and penalty_amount>0`,[result[0].student_uuid]) 
       if(data.length===0){
         throw new HttpException({message:"No Penalties are There!!"},HttpStatus.ACCEPTED)  
       }
