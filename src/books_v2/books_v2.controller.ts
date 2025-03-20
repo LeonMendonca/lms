@@ -371,4 +371,43 @@ export class BooksV2Controller {
 
   // }
   //       }
+
+
+  //fees and penalties
+
+// to get pending fees for single student
+// @Get("pending_fees")
+// async pendingFees(
+//   @Query('_student_id') student_id: string,
+// ){
+//   try {
+//     // await this.booksService.pendingfees_and_penalties(student_id)
+//   } catch (error) {
+//   }
+// }
+
+@Put("Fee")
+async payStudentFee(@Body()createfeespayload ){
+try {
+  
+} catch (error) {
+  
+}
+} 
+@Get("getstudentfee_history") 
+async getStudentFeeHistory(
+  @Query('_ispenalised') student_id: string,
+  @Query('_iscompleted') student_id2: string,
+){
+  
+
+}
+@Get("getFullFeeList")
+async getFullFeeList(){
+
+}
+@Get("generateFeeReport")
+async generateFeeReport(){
+
+}
 }
