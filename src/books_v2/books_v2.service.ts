@@ -23,6 +23,7 @@ import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
 import { FeesPenalties, TFeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
+import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
 
 @Injectable()
 export class BooksV2Service {
@@ -1088,7 +1089,7 @@ console.log(query,queryParams)
         throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
       }
       const studentExists: { student_uuid: string }[] = await this.sudentRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id = $1`,
+        `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
       );
       if (!studentExists.length) {
@@ -1206,7 +1207,7 @@ console.log(query,queryParams)
     try {
       // Validate student existence
       const studentExists = await this.sudentRepository.query(
-        `SELECT * FROM students_table WHERE student_uuid = $1`,
+        `SELECT * FROM students_table WHERE student_uuid = $1 AND is_archived = FALSE`,
           [booklogpayload.student_id],
       );
 
@@ -1349,8 +1350,63 @@ console.log(query,queryParams)
 
   }
 
-  async payStudentFee(student_id: string) {
+  async payStudentFee(updateFeesPayload: TUpdateFeesPenaltiesZod) {
+    try {
+      const studentAndBookCopiesPayloadWithFeesPenalties :
+      {
+        student_uuid: string;
+        book_copy_uuid: string;
+        penalty_amount: number;
+        return_date: Date;
+        returned_at: Date;
+        paid_amount: number;
+        is_penalised: boolean;
+        is_completed: boolean;
+      }[] = await this.sudentRepository.query
+      (`
+        SELECT student_uuid, book_copies.book_copy_uuid, penalty_amount, return_date, returned_at, paid_amount, is_penalised, is_completed 
+        FROM fees_penalties 
+        INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
+        INNER JOIN book_copies ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid 
+        WHERE students_table.is_archived = FALSE
+        AND students_table.student_id = $1 
+        AND book_copies.is_archived = FALSE
+        AND book_copies.book_copy_id = $2 
+        AND penalty_amount > paid_amount
+        AND is_completed = FALSE
+        AND is_penalised = TRUE
+        AND returned_at IS NOT NULL`,
+        [updateFeesPayload.student_id, updateFeesPayload.book_copy_id],
+      );
 
+      if (!studentAndBookCopiesPayloadWithFeesPenalties.length) {
+        throw new HttpException('Cannot find Student or Book, maybe archived or No penalty or Not returned', HttpStatus.BAD_REQUEST);
+      }
+
+      //Values when penalty
+      let isPenalised = studentAndBookCopiesPayloadWithFeesPenalties[0].is_penalised; //True
+      let isCompleted = studentAndBookCopiesPayloadWithFeesPenalties[0].is_completed; //False
+
+      //current paid amount + new paid amount
+      let accumulatedPaidAmount = (updateFeesPayload.paid_amount + studentAndBookCopiesPayloadWithFeesPenalties[0].paid_amount);
+
+      //if student pays less than penalty amount then subtraction results gt 0;
+      if((studentAndBookCopiesPayloadWithFeesPenalties[0].penalty_amount - accumulatedPaidAmount) <= 0) {
+        isPenalised = !isPenalised;
+        isCompleted = !isCompleted;
+      }
+
+      await this.fpRepository.query
+      (`
+        UPDATE fees_penalties SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4`,
+        [updateFeesPayload.payment_method, accumulatedPaidAmount, isPenalised, isCompleted]
+      );
+
+      return { statusCode: HttpStatus.OK, messsage: 'Penalty paid successfully!' };
+      
+    } catch (error) {
+      throw error;
+    }    
   }
 
 }

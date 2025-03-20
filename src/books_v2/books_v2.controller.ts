@@ -28,6 +28,7 @@ import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
 import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
+import { TUpdateFeesPenaltiesZod, updateFeesPenaltiesZod } from './zod/update-fp-zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -387,9 +388,10 @@ export class BooksV2Controller {
 // }
 
 @Put("pay_student_fee")
-async payStudentFee(@Body() feesPayload ){
+@UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
+async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod){
 try {
-  
+  return await this.booksService.payStudentFee(feesPayload);
 } catch (error) {
   if(!(error instanceof HttpException)) {
     throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
