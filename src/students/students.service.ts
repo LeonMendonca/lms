@@ -312,9 +312,14 @@ export class StudentsService {
     };
   }
 // visit log 
-async getVisitAllLog(){
+async getVisitAllLog({ page, limit }: { page: number; limit: number } = {
+  page: 1,
+  limit: 10,
+},){
   try {
-  const data=await this.studentsRepository.query(`SELECT * FROM visit_log`);
+    const offset = (page - 1) * limit;
+
+  const data=await this.studentsRepository.query(`SELECT * FROM visit_log LIMIT $1 OFFSET $2`,[limit,offset]);
   return data
   } catch (error) {
     throw new HttpException(

@@ -293,9 +293,13 @@ export class StudentsController {
   //Visitlog
 
   @Get('alllog')
-  async getAllLog(){
+  async getAllLog(
+    @Query('_page') page:string,
+    @Query('_limit') limit: string,
+
+  ){
     try {
-      return await this.studentsService.getVisitAllLog()
+      return await this.studentsService.getVisitAllLog({  page: page ? parseInt(page, 10) : 1,limit: limit ? parseInt(limit, 10) : 10,})
     } catch (error) {
       console.log(error);
     }
