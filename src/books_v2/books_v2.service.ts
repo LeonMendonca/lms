@@ -245,7 +245,7 @@ export class BooksV2Service {
       console.log({ books });
 
       return {
-      books
+       data: books
       };
     } catch (error) {
       console.log(error);
@@ -904,6 +904,7 @@ export class BooksV2Service {
 
   async archiveBookCopy(book_copy_uuid: string) {
     try {
+      console.log("working");
       // Archive the book copy and get the bookTitleUUID
       const archiveResult = await this.bookcopyRepository.query(
         `UPDATE book_copies 
@@ -912,13 +913,13 @@ export class BooksV2Service {
         RETURNING book_title_uuid`,
         [book_copy_uuid],
       );
-
+console.log("working1");
       if (archiveResult.length === 0) {
         throw new Error('Book copy not found or already archived');
       }
 
       const bookTitleUUID = archiveResult[0][0].book_title_uuid;
-
+      console.log("working2");
       console.log({ bookTitleUUID });
 
       // Reduce total_count and available_count in book_titles
@@ -939,7 +940,7 @@ export class BooksV2Service {
         WHERE book_uuid = $1`,
         [bookTitleUUID,count],
       );
-
+      console.log("working3");
       return { success: true, message: 'Book copy archived successfully' };
     } catch (error) {
       console.log(error);
