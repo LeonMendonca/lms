@@ -1383,7 +1383,7 @@ try {
   }
   async getFullFeeListStudent() {
     try {
-      const result= await this.booktitleRepository.query(`SELECT fees_penalties.borrower_uuid,students_table.student_name, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties.penalty_amount
+      const result= await this.booktitleRepository.query(`SELECT fees_penalties.borrower_uuid,students_table.student_name, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
          INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
         INNER JOIN  book_copies on fees_penalties.book_copy_uuid=book_copies.book_copy_uuid`);
       if(result.length===0){
