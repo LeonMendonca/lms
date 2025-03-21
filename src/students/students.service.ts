@@ -319,9 +319,20 @@ async getVisitAllLog({ page, limit }: { page: number; limit: number } = {
   try {
     const offset = (page - 1) * limit;
 
-  const data=await this.studentsRepository.query(`SELECT * FROM visit_log LIMIT $1 OFFSET $2`,[limit,offset]);
-  return data
-  } catch (error) {
+  const visit_log=await this.studentsRepository.query(`SELECT * FROM visit_log LIMIT $1 OFFSET $2`,[limit,offset]);
+  const total= await this.studentsRepository.query(`SELECT COUNT(*) FROM visit_log`)
+  return {
+    data:visit_log,
+    pagination: {
+                total: parseInt(total[0].count, 10),
+                page,
+                limit,
+                totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+              },
+  }
+ 
+
+} catch (error) {
     throw new HttpException(
       `Error ${error} something went wrong in all log !1`,
       HttpStatus.INTERNAL_SERVER_ERROR,);
