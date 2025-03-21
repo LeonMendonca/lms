@@ -1,8 +1,8 @@
 import { parentPort, workerData } from "worker_threads";
-import { dataSource } from "../datasource-typeorm";
 import { Repository } from "typeorm";
 import { Students } from "src/students/students.entity";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
+import { dataSource } from "../datasource-typeorm";
 
 
 (async() => {

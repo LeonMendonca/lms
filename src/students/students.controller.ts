@@ -126,6 +126,7 @@ export class StudentsController {
   )
   async bulkCreateStudent(@Body() arrStudentPayload: TCreateStudentDTO[]) {
     try {
+      console.log('CONTROLLER Moving to service');
       return this.studentsService.bulkCreate(arrStudentPayload);
     } catch (error) {
       if(!(error instanceof HttpException)) {

@@ -163,6 +163,7 @@ export class StudentsService {
   }
 
   async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
+    console.log("SERVICE calling main worker thread");
     return await (CreateWorker(
       arrStudentPayload,
       'student/student-insert-worker',
