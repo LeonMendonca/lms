@@ -20,7 +20,7 @@ import { TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import type { Request } from "express";
 import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
-import { FeesPenalties, TFeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { fees_penalties, FeesPenalties, TFeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
@@ -1338,14 +1338,14 @@ console.log(query,queryParams)
 //     }
 //   } 
 
-  async getStudentFee(student_id: string,isPenalty:boolean,is_completed:boolean) {
+  async getStudentFee(student_id: string,isPenalty:boolean,isCompleted:boolean) {
   try {
     if(student_id){
       const result:{student_uuid:string}[]=await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id=$1`,[student_id])
       if(result.length===0){
         throw new HttpException({message:"Invaid Student ID !!"},HttpStatus.ACCEPTED)  
       }
-      const data= await this.booktitleRepository.query(`SELECT * FROM fees_penalties WHERE borrower_uuid=$1 and penalty_amount>0`,[result[0].student_uuid]) 
+      const data= await this.booktitleRepository.query(`SELECT * FROM fees_penalties WHERE borrower_uuid=$1 and is_penalised=$2 or is_completed= $3`,[result[0].student_uuid,isPenalty,isCompleted]) 
       if(data.length===0){
         throw new HttpException({message:"No Penalties are There!!"},HttpStatus.ACCEPTED)  
       }
@@ -1359,8 +1359,8 @@ console.log(query,queryParams)
       }
       return data
     }
-    else if(is_completed){
-      const data=await this.bookcopyRepository.query(`SELECT * FROM fees_penalties WHERE is_completed=$1`,[is_completed])
+    else if(isCompleted){
+      const data=await this.bookcopyRepository.query(`SELECT * FROM fees_penalties WHERE is_completed=$1`,[isCompleted])
       if(data.length===0){
         throw new HttpException({message:"No data are Found!!"},HttpStatus.ACCEPTED)  
       }
@@ -1381,6 +1381,17 @@ try {
   throw error
 }
   }
+  async getFullFeeListStudent() {
+    try {
+      const result= await this.booktitleRepository.query(`SELECT * FROM  fees_penalties INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid`);
+      if(result.length===0){
+        throw new HttpException({message:"No data found!!"},HttpStatus.ACCEPTED)
+      }
+      return result
+    } catch (error) {
+      throw error
+    }
+      }
   async generateFeeReport(start: Date, end: Date) {
     try {
       const result = await this.booktitleRepository.query(

@@ -433,6 +433,20 @@ try {
   throw error;
 }
 }
+
+@Get("get_full_feelist_student")
+async getFullFeeListStudent(){
+try {
+  return await  this.booksService.getFullFeeListStudent();
+} catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
+}
+
+
 @Get("generate_fee_report")
 async generateFeeReport(
   @Query('start') start: Date,
