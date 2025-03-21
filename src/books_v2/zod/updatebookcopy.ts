@@ -2,9 +2,9 @@ import { createObjectIncludeProperties, createObjectOmitProperties } from 'src/m
 import { z } from 'zod';
 import { BookCopy } from '../entity/books_v2.copies.entity';
 
- const createBookCopyObject= createObjectOmitProperties(new BookCopy,['bookCopyUUID','updatedAt','createdAt','bookTitleUUID','instituteUUID','isAvailable','isArchived','bookCopyId'])
+ const createBookCopyObject= createObjectOmitProperties(new BookCopy,['bookCopyUUID','updatedAt','createdAt','bookTitleUUID','instituteUUID','isAvailable','isArchived',])
 export const createObjectSchema = z.object({
-  [createBookCopyObject.accessionNumber]:z.number(),
+  [createBookCopyObject.accessionNumber]:z.string(),
     [createBookCopyObject.barcode]:z.string(),
     [createBookCopyObject.billNo]:z.string(),
     [createBookCopyObject.copyAdditionalFields]:z.string(),
