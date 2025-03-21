@@ -60,11 +60,15 @@ export class BooksV2Controller {
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
   ) {
     return this.booksService.getBookCopiesByTitle({
       book_uuid,
       isbn,
       titlename,
+      page:page ?parseInt(page,10):1,
+      limit:limit ?parseInt(limit,10):10, 
     });
   }
 
