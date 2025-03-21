@@ -211,16 +211,41 @@ export class BooksV2Service {
       }
 
       const books = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
-        WHERE is_archived = false AND book_title_uuid = $1`,
+        `   SELECT 
+    book_titles.book_title, 
+    book_titles.book_uuid,
+    book_titles.book_title_id,
+    book_copies.book_copy_uuid,
+    book_copies.source_of_acquisition,
+    book_copies.date_of_acquisition,
+    book_copies.language,
+    book_copies.barcode,
+    book_copies.item_type,
+    book_copies.is_archived,
+    book_copies.created_at,
+    book_copies.updated_at,
+    book_copies.created_by,
+    book_copies.remarks,
+    book_copies.is_available,
+    book_copies.book_title_uuid,
+    book_copies.copy_images,
+    book_copies.copy_additional_fields,
+    book_copies.copy_description,
+    book_copies.book_copy_id,
+    book_copies.institute_uuid,
+    book_copies.bill_no,
+    book_copies.inventory_number,
+    book_copies.accession_number
+    FROM book_titles
+    INNER JOIN book_copies ON book_copies.book_title_uuid = book_titles.book_uuid where 
+    book_copies.is_archived=false and book_copies.book_title_uuid = $1`,
         [book[0].book_uuid],
       );
 
       console.log({ books });
 
       return {
-        title: book,
-        copies: books,
+      books
       };
     } catch (error) {
       console.log(error);
@@ -897,13 +922,22 @@ export class BooksV2Service {
       console.log({ bookTitleUUID });
 
       // Reduce total_count and available_count in book_titles
-      await this.booktitleRepository.query(
+      // await this.booktitleRepository.query(
+      //   `UPDATE book_titles 
+      //   SET 
+      //   total_count = GREATEST(total_count - 1, 0), 
+      //     available_count = GREATEST(available_count - 1, 0)
+      //   WHERE book_uuid = $1`,
+      //   [book_copy_uuid],
+      // );
+     const count= await this.booktitleRepository.query(`SELECT COUNT(*) FROM book_copies WHERE book_title_uuid=$1`,[book_copy_uuid])
+       await this.booktitleRepository.query(
         `UPDATE book_titles 
         SET 
-        total_count = GREATEST(total_count - 1, 0), 
-          available_count = GREATEST(available_count - 1, 0)
+        total_count =$2 , 
+          available_count =$2 
         WHERE book_uuid = $1`,
-        [book_copy_uuid],
+        [bookTitleUUID,count],
       );
 
       return { success: true, message: 'Book copy archived successfully' };
