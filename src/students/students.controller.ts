@@ -304,11 +304,35 @@ export class StudentsController {
       console.log(error);
     }
   }
-  @Get('visitlog_by_uuid')
-async getVisitlog(@Query('_student_id') student_ID: string) {
+//   @Get('visitlog_by_id')
+// async getVisitlog(
+//     @Query('_student_id') student_ID: string,
+//     @Query('_page') page: string,
+//     @Query('_limit') limit: string,
+// ) {
+//   try {
+//     console.log(student_ID)
+//     return await this.studentsService.getVisitLogByStudentUUID(student_ID,page,limit);
+//   } catch (error) {
+//     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//   }
+// }
+
+@Get('visitlog_by_id')
+async getVisitlog(
+  @Query('_student_id') student_ID: string,
+  @Query('_page') page: string = '1',
+  @Query('_limit') limit: string = '10',
+) {
   try {
-    console.log(student_ID)
-    return await this.studentsService.getVisitLogByStudentUUID(student_ID);
+    // Convert query parameters to numbers
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+
+    return await this.studentsService.getVisitLogByStudentUUID(student_ID, {
+      page: pageNumber,
+      limit: limitNumber,
+    });
   } catch (error) {
     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   }

@@ -115,7 +115,7 @@ export class StudentsService {
       }
 
       const result = (await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
+        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' `,
       )) as TStudents[];
 
       if (result.length === 0) {
@@ -338,17 +338,54 @@ async getVisitAllLog({ page, limit }: { page: number; limit: number } = {
       HttpStatus.INTERNAL_SERVER_ERROR,);
   }
 }
-  async getVisitLogByStudentUUID(student_id: string){
+  // 
+  
+  async getVisitLogByStudentUUID(
+    student_id: string,
+    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 }
+  ) {
     try {
-      return await this.studentsRepository.query(
-        `SELECT * FROM visit_log WHERE student_id = $1`, [student_id]
+      const offset = (page - 1) * limit;
+  
+      // Fetch paginated results
+      const visitLogs = await this.studentsRepository.query(
+        `SELECT * FROM visit_log WHERE student_id = $1 LIMIT $2 OFFSET $3`,
+        [student_id, limit, offset]
       );
+  
+      // Get the total count of records
+      const totalResult = await this.studentsRepository.query(
+        `SELECT COUNT(*) as total FROM visit_log WHERE student_id = $1`,
+        [student_id]
+      );
+      
+      // const total = parseInt(totalResult[0].total, 10);
+      // const totalPages = Math.ceil(total / limit);
+  
+      return {
+        data: visitLogs,
+        // pagination: {
+        //   totalRecords: total,
+        //   currentPage: page,
+        //   limitPerPage: limit,
+        //   totalPages: totalPages,
+        // },
+        pagination: {
+          totalResult: parseInt(totalResult[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(totalResult[0].count, 10) / limit),
+        },
+      };
     } catch (error) {
       throw new HttpException(
-        `Error ${error} invalid  student_id`,
-        HttpStatus.INTERNAL_SERVER_ERROR,);
+        `Error: ${error.message} - Invalid student_id`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
+  
+
 
   async visitlogentry(createvisitpayload: TVisit_log) {
     try {
