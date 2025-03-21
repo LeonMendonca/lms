@@ -163,7 +163,7 @@ export class BooksV2Service {
       let query = `SELECT book_title_id, book_title FROM book_titles WHERE 1=1`;
 
       if (book_title_id) {
-        query += ` AND book_uuid = $${queryParams.length + 1}`;
+        query += ` AND book_title_id = $${queryParams.length + 1}`;
         queryParams.push(book_title_id);
       }
       if (isbn) {
@@ -186,16 +186,17 @@ console.log(query,queryParams)
 
 
       const books = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
-        WHERE is_archived = false AND book_title_uuid = $1`,
+        `SELECT * FROM  book_titles
+         INNER JOIN book_copies ON book_copies.book_title_uuid=book_titles.book_uuid  
+        WHERE book_copies.is_archived = false AND book_titles.book_title_id = $1`,
           [book[0].book_uuid],
       );
 
       console.log({ books });
 
       return {
-        title: book,
-        copies: books,
+        title: books,
+        // copies: books,
       };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
