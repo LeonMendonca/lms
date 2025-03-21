@@ -42,7 +42,7 @@ export class StudentsService {
     const searchQuery = search ? `%${search}%` : '%';
 
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3 ORDER BY updated_at DESC ',
+      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 ORDER BY updated_at DESC  LIMIT $2 OFFSET $3 ',
       [searchQuery, limit, offset],
     );
 
