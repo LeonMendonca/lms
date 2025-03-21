@@ -13,5 +13,9 @@ export const pool = new Pool({
 });
 
 export async function pgConnect() {
-    return await pool.connect();
+    try {
+        return await pool.connect();
+    } catch (error) {
+        console.error(error.message);
+    }
 }
