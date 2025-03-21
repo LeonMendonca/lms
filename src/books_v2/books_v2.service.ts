@@ -560,7 +560,7 @@ export class BooksV2Service {
     try {
       const offset = (page - 1) * limit;
       const result: any[] = await this.booklogRepository.query(
-        `SELECT book_copy_uuid, action, date, ip_address, email, institute_id, department, student_uuid, date_of_birth, gender, institute_name 
+        `SELECT book_copy_uuid, new_book_title, date, new_book_copy, action, date, ip_address, email, institute_id, department, student_uuid, date_of_birth, gender, institute_name 
         FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid 
         AND students_table.student_id = $1 LIMIT $2 OFFSET $3`,
         [student_id, limit, offset],
