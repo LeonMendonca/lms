@@ -26,9 +26,15 @@ import { TRestoreZodDTO } from './zod/restorearchive';
 import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
 import { TRestorecopybookZodDTO } from './zod/restorebookcopies';
 import { TUpdatebookcopyZodDTO } from './zod/updatebookcopy';
-import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod';
+import {
+  booklogV2Schema,
+  TCreateBooklogV2DTO,
+} from './zod/create-booklogv2-zod';
 import { TUpdateInstituteZodDTO } from './zod/updateinstituteid';
-import { TUpdateFeesPenaltiesZod, updateFeesPenaltiesZod } from './zod/update-fp-zod';
+import {
+  TUpdateFeesPenaltiesZod,
+  updateFeesPenaltiesZod,
+} from './zod/update-fp-zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -68,10 +74,16 @@ export class BooksV2Controller {
     @Query('_isbn') isbn: string,
   ) {
     try {
-      return await this.booksService.getLogDetailsByTitle({book_title_id, isbn}); 
+      return await this.booksService.getLogDetailsByTitle({
+        book_title_id,
+        isbn,
+      });
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -82,48 +94,58 @@ export class BooksV2Controller {
     try {
       return await this.booksService.getLogDetailsByCopy({
         barcode,
-      }); 
+      });
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
   }
 
   @Get('get_logs_of_student')
-  async getLogDetailsOfStudent(@Query('_student_id') studentId: string) {
+  async getLogDetailsOfStudent(
+    @Query('_student_id') student_id: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
     try {
-      return await this.booksService.getLogDetailsOfStudent(studentId);
+      return await this.booksService.getLogDetailsOfStudent({
+        student_id,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      }); 
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
   }
 
-  @Get('get_all_available')// working
+  @Get('get_all_available') // working
   async getAllAvailableBooks() {
     return await this.booksService.getAllAvailableBooks();
   }
 
-  @Get('get_available_by_isbn')// working 
-  async getavailablebookbyisbn(
-    @Query('_isbn') isbn: string,
-  ) {
+  @Get('get_available_by_isbn') // working
+  async getavailablebookbyisbn(@Query('_isbn') isbn: string) {
     return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
-  @Get('get_all_unavailable')// working
+  @Get('get_all_unavailable') // working
   async getAllUnavailableBooks() {
     return await this.booksService.getAllUnavailableBooks();
   }
 
-  @Get('get_unavailable_by_isbn')// working
-  async getunavailablebookbyisbn(
-    @Query('_isbn') isbn: string,
-  ) {
+  @Get('get_unavailable_by_isbn') // working
+  async getunavailablebookbyisbn(@Query('_isbn') isbn: string) {
     return await this.booksService.getunavailablebookbyisbn(isbn);
   }
 
@@ -132,16 +154,15 @@ export class BooksV2Controller {
   //   return this.booksService.getBooks();
   // }
 
-
   // @Put('uparchive')
   // async updateArchive(@Body('book_uuid') book_uuid: string) {
   //   console.log('working');
   //   return this.booksService.updateTitleArchive(book_uuid);
   // }
 
-  @Put('uparchive')//  working
-  async updateArchive(@Body() creatbookpayload:TupdatearchiveZodDTO) {
-      return this.booksService.updateTitleArchive(creatbookpayload);
+  @Put('uparchive') //  working
+  async updateArchive(@Body() creatbookpayload: TupdatearchiveZodDTO) {
+    return this.booksService.updateTitleArchive(creatbookpayload);
   }
 
   // @Get('search')
@@ -154,7 +175,7 @@ export class BooksV2Controller {
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
-  @Get('isbn')// update by insert query helper or create  own query helper for select part// working
+  @Get('isbn') // update by insert query helper or create  own query helper for select part// working
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
@@ -165,21 +186,24 @@ export class BooksV2Controller {
   }
 
   // Create new book
-  @Post('create')// working
+  @Post('create') // working
   @UsePipes(new bodyValidationPipe(createBookSchema))
   async createBook(@Body() bookPayload: TCreateBookZodDTO) {
     try {
       const result = await this.booksService.createBook(bookPayload);
       return result;
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
   }
 
-  @Get('all_archived')// working
+  @Get('all_archived') // working
   async getAllArchivedBooks(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -201,22 +225,26 @@ export class BooksV2Controller {
       return await this.booksService.getLogDetails({
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
-      }); 
+      });
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
-    
   }
 
   @Put('restore_archive')
-  async restoreArchive(@Body('book_uuid', new ParseUUIDPipe()) book_uuid: string) {
+  async restoreArchive(
+    @Body('book_uuid', new ParseUUIDPipe()) book_uuid: string,
+  ) {
     return await this.booksService.restoreBook(book_uuid);
   }
 
-  @Get('get_book_title_details')// not working 
+  @Get('get_book_title_details') // not working
   async getBookTitleDetails(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -240,12 +268,12 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_book_copy')// what is the use of identifier?? working//
+  @Get('get_book_copy') // what is the use of identifier?? working//
   async fetchSingleCopyInfo(@Query('_identifier') identifier: string) {
     return await this.booksService.getSingleCopyInfo(identifier);
   }
 
-  @Patch('update_book_title')//working
+  @Patch('update_book_title') //working
   async updateBookTitle(
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookZodDTO,
@@ -254,11 +282,13 @@ export class BooksV2Controller {
   }
 
   @Put('archive_book_copy')
-  async archiveBookCopy(@Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string) {
+  async archiveBookCopy(
+    @Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string,
+  ) {
     return await this.booksService.archiveBookCopy(book_copy_uuid);
   }
 
-  @Get('get_archived_book_copy')//working
+  @Get('get_archived_book_copy') //working
   async getArchivedBooksCopy(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -274,7 +304,7 @@ export class BooksV2Controller {
     return await this.booksService.restoreBookCopy(book_uuid);
   }
 
-  @Patch('update_book_copy')// wait
+  @Patch('update_book_copy') // wait
   async updateBookCopy(
     @Body('book_copy_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookcopyZodDTO,
@@ -282,7 +312,7 @@ export class BooksV2Controller {
     return await this.booksService.updateBookCopy(book_uuid, bookPayload);
   }
 
-  @Get('available')// wait
+  @Get('available') // wait
   async availableBook(@Query('isbn') isbn: string) {
     return await this.booksService.getavailablebookbyisbn(isbn);
   }
@@ -347,19 +377,35 @@ export class BooksV2Controller {
     @Req() request: Request,
   ) {
     try {
-      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
+        undefined;
       let result: Record<string, string | number> = {};
-      if(booklogPayload.action === 'borrow') {
-        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
+      if (booklogPayload.action === 'borrow') {
+        result = await this.booksService.bookBorrowed(
+          booklogPayload,
+          request,
+          (status = 'borrowed'),
+        );
       } else if (booklogPayload.action === 'return') {
-        result = await this.booksService.bookReturned(booklogPayload, request, status = 'returned')
+        result = await this.booksService.bookReturned(
+          booklogPayload,
+          request,
+          (status = 'returned'),
+        );
       } else {
-        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'in_library_borrowed');
+        result = await this.booksService.bookBorrowed(
+          booklogPayload,
+          request,
+          (status = 'in_library_borrowed'),
+        );
       }
       return result;
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -373,92 +419,112 @@ export class BooksV2Controller {
   // }
   //       }
 
-
   //fees and penalties
 
-// to get pending fees for single student
-// @Get("pending_fees")
-// async pendingFees(
-//   @Query('_student_id') student_id: string,
-// ){
-//   try {
-//     // await this.booksService.pendingfees_and_penalties(student_id)
-//   } catch (error) {
-//   }
-// }
+  // to get pending fees for single student
+  // @Get("pending_fees")
+  // async pendingFees(
+  //   @Query('_student_id') student_id: string,
+  // ){
+  //   try {
+  //     // await this.booksService.pendingfees_and_penalties(student_id)
+  //   } catch (error) {
+  //   }
+  // }
 
-@Put("pay_student_fee")
-@UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
-async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod){
-try {
-  return await this.booksService.payStudentFee(feesPayload);
-} catch (error) {
-  if(!(error instanceof HttpException)) {
-    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  @Put('pay_student_fee')
+  @UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
+  async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod) {
+    try {
+      return await this.booksService.payStudentFee(feesPayload);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
   }
-  throw error;
-}
-}
-@Get("get_student_fee") 
-async getStudentFeeHistory(
-  @Query('_student_id') studentId: string,
-  @Query('_ispenalised') isPenalty: boolean,
-  @Query('_iscompleted') isCompleted: boolean,
-){
- try {
-if(studentId){
-  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted) 
-}
-else if(isPenalty){
-  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
-}  
-else if(isCompleted){
-  return await this.booksService.getStudentFee(studentId,isPenalty,isCompleted)
-}
- } catch (error) {
-  if(!(error instanceof HttpException)){
-    throw new HttpException(error.message,HttpStatus.BAD_REQUEST)
+  @Get('get_student_fee')
+  async getStudentFeeHistory(
+    @Query('_student_id') studentId: string,
+    @Query('_ispenalised') isPenalty: boolean,
+    @Query('_iscompleted') isCompleted: boolean,
+  ) {
+    try {
+      if (studentId) {
+        return await this.booksService.getStudentFee(
+          studentId,
+          isPenalty,
+          isCompleted,
+        );
+      } else if (isPenalty) {
+        return await this.booksService.getStudentFee(
+          studentId,
+          isPenalty,
+          isCompleted,
+        );
+      } else if (isCompleted) {
+        return await this.booksService.getStudentFee(
+          studentId,
+          isPenalty,
+          isCompleted,
+        );
+      }
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+      throw error;
+    }
   }
-  throw error;
- }
-}
-@Get("get_full_feelist")
-async getFullFeeList(){
-try {
-  return await  this.booksService.getFullFeeList();
-} catch (error) {
-  if(!(error instanceof HttpException)){
-    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  @Get('get_full_feelist')
+  async getFullFeeList() {
+    try {
+      return await this.booksService.getFullFeeList();
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
   }
-  throw error;
-}
-}
 
-@Get("get_full_feelist_student")
-async getFullFeeListStudent(){
-try {
-  return await  this.booksService.getFullFeeListStudent();
-} catch (error) {
-  if(!(error instanceof HttpException)){
-    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  @Get('get_full_feelist_student')
+  async getFullFeeListStudent() {
+    try {
+      return await this.booksService.getFullFeeListStudent();
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
   }
-  throw error;
-}
-}
 
-
-@Get("generate_fee_report")
-async generateFeeReport(
-  @Query('start') start: Date,
-  @Query('end') end: Date
-){
- try {
-   return await this.booksService.generateFeeReport(start,end)
- } catch (error) {
-  if(!(error instanceof HttpException)){
-    throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+  @Get('generate_fee_report')
+  async generateFeeReport(
+    @Query('start') start: Date,
+    @Query('end') end: Date,
+  ) {
+    try {
+      return await this.booksService.generateFeeReport(start, end);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
   }
-  throw error;
- }
-}
 }
