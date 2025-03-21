@@ -179,14 +179,19 @@ export class BooksV2Service {
     book_uuid,
     isbn,
     titlename,
+    page,
+    limit
   }: {
     book_uuid: string;
     isbn: string;
     titlename: string;
+    page:number;
+    limit:number;
   }) {
     try {
+     const offset=(page-1)*limit
       const queryParams: string[] = [];
-      let query = `SELECT book_uuid, book_title FROM book_titles WHERE 1=1`;
+      let query = `SELECT book_uuid, book_title FROM book_titles WHERE 1=1 `;
 
       if (book_uuid) {
         query += ` AND book_uuid = $${queryParams.length + 1}`;
@@ -197,7 +202,7 @@ export class BooksV2Service {
         queryParams.push(isbn);
       }
       if (titlename) {
-        query += ` AND book_title LIKE $${queryParams.length + 1}`;
+        query += ` AND book_title LIKE $${queryParams.length + 1} `;
         queryParams.push(`${titlename}%`);
       }
       console.log(query, queryParams);
@@ -238,14 +243,23 @@ export class BooksV2Service {
     book_copies.accession_number
     FROM book_titles
     INNER JOIN book_copies ON book_copies.book_title_uuid = book_titles.book_uuid where 
-    book_copies.is_archived=false and book_copies.book_title_uuid = $1`,
-        [book[0].book_uuid],
+    book_copies.is_archived=false and book_copies.book_title_uuid = $1  OFFSET $2 LIMIT $3 `,
+        [book[0].book_uuid ,offset,limit],
       );
 
+      const totalResult = await this.booktitleRepository.query(
+        `SELECT COUNT(*) as total FROM book_copies `,
+      );
       console.log({ books });
 
       return {
-       data: books
+       data: books,
+       pagination:{
+        total:parseInt(totalResult[0].total, 10),
+        page,
+        limit,
+        totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+      }
       };
     } catch (error) {
       console.log(error);
@@ -902,55 +916,94 @@ export class BooksV2Service {
     }
   }
 
-  async archiveBookCopy(book_copy_uuid: string) {
-    try {
-      console.log("working");
-      // Archive the book copy and get the bookTitleUUID
-      const archiveResult = await this.bookcopyRepository.query(
-        `UPDATE book_copies 
-        SET is_archived = true 
-        WHERE book_copy_uuid = $1 
-        RETURNING book_title_uuid`,
-        [book_copy_uuid],
-      );
-console.log("working1");
-      if (archiveResult.length === 0) {
-        throw new Error('Book copy not found or already archived');
-      }
+//   async archiveBookCopy(book_copy_uuid: string) {
+//     try {
+//       // Archive the book copy and get the bookTitleUUID
+//       const archiveResult = await this.bookcopyRepository.query(
+//         `UPDATE book_copies 
+//         SET is_archived = true 
+//         WHERE book_copy_uuid = $1 
+//         RETURNING book_title_uuid`,
+//         [book_copy_uuid],
+//       );
+// console.log("working1");
+//       if (archiveResult.length === 0) {
+//         throw new Error('Book copy not found or already archived');
+//       }
 
-      // const bookTitleUUID = archiveResult[0][0].book_title_uuid;
-      const bookTitleUUID = archiveResult[0].book_title_uuid; 
+//       const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+//       console.log("working2");
+//       console.log({ bookTitleUUID });
 
-      console.log("working2");
-      console.log({ bookTitleUUID });
+//       // Reduce total_count and available_count in book_titles
+//       await this.booktitleRepository.query(
+//         `UPDATE book_titles 
+//         SET 
+//         total_count = GREATEST(total_count - 1, 0), 
+//           available_count = GREATEST(available_count - 1, 0)
+//         WHERE book_uuid = $1`,
+//         [book_copy_uuid],
+//       );
+//     //  const count= await this.booktitleRepository.query(`SELECT COUNT(*) FROM book_copies WHERE book_title_uuid=$1`,[book_copy_uuid])
+//       //  await this.booktitleRepository.query(
+//       //   `UPDATE book_titles 
+//       //   SET 
+//       //   total_count =$2 , 
+//       //     available_count =$2 
+//       //   WHERE book_uuid = $1`,
+//       //   [bookTitleUUID,count],
+//       // );
+//       console.log("working3");
+//       return { success: true, message: 'Book copy archived successfully' };
+//     } catch (error) {
+//       console.log(error);
+//       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//     }
+//   }
 
-      // Reduce total_count and available_count in book_titles
-      // await this.booktitleRepository.query(
-      //   `UPDATE book_titles 
-      //   SET 
-      //   total_count = GREATEST(total_count - 1, 0), 
-      //     available_count = GREATEST(available_count - 1, 0)
-      //   WHERE book_uuid = $1`,
-      //   [book_copy_uuid],
-      // );
-     const countResult= await this.booktitleRepository.query(`SELECT COUNT(*) FROM book_copies WHERE book_title_uuid=$1`,[book_copy_uuid])
-     const count = parseInt(countResult[0].count, 10);
-      console.log(count);
-     await this.booktitleRepository.query(
-        `UPDATE book_titles 
-        SET 
-        total_count =$2 , 
-          available_count =$2 
-        WHERE book_uuid = $1`,
-        [bookTitleUUID,count],
-      );
-      console.log("working3");
-      return { success: true, message: 'Book copy archived successfully' };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+async archiveBookCopy(book_copy_uuid: string) {
+  try {
+    console.log("Archiving book copy...");
+
+    // Archive the book copy and get the bookTitleUUID
+    const archiveResult = await this.bookcopyRepository.query(
+      `UPDATE book_copies 
+      SET is_archived = true 
+      WHERE book_copy_uuid = $1 
+      RETURNING book_title_uuid`,
+      [book_copy_uuid]
+    );
+
+    console.log("Archive result:", archiveResult);
+
+    // Ensure that a book copy was updated
+    if (!archiveResult.length) {
+      throw new Error("Book copy not found or already archived");
     }
+
+    // Extract bookTitleUUID correctly
+    const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+    console.log("Book Title UUID:", bookTitleUUID);
+
+    // Reduce total_count and available_count in book_titles
+    await this.booktitleRepository.query(
+      `UPDATE book_titles 
+      SET 
+        total_count = GREATEST(total_count - 1, 0), 
+        available_count = GREATEST(available_count - 1, 0)
+      WHERE book_uuid = $1`,
+      [bookTitleUUID]
+    );
+
+    console.log("Book title counts updated.");
+    return { success: true, message: "Book copy archived successfully" };
+  } catch (error) {
+    console.error("Error archiving book copy:", error);
+    throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   }
+}
+
+
 
   async restoreBookCopy(book_copy_uuid: string) {
     try {
@@ -1600,7 +1653,7 @@ console.log("working1");
   async getFullFeeListStudent() {
     try {
       const result = await this.booktitleRepository
-        .query(`SELECT  fees_penalties.borrower_uuid,students_table.student_name, students_table.student_id, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount, book_copies.book_copy_id FROM  fees_penalties
+        .query(`SELECT fees_penalties.borrower_uuid,students_table.student_name, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
          INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
         INNER JOIN  book_copies on fees_penalties.book_copy_uuid=book_copies.book_copy_uuid`);
       if (result.length === 0) {
