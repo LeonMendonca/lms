@@ -918,7 +918,9 @@ console.log("working1");
         throw new Error('Book copy not found or already archived');
       }
 
-      const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+      // const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+      const bookTitleUUID = archiveResult[0].book_title_uuid; 
+
       console.log("working2");
       console.log({ bookTitleUUID });
 
@@ -931,8 +933,10 @@ console.log("working1");
       //   WHERE book_uuid = $1`,
       //   [book_copy_uuid],
       // );
-     const count= await this.booktitleRepository.query(`SELECT COUNT(*) FROM book_copies WHERE book_title_uuid=$1`,[book_copy_uuid])
-       await this.booktitleRepository.query(
+     const countResult= await this.booktitleRepository.query(`SELECT COUNT(*) FROM book_copies WHERE book_title_uuid=$1`,[book_copy_uuid])
+     const count = parseInt(countResult[0].count, 10);
+      console.log(count);
+     await this.booktitleRepository.query(
         `UPDATE book_titles 
         SET 
         total_count =$2 , 
@@ -1596,7 +1600,7 @@ console.log("working1");
   async getFullFeeListStudent() {
     try {
       const result = await this.booktitleRepository
-        .query(`SELECT fees_penalties.borrower_uuid,students_table.student_name, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
+        .query(`SELECT  fees_penalties.borrower_uuid,students_table.student_name, students_table.student_id, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount, book_copies.book_copy_id FROM  fees_penalties
          INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
         INNER JOIN  book_copies on fees_penalties.book_copy_uuid=book_copies.book_copy_uuid`);
       if (result.length === 0) {
