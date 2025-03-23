@@ -3,6 +3,7 @@ import { Students } from "src/students/students.entity";
 import { DataSource } from "typeorm";
 
 import { config } from "dotenv";
+import { bootstrap } from "src/main";
 
 config({ path: '.env' })
 

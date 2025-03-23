@@ -1,31 +1,28 @@
 import { parentPort, workerData } from "worker_threads";
-import { dataSource } from "../datasource-typeorm";
-import { Repository } from "typeorm";
-import { Students } from "src/students/students.entity";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
+import { pool } from "../pg.connect";
 
 
 (async() => {
     let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
-    let arrOfArchivedStatus: string[] = [];
 
-    const dataSourceInit = await dataSource.initialize();
-    const studentRepo: Repository<Students> = dataSourceInit.getRepository(Students);
+    let bulkQuery1 = 'UPDATE students_table SET is_archived = TRUE WHERE student_uuid IN ';
+
+    let bulkQuery2 = '(';
+    for(const element of arrOfUUID) {
+        bulkQuery2 += `'${element}',`
+    }
+    bulkQuery2 = bulkQuery2.slice(0, -1);
+    bulkQuery2 += ')';
+
+    const finalQuery = bulkQuery1 + bulkQuery2;
+
+    console.log("FINAL QUERY", finalQuery)
     try {
-        for (const uuid of arrOfUUID) {
-            let result: [[], number] = await studentRepo.manager.query(`
-                UPDATE students_table SET is_archived = true WHERE student_uuid = '${uuid}' AND is_archived = false`
-            );
-            if(!result[1]) {
-                arrOfArchivedStatus.push(`Unable to archive ${uuid}`);
-            } else {
-                arrOfArchivedStatus.push(`Succesfully archived ${uuid}`);
-            }
-        }
-        (parentPort ? parentPort.postMessage(arrOfArchivedStatus) : "Parent Port NULL" );
+        await pool.query(finalQuery);
+        parentPort?.postMessage("Archived Successful")
     }
     catch (error) {
-        (parentPort ? parentPort.postMessage(error.message) : "Parent Port NULL" );
+        parentPort?.postMessage("Something went wrong while bulk archiving")
     }
-
 })()

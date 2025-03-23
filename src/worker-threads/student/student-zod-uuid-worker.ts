@@ -15,4 +15,4 @@ workerData.oneDArray.filter((item: any) => {
     }
 })
 
-(parentPort ? parentPort.postMessage(newArr) : "Parent Port NULL" );
+parentPort?.postMessage(newArr);

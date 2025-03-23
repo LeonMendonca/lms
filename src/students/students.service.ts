@@ -24,7 +24,6 @@ export class StudentsService {
     private studentsRepository: Repository<Students>,
   ) {}
 
-
   async findAllStudents({
     page,
     limit,
@@ -42,7 +41,7 @@ export class StudentsService {
     const searchQuery = search ? `%${search}%` : '%';
 
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
+      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 ORDER BY updated_at DESC  LIMIT $2 OFFSET $3 ',
       [searchQuery, limit, offset],
     );
 
@@ -53,30 +52,29 @@ export class StudentsService {
 
     // const queryParams: any[] = [];
     // let query = `SELECT * FROM students_table WHERE is_archived = false`;
-  
+
     // if (search) {
     //   query += ` AND student_name ILIKE $${queryParams.length + 1}`;
     //   queryParams.push(`%${search}%`);
     // }
-  
+
     // if (department) {
     //   query += ` AND department = $${queryParams.length + 1}`;
     //   queryParams.push(department);
     // }
-  
+
     // if (year) {
     //   query += ` AND year_of_admission = $${queryParams.length + 1}`;
     //   queryParams.push(year);
     // }
-  
+
     // query += ` ORDER BY year_of_admission DESC, department DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     // queryParams.push(limit, offset);
-  
+
     // const students = await this.studentsRepository.query(query, queryParams);
-  
+
     // const totalQuery = `SELECT COUNT(*) FROM students_tab
-    
-  
+
     return {
       data: students,
       pagination: {
@@ -87,16 +85,17 @@ export class StudentsService {
       },
     };
   }
-  
-  
 
   async getAllDepartments(): Promise<string[]> {
     try {
-      console.log("Fetching departments...");
+      console.log('Fetching departments...');
       const departments = await this.studentsRepository.query(
-        'SELECT DISTINCT department FROM students_table WHERE is_archived = false'
+        'SELECT DISTINCT department FROM students_table WHERE is_archived = false',
       );
-      return departments?.map((dept: { department: string }) => dept.department) || [];
+      return (
+        departments?.map((dept: { department: string }) => dept.department) ||
+        []
+      );
     } catch (error) {
       throw error;
     }
@@ -104,7 +103,8 @@ export class StudentsService {
 
   async findStudentBy(query: UnionUser) {
     try {
-      let requiredKey: keyof typeof StudentQueryValidator | undefined = undefined;
+      let requiredKey: keyof typeof StudentQueryValidator | undefined =
+        undefined;
       let value: string | undefined = undefined;
       if ('student_id' in query) {
         requiredKey = 'student_id';
@@ -115,7 +115,7 @@ export class StudentsService {
       }
 
       const result = (await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' AND is_archived = false`,
+        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' `,
       )) as TStudents[];
 
       if (result.length === 0) {
@@ -126,11 +126,10 @@ export class StudentsService {
         'password',
         'is_archived',
       ]);
-      return filteredStudentObject; 
+      return filteredStudentObject;
     } catch (error) {
       throw error;
     }
-    
   }
 
   async createStudent(studentPayload: TCreateStudentDTO) {
@@ -163,6 +162,7 @@ export class StudentsService {
   }
 
   async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
+    console.log("SERVICE calling main worker thread");
     return await (CreateWorker(
       arrStudentPayload,
       'student/student-insert-worker',
@@ -224,7 +224,7 @@ export class StudentsService {
         );
         BatchArr.push(result);
       }
-      const arrayOfUnableToArchive = ((await Promise.all(BatchArr)).flat());
+      const arrayOfUnableToArchive = (await Promise.all(BatchArr)).flat();
       //if(arrayOfUnableToArchive.length === 0) {
       //  return null;
       //}
@@ -271,11 +271,10 @@ export class StudentsService {
           limit,
           totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
         },
-      }; 
+      };
     } catch (error) {
       throw error;
     }
-    
   }
 
   async updateStudentArchive(student_uuid: string, student_id: string) {
@@ -303,152 +302,224 @@ export class StudentsService {
   }
 
   async exportAllStudents() {
-    const students = await this.studentsRepository.query(
+    const students = (await this.studentsRepository.query(
       'SELECT * from students_table WHERE is_archived = false',
-    ) as TStudents[];
+    )) as TStudents[];
 
     return {
       data: students,
     };
   }
-
-// visit log 
-async getVisitAllLog(){
-  try {
-  const data=await this.studentsRepository.query(`SELECT * FROM visit_log`);
-  return data
-  } catch (error) {
-    throw new HttpException(
-      `Error ${error} something went wrong in all log !1`,
-      HttpStatus.INTERNAL_SERVER_ERROR,);
-  }
-}
-  async getVisitLogByStudentUUID(student_id: string){
+  // visit log
+  async getVisitAllLog(
+    { page, limit }: { page: number; limit: number } = {
+      page: 1,
+      limit: 10,
+    },
+  ) {
     try {
-      return await this.studentsRepository.query(
-        `SELECT * FROM visit_log WHERE student_id = $1`, [student_id]
+      const offset = (page - 1) * limit;
+
+      const visit_log = await this.studentsRepository.query(
+        `SELECT * FROM visit_log LIMIT $1 OFFSET $2`,
+        [limit, offset],
       );
+      const total = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM visit_log`,
+      );
+      if(visit_log.length === 0){
+        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);
+      }
+      return {
+        data: visit_log,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
     } catch (error) {
       throw new HttpException(
-        `Error ${error} invalid  student_id`,
-        HttpStatus.INTERNAL_SERVER_ERROR,);
+        `Error ${error} something went wrong in all log !1`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+  //
+
+  async getVisitLogByStudentUUID({
+    student_id,
+    page,
+    limit,
+  }: {
+    student_id: string;
+    page: number;
+    limit: number;
+  }) {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Fetch paginated results
+      const visitLogs = await this.studentsRepository.query(
+        `SELECT * FROM visit_log WHERE student_id = $1 ORDER BY in_time DESC LIMIT $2 OFFSET $3`,
+        [student_id, limit, offset],
+      );
+
+      // Get the total count of records
+      const totalResult = await this.studentsRepository.query(
+        `SELECT COUNT(*) as total FROM visit_log WHERE student_id = $1`,
+        [student_id],
+      );
+
+      // const total = parseInt(totalResult[0].total, 10);
+      // const totalPages = Math.ceil(total / limit);
+ if(visitLogs.length === 0){
+        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);}
+      return {
+        data: visitLogs,
+        // pagination: {
+        //   totalRecords: total,
+        //   currentPage: page,
+        //   limitPerPage: limit,
+        //   totalPages: totalPages,
+        // },
+        pagination: {
+          total: parseInt(totalResult[0].total, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message} - Invalid student_id`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   async visitlogentry(createvisitpayload: TVisit_log) {
     try {
-        // 1. Validate if student exists
-        const result: { student_uuid: string; department: string; student_name: string; }[] =
-            await this.studentsRepository.query(
-                `SELECT student_uuid, department, student_name 
+      // 1. Validate if student exists
+      const result: {
+        student_uuid: string;
+        department: string;
+        student_name: string;
+      }[] = await this.studentsRepository.query(
+        `SELECT student_uuid, department, student_name 
                  FROM STUDENTS_TABLE 
                  WHERE STUDENT_ID=$1`,
-                [createvisitpayload.student_id]
-            );
+        [createvisitpayload.student_id],
+      );
 
-        if (result.length === 0) {
-            throw new HttpException(
-                { message: "Invalid student ID" },
-                HttpStatus.BAD_REQUEST
-            );
-        }
+      if (result.length === 0) {
+        throw new HttpException(
+          { message: 'Invalid student ID' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
-        const student_uuid = result[0].student_uuid;
+      const student_uuid = result[0].student_uuid;
 
-        // 2. Check if the student has a previous visit log
-        const lastEntry = await this.studentsRepository.query(
-            `SELECT action FROM visit_log 
+      // 2. Check if the student has a previous visit log
+      const lastEntry = await this.studentsRepository.query(
+        `SELECT action FROM visit_log 
              WHERE student_uuid = $1 
              ORDER BY in_time DESC 
              LIMIT 1`,
-            [student_uuid]
-        );
+        [student_uuid],
+      );
 
-        // 3. Ensure last action was 'exit' OR there is no record (first-time entry)
-        if (lastEntry.length > 0 && lastEntry[0].action === 'entry') {
-            throw new HttpException(
-                { message: "Previous entry not exited. Exit required before new entry." },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-
-        // 4. Insert new entry log
-        await this.studentsRepository.query(
-            `INSERT INTO visit_log (student_uuid, visitor_name, department, student_id, action, in_time, out_time) 
-             VALUES ($1, $2, $3, $4, 'entry', now(), null)`,
-            [student_uuid, result[0].student_name, result[0].department, createvisitpayload.student_id]
-        );
-
-        return {
-            message: "Visit log entry created successfully",
-            student_id: createvisitpayload.student_id,
-            timestamp: new Date().toISOString(),
-        };
-
-    } catch (error) {
+      // 3. Ensure last action was 'exit' OR there is no record (first-time entry)
+      if (lastEntry.length > 0 && lastEntry[0].action === 'entry') {
         throw new HttpException(
-            `Error: ${error.message || error} while processing visit log entry.`,
-            HttpStatus.INTERNAL_SERVER_ERROR
+          {
+            message:
+              'Previous entry not exited. Exit required before new entry.',
+          },
+          HttpStatus.BAD_REQUEST,
         );
+      }
+
+      // 4. Insert new entry log
+      await this.studentsRepository.query(
+        `INSERT INTO visit_log (student_uuid, visitor_name, department, student_id, action, in_time, out_time) 
+             VALUES ($1, $2, $3, $4, 'entry', now(), null)`,
+        [
+          student_uuid,
+          result[0].student_name,
+          result[0].department,
+          createvisitpayload.student_id,
+        ],
+      );
+
+      return {
+        message: 'Visit log entry created successfully',
+        student_id: createvisitpayload.student_id,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while processing visit log entry.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-}
+  }
 
-
-  async visitlogexit(createvlogpayload:TVisit_log) {
+  async visitlogexit(createvlogpayload: TVisit_log) {
     try {
-        // 1. Validate if student exists
-        const studentExists = await this.studentsRepository.query(
-            `SELECT * FROM students_table WHERE student_id=$1`, 
-            [createvlogpayload.student_id]
+      // 1. Validate if student exists
+      const studentExists = await this.studentsRepository.query(
+        `SELECT * FROM students_table WHERE student_id=$1`,
+        [createvlogpayload.student_id],
+      );
+
+      if (studentExists.length === 0) {
+        throw new HttpException(
+          { message: 'Invalid student ID' },
+          HttpStatus.BAD_REQUEST,
         );
+      }
 
-        if (studentExists.length === 0) {
-            throw new HttpException(
-                { message: "Invalid student ID" },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-
-        // 2. Get the last 'entry' log that has no 'out_time'
-        const lastEntry = await this.studentsRepository.query(
-            `SELECT student_uuid, in_time FROM visit_log 
+      // 2. Get the last 'entry' log that has no 'out_time'
+      const lastEntry = await this.studentsRepository.query(
+        `SELECT student_uuid, in_time FROM visit_log 
              WHERE student_id=$1 AND action='entry' AND out_time IS NULL 
              ORDER BY in_time DESC 
              LIMIT 1`,
-            [createvlogpayload.student_id]
+        [createvlogpayload.student_id],
+      );
+      // 3. Ensure there is a valid 'entry' log to update
+      if (lastEntry.length === 0) {
+        throw new HttpException(
+          {
+            message:
+              'No open entry log found. A valid entry is required before exit.',
+          },
+          HttpStatus.BAD_REQUEST,
         );
-        // 3. Ensure there is a valid 'entry' log to update
-        if (lastEntry.length === 0) {
-            throw new HttpException(
-                { message: "No open entry log found. A valid entry is required before exit." },
-                HttpStatus.BAD_REQUEST
-            );
-        }
-        // 4. Capture the current timestamp for exit
-        const exitTime = new Date().toISOString();
-        console.log("working4");
-        // 5. Update the last 'entry' log by setting 'out_time' (exit_time) and changing action to 'exit'
-        await this.studentsRepository.query(
-            `UPDATE visit_log 
+      }
+      // 4. Capture the current timestamp for exit
+      const exitTime = new Date().toISOString();
+      console.log('working4');
+      // 5. Update the last 'entry' log by setting 'out_time' (exit_time) and changing action to 'exit'
+      await this.studentsRepository.query(
+        `UPDATE visit_log 
              SET out_time = now(), action = 'exit'
              WHERE student_id = $1`,
-            [createvlogpayload.student_id]
-        );
-        return {
-            message: "Exit log updated successfully",
-            student_id: createvlogpayload.student_id,
-            timestamp: new Date().toISOString(),
-
-        };
-
+        [createvlogpayload.student_id],
+      );
+      return {
+        message: 'Exit log updated successfully',
+        student_id: createvlogpayload.student_id,
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
       throw new HttpException(
-            `Error: ${error.message || error} while processing visit log exit.`,
-            HttpStatus.INTERNAL_SERVER_ERROR
-        );
+        `Error: ${error.message || error} while processing visit log exit.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-}
-
-  
-
+  }
 }
