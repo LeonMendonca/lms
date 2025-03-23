@@ -76,11 +76,16 @@ export class BooksV2Controller {
   async getLogDetailsByTitle(
     @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+
   ) {
     try {
       return await this.booksService.getLogDetailsByTitle({
         book_title_id,
         isbn,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -94,9 +99,16 @@ export class BooksV2Controller {
   }
 
   @Get('get_logs_of_copy')
-  async getLogDetailsByCopy(@Query('_barcode') barcode: string) {
+  async getLogDetailsByCopy(
+    @Query('_barcode') barcode: string,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string
+
+  ) {
     try {
       return await this.booksService.getLogDetailsByCopy({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
         barcode,
       });
     } catch (error) {
@@ -134,8 +146,15 @@ export class BooksV2Controller {
   }
 
   @Get('get_all_available') // working
-  async getAllAvailableBooks() {
-    return await this.booksService.getAllAvailableBooks();
+  async getAllAvailableBooks( 
+    @Query('_page') page: string,
+  @Query('_limit') limit: string) {
+    return await this.booksService.getAllAvailableBooks(
+      {
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      }
+    );
   }
 
   @Get('get_available_by_isbn') // working
@@ -144,8 +163,16 @@ export class BooksV2Controller {
   }
 
   @Get('get_all_unavailable') // working
-  async getAllUnavailableBooks() {
-    return await this.booksService.getAllUnavailableBooks();
+  async getAllUnavailableBooks(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string
+  ) {
+    return await this.booksService.getAllUnavailableBooks(
+      {
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      }
+    );
   }
 
   @Get('get_unavailable_by_isbn') // working
@@ -179,7 +206,7 @@ export class BooksV2Controller {
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
-  @Get('isbn') // update by insert query helper or create  own query helper for select part// working
+  @Get('isbn') // update by insert query helper or create  own query helper for select part// not working
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
@@ -485,9 +512,16 @@ export class BooksV2Controller {
     }
   }
   @Get('get_full_feelist')
-  async getFullFeeList() {
+  async getFullFeeList(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
     try {
-      return await this.booksService.getFullFeeList();
+      return await this.booksService.getFullFeeList({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10
+      } 
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -518,9 +552,15 @@ export class BooksV2Controller {
   async generateFeeReport(
     @Query('start') start: Date,
     @Query('end') end: Date,
+     @Query('_page') page: string,
+     @Query('_limit') limit: string,
   ) {
     try {
-      return await this.booksService.generateFeeReport(start, end);
+      return await this.booksService.generateFeeReport(start,
+         end,
+        page ? parseInt(page, 10) : 1,
+        limit ? parseInt(limit, 10) : 10
+        );
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

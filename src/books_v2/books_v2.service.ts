@@ -31,6 +31,7 @@ import {
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
+import { number } from 'zod';
 
 @Injectable()
 export class BooksV2Service {
@@ -67,6 +68,9 @@ export class BooksV2Service {
         `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false LIMIT $2 OFFSET $3;`,
         [searchQuery, limit, offset],
       );
+      if(books.length===0){
+          throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
+      }
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
         WHERE is_archived = false AND book_title ILIKE $1`,
@@ -155,7 +159,9 @@ export class BooksV2Service {
         `SELECT COUNT(*) as count FROM book_copies 
         WHERE is_archived = false`,
       );
-
+      if(books.length===0){
+        throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
+      }
       return {
         data: books,
         pagination: {
@@ -210,10 +216,10 @@ export class BooksV2Service {
 
       console.log({ book });
       console.log('THIS IS THE UUID', book[0]);
-
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
+      
 
       const books = await this.bookcopyRepository.query(
         `   SELECT 
@@ -248,10 +254,12 @@ export class BooksV2Service {
       );
 
       const totalResult = await this.booktitleRepository.query(
-        `SELECT COUNT(*) as total FROM book_copies `,
+        `SELECT COUNT(*) as total FROM book_copies where book_title_uuid = $1`,[book[0].book_uuid],
       );
       console.log({ books });
-
+      if (books.length === 0) {
+        throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
+      }
       return {
        data: books,
        pagination:{
@@ -311,7 +319,10 @@ export class BooksV2Service {
         LIMIT $2 OFFSET $3`,
         [searchQuery, limit, offset],
       );
-      console.log(books);
+      // console.log(books);
+      if(books.length===0){
+        throw new HttpException('Archived Book data not found', HttpStatus.NOT_FOUND);
+      }
 
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
@@ -354,7 +365,9 @@ export class BooksV2Service {
         `SELECT COUNT(*) as count FROM book_copies 
         WHERE is_archived = true`,
       );
-
+      if(books.length===0){
+        throw new HttpException('Archived Book data not found', HttpStatus.NOT_FOUND);
+      }
       return {
         data: books,
         pagination: {
@@ -408,12 +421,13 @@ export class BooksV2Service {
         LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
-
       const total = await this.bookcopyRepository.query(
         `SELECT COUNT(*) as count FROM book_copies 
         WHERE is_archived = false AND is_available = true`,
       );
-
+       if(books.length===0){
+        throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
+       }
       return {
         data: books,
         pagination: {
@@ -473,7 +487,8 @@ export class BooksV2Service {
         `SELECT COUNT(*) as count FROM book_copies 
         WHERE is_archived = false AND is_available = false`,
       );
-
+if(books.length===0){
+  throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);}
       return {
         data: books,
         pagination: {
@@ -515,7 +530,9 @@ export class BooksV2Service {
       const total = await this.booklogRepository.query(
         `SELECT COUNT(*) as count FROM book_logv2`,
       );
-
+      if(studentLogs.length===0){
+        throw new HttpException('Book log data not found', HttpStatus.NOT_FOUND);
+      }
       return {
         // data: { booksTitleLogs, booksCopiesLogs, studentLogs },
         data: studentLogs,
@@ -532,14 +549,19 @@ export class BooksV2Service {
   }
 
   async getLogDetailsByTitle({
+    page,
+    limit,
     book_title_id,
     isbn,
   }: {
+    page: number;
+    limit: number;
     book_title_id: string;
     isbn: string;
   }) {
+    const offset = (page - 1) * limit;
     try {
-      let query = `SELECT book_copy_uuid, action, time, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
+      let query = `SELECT book_copy_uuid, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
       FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`;
       const queryValue: string[] = [];
 
@@ -555,7 +577,12 @@ export class BooksV2Service {
         );
         queryValue.push(isbn);
       }
+       query = query.concat(
+          ` AND book_titles.isbn = $${queryValue.length + 1}`,
+        );
       const logs = await this.booklogRepository.query(query, queryValue);
+       if(logs.length===0){
+          throw new HttpException('Book log data not found', HttpStatus.NOT_FOUND);}
       return {
         data: logs,
       };
@@ -564,23 +591,42 @@ export class BooksV2Service {
     }
   }
 
-  async getLogDetailsByCopy({ barcode }: { barcode: string }) {
+  async getLogDetailsByCopy({ barcode,
+    page,
+    limit }: { 
+      barcode: string
+    page: number,
+    limit: number
+     }) {
     try {
-      const book = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
+      const offset = (page - 1) * limit;      
+      const book:{book_copy_uuid:string}[] = await this.bookcopyRepository.query(
+        
+        `SELECT book_copy_uuid FROM book_copies 
         WHERE barcode = $1`,
         [barcode],
       );
-
-      console.log('Book', book[0]);
-
+      console.log('Book', book[0].book_copy_uuid);
       const logs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
-        WHERE book_copy_uuid = $1`,
-        [book[0].book_copy_uuid],
+        WHERE book_copy_uuid = $1  LIMIT $2 OFFSET $3`,
+        [book[0].book_copy_uuid ,limit, offset],
       );
+      if(logs.length===0){
+          throw new HttpException('Book log data not found', HttpStatus.NOT_FOUND);
+        }
+        const totalCount = await this.booklogRepository.query(
+          `SELECT COUNT(*) FROM book_logv2 WHERE book_copy_uuid = $1`,
+          [book[0].book_copy_uuid]);
+
       return {
         data: logs,
+        pagination:{
+          totalCount:parseInt(totalCount[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(totalCount[0].count, 10) / limit),
+        }
       };
     } catch (error) {
       throw error;
@@ -611,6 +657,9 @@ export class BooksV2Service {
          AND students_table.student_id = $1`,
         [student_id],
       );
+      if(result.length===0){
+        throw new HttpException('Book log data not found', HttpStatus.NOT_FOUND);
+      }
       return {
         data: result,
         pagination: {
@@ -1045,7 +1094,9 @@ async archiveBookCopy(book_copy_uuid: string) {
     }
   }
 
-  async isbnBook(isbn: string) {
+  async isbnBook(
+    isbn: string,
+  ) {
     const result = await this.booktitleRepository.query(`
       SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.
       language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,
@@ -1634,10 +1685,18 @@ async archiveBookCopy(book_copy_uuid: string) {
       throw error;
     }
   }
-  async getFullFeeList() {
-    try {
+  async getFullFeeList({page,
+    limit} :{
+    page: number,
+    limit: number ,
+    }) {
+    try { 
+      const offset = (page - 1) * limit;
+
       const result = await this.booktitleRepository.query(
-        `SELECT * FROM  fees_penalties`,
+        `SELECT * FROM  fees_penalties LIMIT $1 OFFSET $2`,[limit,offset]
+      );  const total = await this.booktitleRepository.query(
+        `SELECT * FROM  fees_penalties LIMIT $1 OFFSET $2`,[limit,offset]
       );
       if (result.length === 0) {
         throw new HttpException(
@@ -1645,7 +1704,16 @@ async archiveBookCopy(book_copy_uuid: string) {
           HttpStatus.ACCEPTED,
         );
       }
-      return result;
+      return {
+        data: result,
+        pagination:{
+          page,
+          limit,
+          total: parseInt(total[0].count,10),
+          totalPage: Math.ceil(parseInt(total[0].count,10)/limit)
+        }
+      }
+      result;
     } catch (error) {
       throw error;
     }
@@ -1667,18 +1735,34 @@ async archiveBookCopy(book_copy_uuid: string) {
       throw error;
     }
   }
-  async generateFeeReport(start: Date, end: Date) {
+  async generateFeeReport(start: Date, end: Date, page: number, limit: number) {
     try {
+      const offset = (page - 1) * limit;
+
       const result = await this.booktitleRepository.query(
-        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2;`,
-        [start, end],
+        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ;`,
+        [start, end , limit, offset],
       );
+      const total = await this.booktitleRepository.query(
+        `SELECT count (*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 ;`,
+        [start, end ],
+      );
+      return {
+        data: result,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
       //  console.log(result);
       if (result.length === 0) {
         throw new HttpException(
           { message: 'No data found!!' },
           HttpStatus.ACCEPTED,
         );
+
       }
     } catch (error) {
       throw error;

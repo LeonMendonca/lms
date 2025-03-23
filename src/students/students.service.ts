@@ -327,6 +327,9 @@ export class StudentsService {
       const total = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM visit_log`,
       );
+      if(visit_log.length === 0){
+        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);
+      }
       return {
         data: visit_log,
         pagination: {
@@ -371,7 +374,8 @@ export class StudentsService {
 
       // const total = parseInt(totalResult[0].total, 10);
       // const totalPages = Math.ceil(total / limit);
-
+ if(visitLogs.length === 0){
+        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);}
       return {
         data: visitLogs,
         // pagination: {
