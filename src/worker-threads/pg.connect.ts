@@ -22,6 +22,10 @@ pool.on('release', (err, client) => {
     }
 });
 
+pool.on('remove', (client) => {
+    console.log("A client has been removed from the Pool", "\n Total Count", pool.totalCount);
+})
+
 pool.on('error', (err, client) => {
     if(!err) {
         console.log('pool error listener');

@@ -224,11 +224,8 @@ export class StudentsService {
         );
         BatchArr.push(result);
       }
-      const arrayOfUnableToArchive = (await Promise.all(BatchArr)).flat();
-      //if(arrayOfUnableToArchive.length === 0) {
-      //  return null;
-      //}
-      return arrayOfUnableToArchive;
+      const arrayOfArchived = (await Promise.all(BatchArr)).flat();
+      return arrayOfArchived;
     } catch (error) {
       throw error;
     }

@@ -29,6 +29,7 @@ export class Students {
   })
   email: 'email' = 'email';
 
+  //n
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password: 'password' = 'password';
 
@@ -40,6 +41,7 @@ export class Students {
   })
   studentName: 'student_name' = 'student_name';
 
+  //n
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: 'date_of_birth' = 'date_of_birth';
 
@@ -60,8 +62,14 @@ export class Students {
   })
   phoneNo: 'phone_no' = 'phone_no';
 
+  //n
   @Column({ name: 'address', type: 'text', nullable: true })
   address: 'address' = 'address';
+
+  //instinstnumber/deptabbrserialno
+
+  //dept uuid
+  //new column
 
   @Column({
     name: 'department',

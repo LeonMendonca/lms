@@ -21,16 +21,26 @@ import { pool } from "../pg.connect";
     bulkQuery2 = bulkQuery2.slice(0, -1);
     bulkQuery2 += ')';
 
-    const finalQuery = bulkQuery1 + bulkQuery2;
+    let bulkQuery3 = 'AND is_archived = FALSE RETURNING student_uuid'
+
+    const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3;
 
     //console.log("FINAL QUERY", finalQuery)
     try {
-        await client.query(finalQuery);
-        parentPort?.postMessage("Archived Successful")
+        const result = await client.query(finalQuery);
+
+        if(!result.rows.length) {
+            throw new Error("Failed to archive or already archived");
+        }
+
+        parentPort?.postMessage("Archived Successful") ?? "Parent Port NULL";
     }
     catch (error) {
-        client.release();
-        parentPort?.postMessage("Something went wrong while bulk archiving")
+        let errorMessage = "Something went wrong while bulk archiving";
+        if(error instanceof Error) {
+            errorMessage = error.message;
+        }
+        parentPort?.postMessage(errorMessage) ?? "Parent Port NULL";
     }
-    client.release();
+    client.release(true);
 })()
