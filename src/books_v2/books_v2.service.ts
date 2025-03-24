@@ -441,7 +441,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error
     }
   }
 
@@ -455,6 +455,9 @@ export class BooksV2Service {
         `,
         [isbn],
       );
+      if(bookTitle.length==0){
+        throw new HttpException("invalid isbn !!",HttpStatus.BAD_GATEWAY)
+      }
       //console.log({ bookTitle });
       const result = await this.bookcopyRepository.query(
         `
@@ -466,7 +469,7 @@ export class BooksV2Service {
       //console.log(result);
       return result;
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      throw error
     }
   }
 
@@ -1135,8 +1138,8 @@ async archiveBookCopy(book_copy_uuid: string) {
       book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,
       book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.title_images,
       book_titles.title_additional_fields,book_titles.title_description,book_titles.no_of_pages,book_titles.no_of_preliminary,
-      book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1
-   `);
+      book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn= $1 LIMIT 1
+   `,[isbn]);
     if (result.length === 0) {
       throw new Error('No data found');
     }

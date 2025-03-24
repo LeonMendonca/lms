@@ -14,14 +14,14 @@ let studentCreateObject = createObjectOmitProperties(new Students(), [
 
 export const createStudentSchema = z
   .object({
-    [studentCreateObject.email]: z.string().email(),
+    [studentCreateObject.email]: z.string().email() ,
 
-    [studentCreateObject.password]: z.string(),
+    [studentCreateObject.password]: z.string().optional(),
 
-    //doesn't include in Class, but required for password validation
-    confirm_password: z.string(),
+    //doesn't include in Class, but required for password validation   add department uuid and image field
+    confirm_password: z.string().optional(),
 
-    [studentCreateObject.dateOfBirth]: z.string().date(),
+    [studentCreateObject.dateOfBirth]: z.string().date().optional(),
 
     [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
 
@@ -47,7 +47,7 @@ export const createStudentSchema = z
     [studentCreateObject.yearOfAdmission]: z.coerce
       .number()
       .min(1999)
-      .max(new Date().getFullYear()),
+      .max(new Date().getFullYear()).optional(),
 
     [studentCreateObject.phoneNo]: z.string().refine(
       (phno) => {
@@ -63,13 +63,8 @@ export const createStudentSchema = z
 
     [studentCreateObject.instituteName]: z.string().min(2),
 
-    [studentCreateObject.instituteId]: z.string().uuid(),
+    [studentCreateObject.instituteId]: z.string().uuid().optional(),
+    [studentCreateObject.imageField]:z.string().optional(),
   })
-  .refine(
-    (zod) => {
-      return zod.password === zod.confirm_password;
-    },
-    { message: "Password doesn't match" },
-  );
-
+  
 export type TCreateStudentDTO = z.infer<typeof createStudentSchema>;

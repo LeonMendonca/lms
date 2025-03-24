@@ -16,6 +16,9 @@ export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
   studentUUID: "student_uuid" = 'student_uuid';
 
+@Column({ name:'department_uuid', type:'uuid', nullable:true })
+departmentUUID:'department_uuid'='department_uuid';
+
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
   // relation 
@@ -49,7 +52,7 @@ export class Students {
   @Column({ name: 'roll_no', type: 'int', nullable: true })
   rollNo: 'roll_no' = 'roll_no';
 
-  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  @Column({ name: 'institute_name', type: 'varchar',length:255, nullable: true })
   instituteName: 'institute_name' = 'institute_name';
 
   @Column({
@@ -91,6 +94,10 @@ export class Students {
     default: false,
   })
   isArchived: 'is_archived' = 'is_archived';
+
+  @Column({ name:'image_field', type:'varchar', nullable:true })
+  imageField:'image_field'='image_field';
+
 
   @CreateDateColumn({ name: "created_at" })
   createdAt: "created_at" = "created_at";

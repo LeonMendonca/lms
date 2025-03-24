@@ -159,7 +159,15 @@ export class BooksV2Controller {
 
   @Get('get_available_by_isbn') // working
   async getavailablebookbyisbn(@Query('_isbn') isbn: string) {
-    return await this.booksService.getunavailablebookbyisbn(isbn);
+    try {
+      return await this.booksService.getavailablebookbyisbn(isbn);
+    } catch (error) {
+      if(!(error instanceof HttpException)){
+        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      }
+      throw error
+
+    }
   }
 
   @Get('get_all_unavailable') // working
@@ -177,7 +185,14 @@ export class BooksV2Controller {
 
   @Get('get_unavailable_by_isbn') // working
   async getunavailablebookbyisbn(@Query('_isbn') isbn: string) {
-    return await this.booksService.getunavailablebookbyisbn(isbn);
+    try {
+      return await this.booksService.getunavailablebookbyisbn(isbn);
+    } catch (error) {
+      if(!(error instanceof HttpException)){
+        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      }
+      throw error
+    }
   }
 
   // @Get('isarchiveT')
@@ -210,7 +225,7 @@ export class BooksV2Controller {
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
-      return result[0];
+      return result;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
