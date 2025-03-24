@@ -72,14 +72,19 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
   try {
     start = Date.now();
     const result = await client.query(finalQuery);
-    client.release();
+    if(!result.rows.length) {
+      throw new Error("Data already exists, Failed to Insert!");
+    }
     parentPort?.postMessage(result.rows) ?? 'Parent port is null'
     //console.log("Inserted in ", Date.now() - start);
   } catch (error) {
-    console.error(error.message);
-    client.release();
+      let errorMessage = "Something went wrong while bulk inserting";
+      if(error instanceof Error) {
+        errorMessage = error.message;
+      }
     //console.log("this insert worker ended at", Date.now() - start, 'ms', false);
-    parentPort?.postMessage(error.message) ?? 'Parent port is null'
+      parentPort?.postMessage(errorMessage) ?? 'Parent port is null'
   }
+  client.release(true);
   //console.log("this insert worker ended at", Date.now() - start, 'ms', true);
 })();

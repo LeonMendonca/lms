@@ -32,7 +32,9 @@ import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
 import { number } from 'zod';
-import { error } from 'console';
+import { TbookUUIDZod } from './zod/bookuuid-zod';
+import { Chunkify } from 'src/worker-threads/chunk-array';
+import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 
 @Injectable()
 export class BooksV2Service {
@@ -1126,6 +1128,23 @@ async archiveBookCopy(book_copy_uuid: string) {
         'Error restoring book',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async bulkDelete(arrBookUUIDPayload: TbookUUIDZod[]) {
+    try {
+      const zodValidatedBatchArr: TbookUUIDZod[][] = Chunkify(
+        arrBookUUIDPayload,
+      );
+      const BatchArr: Promise<TbookUUIDZod[]>[] = [];
+      for(let i = 0; i < zodValidatedBatchArr.length; i ++) {
+        const result = CreateWorker<TbookUUIDZod>(zodValidatedBatchArr[i], 'book/book-archive-worker');
+        BatchArr.push(result);
+      }
+      const arrayOfArchived = (await Promise.all(BatchArr)).flat();
+      return arrayOfArchived;
+    } catch (error) {
+      throw error;
     }
   }
 

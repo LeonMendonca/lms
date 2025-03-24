@@ -16,8 +16,8 @@ export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
   studentUUID: "student_uuid" = 'student_uuid';
 
-@Column({ name:'department_uuid', type:'uuid', nullable:true })
-departmentUUID:'department_uuid'='department_uuid';
+  @Column({ name:'department_uuid', type:'uuid', nullable:true })
+  departmentUUID:'department_uuid'='department_uuid';
 
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
@@ -32,6 +32,7 @@ departmentUUID:'department_uuid'='department_uuid';
   })
   email: 'email' = 'email';
 
+  //n
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password: 'password' = 'password';
 
@@ -43,6 +44,7 @@ departmentUUID:'department_uuid'='department_uuid';
   })
   studentName: 'student_name' = 'student_name';
 
+  //n
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: 'date_of_birth' = 'date_of_birth';
 
@@ -63,8 +65,14 @@ departmentUUID:'department_uuid'='department_uuid';
   })
   phoneNo: 'phone_no' = 'phone_no';
 
+  //n
   @Column({ name: 'address', type: 'text', nullable: true })
   address: 'address' = 'address';
+
+  //instinstnumber/deptabbrserialno
+
+  //dept uuid
+  //new column
 
   @Column({
     name: 'department',

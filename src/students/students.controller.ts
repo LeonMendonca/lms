@@ -346,7 +346,7 @@ export class StudentsController {
         limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
-      console.log(error);
+      //nsole.log(error);
     }
   }
   //   @Get('visitlog_by_id')
