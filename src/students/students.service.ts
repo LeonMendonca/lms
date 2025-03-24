@@ -522,4 +522,16 @@ export class StudentsService {
       );
     }
   }
+  async student_profile(student_id){
+    try {
+      const result= await this.studentsRepository.query(`SELECT student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`,[student_id]) 
+     if(result.length==0){
+      throw new HttpException("invalid Student ID !!",HttpStatus.BAD_GATEWAY);
+     }
+      return result
+    } catch (error) {
+      throw error
+    }
+
+  }
 }

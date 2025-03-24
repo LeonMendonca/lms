@@ -316,7 +316,14 @@ export class BooksV2Controller {
   async archiveBookCopy(
     @Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string,
   ) {
-    return await this.booksService.archiveBookCopy(book_copy_uuid);
+    try {
+      return await this.booksService.archiveBookCopy(book_copy_uuid);
+    } catch (error) {
+      if(!(error instanceof HttpException)){
+        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      }
+      throw error
+    }
   }
 
   @Get('get_archived_book_copy') //working
