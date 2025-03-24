@@ -4,7 +4,11 @@ import { createStudentSchema, TCreateStudentDTO } from "src/students/zod-validat
 const newArr: TCreateStudentDTO[] = [];
 const newErrArr: any[] = [];
 
-workerData.oneDArray.filter((item: any)=> {
+//console.log("Worker Date is", workerData)
+
+//console.log("First element", workerData.oneDArray[0]);
+
+workerData.oneDArray.forEach((item: any)=> {
     let result = createStudentSchema.safeParse(item);
     if(result.success) {
         newArr.push(result.data)
@@ -15,4 +19,4 @@ workerData.oneDArray.filter((item: any)=> {
     }
 })
 
-(parentPort ? parentPort.postMessage(newArr) : "Parent Port NULL" );
+parentPort?.postMessage(newArr)

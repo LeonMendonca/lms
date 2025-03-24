@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { VisitLog } from './visitlog.entity';
 
 export const Department = {
@@ -16,9 +16,14 @@ export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
   studentUUID: "student_uuid" = 'student_uuid';
 
+  //Unsure
+  //@Column({ name:'department_uuid', type:'uuid', nullable:true })
+  //departmentUUID:'department_uuid'='department_uuid';
+
+  //student id format
+  //instinstnumber/deptabbrserialno
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
-  // relation 
  
   @Column({
     name: 'email',
@@ -29,6 +34,7 @@ export class Students {
   })
   email: 'email' = 'email';
 
+  //n
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password: 'password' = 'password';
 
@@ -40,6 +46,7 @@ export class Students {
   })
   studentName: 'student_name' = 'student_name';
 
+  //n
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: 'date_of_birth' = 'date_of_birth';
 
@@ -49,18 +56,17 @@ export class Students {
   @Column({ name: 'roll_no', type: 'int', nullable: true })
   rollNo: 'roll_no' = 'roll_no';
 
-  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  @Column({ name: 'institute_name', type: 'varchar',length:255, nullable: true })
   instituteName: 'institute_name' = 'institute_name';
 
   @Column({
     name: 'phone_no',
-    type: 'char',
-    length: 10,
+    type: 'varchar',
     nullable: true,
-    unique: true,
   })
   phoneNo: 'phone_no' = 'phone_no';
 
+  //n
   @Column({ name: 'address', type: 'text', nullable: true })
   address: 'address' = 'address';
 
@@ -74,8 +80,8 @@ export class Students {
   })
   department: 'department' = 'department';
 
-  @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: 'institute_id' = 'institute_id';
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUUID: 'institute_uuid' = 'institute_uuid';
 
   @Column({
     name: 'year_of_admission',
@@ -93,11 +99,20 @@ export class Students {
   })
   isArchived: 'is_archived' = 'is_archived';
 
+  @Column({ name:'image_field', type:'varchar', nullable:true })
+  imageField:'image_field'='image_field';
+
+
   @CreateDateColumn({ name: "created_at" })
   createdAt: "created_at" = "created_at";
 
   @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
+
+
+    // @ManyToOne(() => VisitLog, (visitlog) => visitlog.student_UUID)
+    // @JoinColumn({ name:"visitlog_student_id" })
+    // student_UUID:'student_uuid' = 'student_uuid';
 
   //  @OneToMany(() => VisitLog, (visit_log) => visit_log.student_UUID)
   //   visitlog: 'visit_log' = 'visit_log';

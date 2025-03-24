@@ -1,5 +1,6 @@
 import { CreateDateColumn, UpdateDateColumn, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
+import { VisitLog } from 'src/students/visitlog.entity';
 
 @Entity('book_copies')
 export class BookCopy {
@@ -77,6 +78,10 @@ export class BookCopy {
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: "book_title_uuid" })
   bookTitleUUID: "book_title_uuid" = "book_title_uuid";
+
+  @ManyToOne(() => VisitLog, (visitlog) => visitlog.visitlogId)
+  @JoinColumn({ name:"book_copy_visitlog_id" })
+  visitlogId:'visitlogid' = 'visitlogid';
 }
 
 const book_copy = new BookCopy();

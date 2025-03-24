@@ -1,11 +1,11 @@
 import { parentPort, workerData } from "worker_threads";
-import { studentUUIDZod, TstudentUUIDZod } from "../../students/zod-validation/studentuuid-zod";
+import { bookUUIDZod, TbookUUIDZod } from "../../books_v2/zod/bookuuid-zod";
 
-const newArr: TstudentUUIDZod[] = [];
+const newArr: TbookUUIDZod[] = [];
 const newErrArr: any[] = [];
 
 workerData.oneDArray.filter((item: any) => {
-    let result = studentUUIDZod.safeParse(item);
+    let result = bookUUIDZod.safeParse(item);
     if(result.success) {
         newArr.push(result.data);
     }

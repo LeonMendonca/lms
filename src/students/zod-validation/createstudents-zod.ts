@@ -2,74 +2,68 @@ import { z } from 'zod';
 import { Gender, Students } from '../students.entity';
 import { createObjectOmitProperties } from '../../misc/create-object-from-class';
 
-let GenderArr: readonly string[] = Object.keys(Gender)
+let GenderArr: readonly string[] = Object.keys(Gender);
 
 let studentCreateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
   'isArchived',
   'createdAt',
-  'updatedAt'
+  'updatedAt',
 ]);
 
-export const createStudentSchema = z
-  .object({
-    [studentCreateObject.email]: z.string().email(),
+export const createStudentSchema = z.object({
+  [studentCreateObject.email]: z.string().email(),
 
-    [studentCreateObject.password]: z.string(),
+  [studentCreateObject.password]: z.string().optional(),
 
-    //doesn't include in Class, but required for password validation
-    confirm_password: z.string(),
-
-    [studentCreateObject.dateOfBirth]: z.string().date(),
-
-    [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
-
-    [studentCreateObject.address]: z
-      .string()
-      .min(1, 'Address is required')
-      .max(200, 'Address must be less than 200 characters'),
-
-    [studentCreateObject.rollNo]: z.number().refine(
-      (r_num) => {
-        return r_num > 0 && r_num <= 10000;
-      },
-      {
-        message: 'Not a valid RollNo',
-      },
-    ),
-
-    [studentCreateObject.studentName]: z
-      .string()
-      .min(1, 'Full name is required')
-      .max(100, 'Full name must be less than 100 characters'),
-
-    [studentCreateObject.yearOfAdmission]: z.coerce
-      .number()
-      .min(1999)
-      .max(new Date().getFullYear()),
-
-    [studentCreateObject.phoneNo]: z.string().refine(
-      (phno) => {
-        return !isNaN(Number(phno)) && phno.length === 10;
-      },
-      {
-        message: 'Not a valid Phone number number',
-      },
-    ),
-    [studentCreateObject.department]: z.string({
-      message: 'Department requires it or electrical',
+  [studentCreateObject.dateOfBirth]: z
+    .string()
+    .trim()
+    .transform((val) => (val === '' ? null : val))
+    .nullable()
+    .optional()
+    .refine((val) => val === null || !isNaN(Date.parse(val as string)), {
+      message: 'Invalid date format',
     }),
 
-    [studentCreateObject.instituteName]: z.string().min(2),
+  [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
 
-    [studentCreateObject.instituteId]: z.string().uuid(),
-  })
-  .refine(
-    (zod) => {
-      return zod.password === zod.confirm_password;
+  [studentCreateObject.address]: z
+    .string()
+    .min(1, 'Address is required')
+    .max(200, 'Address must be less than 200 characters')
+    .optional(),
+
+  [studentCreateObject.rollNo]: z.number().refine(
+    (r_num) => {
+      return r_num > 0 && r_num <= 10000;
     },
-    { message: "Password doesn't match" },
-  );
+    {
+      message: 'Not a valid RollNo',
+    },
+  ),
+
+  [studentCreateObject.studentName]: z
+    .string()
+    .min(1, 'Full name is required')
+    .max(100, 'Full name must be less than 100 characters'),
+
+  [studentCreateObject.yearOfAdmission]: z.coerce
+    .number()
+    .min(1999)
+    .max(new Date().getFullYear())
+    .optional(),
+
+  [studentCreateObject.phoneNo]: z.string(),
+  [studentCreateObject.department]: z.string({
+    message: 'Department requires it or electrical',
+  }),
+
+  [studentCreateObject.instituteName]: z.string().min(2),
+
+  [studentCreateObject.instituteUUID]: z.string().uuid().optional(),
+  [studentCreateObject.imageField]: z.string().optional(),
+});
 
 export type TCreateStudentDTO = z.infer<typeof createStudentSchema>;
