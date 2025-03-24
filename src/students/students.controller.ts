@@ -415,4 +415,19 @@ export class StudentsController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Get('student-profile')
+  async student_profile(
+    @Query('_student_id') student_id:string
+  ){
+    try {
+      return await this.studentsService.student_profile(student_id);
+    } catch (error) {
+      if(!(error instanceof HttpException)){
+        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      }
+      throw error
+    }
+
+  }
 }

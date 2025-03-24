@@ -32,6 +32,7 @@ import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
 import { number } from 'zod';
+import { error } from 'console';
 
 @Injectable()
 export class BooksV2Service {
@@ -360,6 +361,7 @@ export class BooksV2Service {
         LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
+
 
       const total = await this.bookcopyRepository.query(
         `SELECT COUNT(*) as count FROM book_copies 
@@ -1016,11 +1018,19 @@ if(books.length===0){
 //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
 //     }
 //   }
-
+ 
 async archiveBookCopy(book_copy_uuid: string) {
   try {
     console.log("Archiving book copy...");
 
+    const validid = await this.bookcopyRepository.query(
+      `SELECT * FROM book_copies WHERE book_copy_uuid= $1 and is_archived=false`,
+      [book_copy_uuid]
+    );
+    if(validid.length==0){
+       throw new HttpException("Book is already is archived !!",HttpStatus.BAD_GATEWAY)
+    }
+   
     // Archive the book copy and get the bookTitleUUID
     const archiveResult = await this.bookcopyRepository.query(
       `UPDATE book_copies 
@@ -1054,7 +1064,6 @@ async archiveBookCopy(book_copy_uuid: string) {
     console.log("Book title counts updated.");
     return { success: true, message: "Book copy archived successfully" };
   } catch (error) {
-    console.error("Error archiving book copy:", error);
     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   }
 }
