@@ -549,21 +549,21 @@ if(books.length===0){
   }
 
   async getLogDetailsByTitle({
-    page,
-    limit,
     book_title_id,
     isbn,
+    page,
+    limit
   }: {
-    page: number;
-    limit: number;
     book_title_id: string;
     isbn: string;
+    page:number
+    limit:number
   }) {
-    const offset = (page - 1) * limit;
     try {
+      const offset= (page-1)*limit;
       let query = `SELECT book_copy_uuid, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
       FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`;
-      const queryValue: string[] = [];
+      const queryValue: string[] = [] ;
 
       if (book_title_id) {
         query = query.concat(
@@ -577,20 +577,27 @@ if(books.length===0){
         );
         queryValue.push(isbn);
       }
-       query = query.concat(
-          ` AND book_titles.isbn = $${queryValue.length + 1}`,
-        );
+      query = query.concat(
+        ` LIMIT $${queryValue.length + 1} OFFSET $${queryValue.length + 2}`,
+      );
+      queryValue.push(`${limit}`);
+      queryValue.push(`${offset}`);
+      const totalResult=await this.bookcopyRepository.query(`SELECT count(*) FROM F`)
+
       const logs = await this.booklogRepository.query(query, queryValue);
-       if(logs.length===0){
-          throw new HttpException('Book log data not found', HttpStatus.NOT_FOUND);}
       return {
         data: logs,
+        agination: {
+          total: parseInt(totalResult[0].total, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+        },
       };
     } catch (error) {
       throw error;
     }
   }
-
   async getLogDetailsByCopy({ barcode,
     page,
     limit }: { 
