@@ -142,6 +142,11 @@ P1 : Testing the routes
 P2 : Simultaenuously making changes in the journals notifications
 
 
+20 March 
+P0 : Complete testing refactored journals with frontend
+P1 : Complete Notification module
+
+
 
 ---------- For Date Conversion ----------
 - Install date-fns library

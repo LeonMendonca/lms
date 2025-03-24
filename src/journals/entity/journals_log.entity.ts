@@ -38,8 +38,11 @@ export class JournalLogs {
     @Column({ name: 'description', type: 'varchar', length: 255 })
     description: 'description' = 'description';
 
+    @Column({ name: 'issn', type: 'varchar', length: 255 })
+    issn: 'issn' = 'issn';
+
     @Column({ name: 'time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    time: 'time' = 'time';
+    createdAt: 'time' = 'time';
 
     @Column({ name: 'ip_address', type: 'varchar', length: 255, nullable: true })
     ipAddress: 'ip_address' = 'ip_address';

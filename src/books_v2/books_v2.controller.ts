@@ -25,7 +25,7 @@ import { booklogV2Schema, TCreateBooklogV2DTO } from './zod/create-booklogv2-zod
 
 @Controller('book_v2')
 export class BooksV2Controller {
-  constructor(private readonly booksService: BooksV2Service) {}
+  constructor(private readonly booksService: BooksV2Service) { }
 
   // Get all books
   @Get('all')
@@ -135,7 +135,7 @@ export class BooksV2Controller {
       const result = await this.booksService.createBook(bookPayload);
       return result;
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
@@ -244,12 +244,12 @@ export class BooksV2Controller {
 
   //logs part
 
-  //@Post('borrowed')
-  //@UsePipes(new bodyValidationPipe(booklogV2Schema))
-  //async createBooklogBorrowed(
+  // @Post('borrowed')
+  // @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  // async createBooklogBorrowed(
   //  @Body() booklogPayload: TCreateBooklogV2DTO,
   //  @Req() request: Request
-  //) {
+  // ) {
   //  try {
   //    return await this.booksService.createBookBorrowed(
   //      booklogPayload, request
@@ -260,7 +260,7 @@ export class BooksV2Controller {
   //    }
   //    throw error;
   //  }
-  //}
+  // }
 
   @Post('library')
   @UsePipes(new bodyValidationPipe(booklogSchema))
@@ -304,7 +304,7 @@ export class BooksV2Controller {
     try {
       let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
       let result: Record<string, string | number> = {};
-      if(booklogPayload.action === 'borrow') {
+      if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
       } else if (booklogPayload.action === 'return') {
         result = await this.booksService.bookReturned(booklogPayload, request, status = 'returned')
@@ -313,7 +313,7 @@ export class BooksV2Controller {
       }
       return result;
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;

@@ -3,31 +3,27 @@ import { IsString, IsOptional, IsDateString, IsInt } from 'class-validator';
 export class UpdateJournalTitleDTO {
     @IsString()
     @IsOptional()
-    journalId?: string;
-
-    @IsString()
-    @IsOptional()
     journalTitle?: string;
 
     @IsString()
     @IsOptional()
-    journalAuthor?: string;
+    editorName?: string;
 
     @IsString()
     @IsOptional()
     nameOfPublisher?: string;
 
-    @IsString()
+    @IsDateString()
     @IsOptional()
-    placeOfPublication?: string;
+    subscriptionStartDate: string;
 
     @IsDateString()
     @IsOptional()
-    yearOfPublication?: string;
+    subscriptionEndDate: string;
 
     @IsString()
     @IsOptional()
-    edition?: string;
+    placeOfPublication?: string;
 
     @IsString()
     @IsOptional()
@@ -35,11 +31,11 @@ export class UpdateJournalTitleDTO {
 
     @IsString()
     @IsOptional()
-    subject?: string;
+    volumeNumber: string;
 
     @IsString()
     @IsOptional()
-    department?: string;
+    classificationNumber: string;
 
     @IsInt()
     @IsOptional()
@@ -53,11 +49,11 @@ export class UpdateJournalTitleDTO {
     remarks?: string[];
 
     @IsOptional()
-    images?: string[];
+    titleImages?: string[];
 
     @IsOptional()
-    additionalFields?: any;
+    titleAdditionalFields?: any;
 
     @IsOptional()
-    description?: string;
+    titleDescription?: string;
 }

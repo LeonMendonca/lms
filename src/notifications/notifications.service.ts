@@ -15,7 +15,7 @@ import { journalOverDue } from './html_files/journal-overdue-html';
 
 @Injectable()
 export class NotificationsService {
-    private resend: Resend
+    // private resend: Resend
 
     constructor(
         // @InjectRepository(JournalsTable) private journalsTableRepo: Repository<JournalsTable>,
@@ -24,7 +24,7 @@ export class NotificationsService {
 
         private schedulerRegistry: SchedulerRegistry,
     ) {
-        this.resend = new Resend(process.env.RESEND_API_KEY)
+        // this.resend = new Resend(process.env.RESEND_API_KEY)
     }
 
 

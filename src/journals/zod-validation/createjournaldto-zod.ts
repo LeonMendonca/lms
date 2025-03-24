@@ -5,12 +5,12 @@ import { JournalCopy } from '../entity/journals_copy.entity';
 
 const createJournalTitleObject = createObjectOmitProperties(
     new JournalTitle(),
-    ['availableCount', 'totalCount', 'updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies', 'isArchived']
+    ['updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies']
 );
 
 const createJournalCopyObject = createObjectOmitProperties(
     new JournalCopy(),
-    ['journalCopyUUID', 'isArchived', 'isAvailable', 'journalCopyId', 'updatedAt', 'createdAt']
+    ['journalCopyUUID', 'journalCopyId']
 );
 
 // Schema for Title and Copies
@@ -18,33 +18,28 @@ export const createJournalSchema = z.object({
     // Journal Title fields
 
     [createJournalTitleObject.journalTitle]: z.string(),
-    [createJournalTitleObject.journalAuthor]: z.string(),
+    [createJournalTitleObject.editorName]: z.string(),
     [createJournalTitleObject.nameOfPublisher]: z.string(),
     [createJournalTitleObject.placeOfPublication]: z.string(),
-    [createJournalTitleObject.yearOfPublication]: z.string().date(),
-    [createJournalTitleObject.edition]: z.string(),
+    [createJournalTitleObject.subscriptionStartDate]: z.string().date(),
+    [createJournalTitleObject.subscriptionEndDate]: z.string().date(),
     [createJournalTitleObject.issn]: z.string(), // add validation for issn
-    [createJournalTitleObject.noPages]: z.string(),
-    [createJournalTitleObject.noPreliminary]: z.string(),
-    [createJournalTitleObject.subject]: z.string(),
-    [createJournalTitleObject.department]: z.string(),
-    [createJournalTitleObject.callNumber]: z.string(),
-    [createJournalTitleObject.authorMark]: z.string(),
+    [createJournalTitleObject.volumeNumber]: z.string(), // add validation for issn
+    [createJournalTitleObject.classificationNumber]: z.string(),
+    [createJournalTitleObject.isArchived]: z.boolean(),
+    [createJournalTitleObject.totalCount]: z.number(),
+    [createJournalTitleObject.availableCount]: z.number(),
     [createJournalTitleObject.titleImages]: z.array(z.string()).optional(),
     [createJournalTitleObject.titleAdditionalFields]: z.record(z.any()).optional(),
     [createJournalTitleObject.titleDescription]: z.string().optional(),
 
-    // Journal Copy fields
+    // Journal Copy fields,
 
-    [createJournalCopyObject.sourceOfAcquisition]: z.string(),
-    [createJournalCopyObject.dateOfAcquisition]: z.string().date(),
-    [createJournalCopyObject.billNo]: z.string(),
-    [createJournalCopyObject.language]: z.string(),
-    [createJournalCopyObject.inventoryNumber]: z.string().optional(),
-    [createJournalCopyObject.accessionNumber]: z.string(),
     [createJournalCopyObject.barcode]: z.string(),
     [createJournalCopyObject.itemType]: z.string(),
     [createJournalCopyObject.instituteUUID]: z.string().uuid().optional(),
+    // [createJournalCopyObject.isArchived]: z.boolean(),
+    [createJournalCopyObject.isAvailable]: z.boolean(),
     [createJournalCopyObject.createdBy]: z.string().uuid().optional(),
     [createJournalCopyObject.remarks]: z.string().optional(),
     [createJournalCopyObject.copyImages]: z.array(z.string()).optional(),

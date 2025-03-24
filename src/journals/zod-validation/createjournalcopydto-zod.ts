@@ -5,36 +5,7 @@ export class CreateJournalCopyDTO {
     journalUUID: string;
 
     @IsString()
-    @IsOptional()
-    callNumber?: string;
-
-    @IsString()
-    authorMark: string;
-
-    @IsString()
-    sourceOfAcquisition: string;
-
-    @IsDateString()
-    dateOfAcquisition: string;
-
-    @IsInt()
-    billNo: number;
-
-    @IsInt()
-    noOfPages: number;
-
-    @IsInt()
-    noOfPreliminaryPages: number;
-
-    @IsString()
-    language: string;
-
-    @IsOptional()
-    @IsInt()
-    inventoryNumber?: number;
-
-    @IsInt()
-    accessionNumber: number;
+    journalCopyId: string
 
     @IsString()
     barcode: string;
@@ -44,7 +15,7 @@ export class CreateJournalCopyDTO {
 
     @IsUUID()
     @IsOptional()
-    instituteId?: string;
+    instituteUuid?: string;
 
     @IsOptional()
     isArchived?: boolean;
@@ -57,13 +28,13 @@ export class CreateJournalCopyDTO {
     remarks?: string[];
 
     @IsOptional()
-    images?: string[];
+    copyImages?: string[];
 
     @IsOptional()
-    additionalFields?: any;
+    copyAdditionalFields?: any;
 
     @IsOptional()
-    description?: string;
+    copyDescription?: string;
 
     @IsOptional()
     isAvailable?: boolean;

@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Put, Query, Req, UsePipes } from '@nestjs/common';
 import { JournalsService } from './journals.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
@@ -5,7 +6,7 @@ import { createJournalSchema, TCreateJournalZodDTO } from './zod-validation/crea
 import { UpdateJournalTitleDTO } from './zod-validation/updatejournaldto';
 import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 
-
+import type { Request } from 'express';
 
 @Controller('journals')
 export class JournalsController {
@@ -39,7 +40,7 @@ export class JournalsController {
         });
     }
 
-    @Get('get_logs_of_title')
+    @Get('get-journal-logs-by-title')
     async getJournalLogDetailsByTitle(
         @Query('journal_log_uuid') journal_log_uuid: string,
         @Query('_issn') issn: string,
@@ -50,7 +51,7 @@ export class JournalsController {
         });
     }
 
-    @Get('get_logs_of_copy')
+    @Get('get-logs-by-copy')
     async getJournalLogDetailsByCopy(@Query('_barcode') barcode: string) {
         return this.journalsService.getJournalLogDetailsByCopy({
             barcode,
@@ -83,7 +84,6 @@ export class JournalsController {
 
     @Put('uparchive')
     async updateJournalTitleArchive(@Body('journal_uuid') journal_uuid: string) {
-        console.log('working');
         return this.journalsService.updateJournalTitleArchive(journal_uuid);
     }
 
@@ -101,6 +101,7 @@ export class JournalsController {
     @UsePipes(new bodyValidationPipe(createJournalSchema))
     async createJournal(@Body() journalPayload: TCreateJournalZodDTO) {
         try {
+            // console.log(journalPayload)
             const result = await this.journalsService.createJournal(journalPayload);
             return result;
         } catch (error) {
@@ -169,20 +170,27 @@ export class JournalsController {
         return this.journalsService.getSingleJournalCopyInfo(identifier);
     }
 
-    @Patch('update_journal_title')
+    // @Patch('update_journal_title')
+    // async updateJournalTitle(
+    //     @Body('journal_uuid') journal_uuid: string,
+    //     @Body() journalPayload: UpdateJournalTitleDTO,
+    // ) {
+    //     return this.journalsService.updateJournalTitle(journal_uuid, journalPayload)
+    // }
+    @Patch('update-journal-title')
     async updateJournalTitle(
-        @Body('journal_uuid') journal_uuid: string,
-        @Body() journalPayload: UpdateJournalTitleDTO,
+        @Body() updateJournalPayload: { journal_uuid: string; journalPayload: UpdateJournalTitleDTO }
     ) {
-        return this.journalsService.updateJournalTitle(journal_uuid, journalPayload)
+        return this.journalsService.updateJournalTitle(updateJournalPayload.journal_uuid, updateJournalPayload.journalPayload);
     }
 
-    @Put('archive_journal_copy')
+
+    @Put('archive-journal-copy')
     async archiveJournalCopy(@Body('journal_uuid') journal_uuid: string) {
         return this.journalsService.archiveJournalCopy(journal_uuid);
     }
 
-    @Get('get_archived_journal_copy')
+    @Get('get-archived-journal-copy')
     async getArchivedJournalsCopy(
         @Query('_page') page: string,
         @Query('_limit') limit: string,
@@ -193,9 +201,9 @@ export class JournalsController {
         });
     }
 
-    @Put('restore_journal_copy')
-    async restoreJournalCopy(@Body('journal_uuid') journal_uuid: string) {
-        return this.journalsService.restoreJournalCopy(journal_uuid);
+    @Put('restore-journal-copy')
+    async restoreJournalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
+        return this.journalsService.restoreJournalCopy(journal_copy_uuid);
     }
 
 
@@ -207,69 +215,57 @@ export class JournalsController {
         return this.journalsService.updateJournalCopy(journal_uuid, journalPayload);
     }
 
+    // maybe redundant code
     @Get('available')
     async availableJournal(@Query('issn') issn: string) {
         return await this.journalsService.getAvailableJournalByIssn(issn);
     }
 
 
-    // @Post('library')
-    // @UsePipes(new bodyValidationPipe(journalLogsSchema))
-    // async setJournalLibrary(
-    //     @Body() journallogPayload: TCreateJournalLogDTO,
-    //     @Req() req: Request,
-    // ) {
-    //     try {
-    //         // Extract user IP address properly
-    //         const ipAddress =
-    //             req.headers['x-forwarded-for']?.[0] ||
-    //             req.socket.remoteAddress ||
-    //             'Unknown';
+    @Post('create-journal-log')
+    @UsePipes(new bodyValidationPipe(journalLogsSchema))
+    async createJournalLog(
+        @Body() journalLogPayload: TCreateJournalLogDTO,
+        @Req() request: Request,) {
+        try {
+            let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+            let result: Record<string, string | number> = {};
+            if (journalLogPayload.action === 'borrow') {
+                result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'borrowed');
+            } else if (journalLogPayload.action === 'return') {
+                result = await this.journalsService.journalReturned(journalLogPayload, request, status = 'returned')
+            } else {
+                result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
+            }
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
+    }
 
-    //         const result = await this.journalsService.setJournalLibrary(
-    //             journallogPayload,
-    //             ipAddress,
-    //         );
+    @Get('get-journal-logs-by-journal_uuid')
+    async getJournalLogsByJournalUUID(
+        @Query('_page') page: string,
+        @Query('_limit') limit: string,
+        @Query('_search') search: string,
+        // @Query('_journal_title_uuid') journal_title_uuid: string
+    ) {
 
-    //         return {
-    //             statusCode: HttpStatus.OK,
-    //             message: 'Journal borrowed successfully',
-    //             data: result,
-    //         };
-    //     } catch (error) {
-    //         console.error('Error in createJournalLogIssued:', error);
-    //         throw new HttpException(
-    //             error.message || 'Failed to borrow journal',
-    //             error.status || HttpStatus.INTERNAL_SERVER_ERROR,
-    //         );
-    //     }
-    // }
+        console.log(page, limit, search);
+        return this.journalsService.getJournalLogsByJournalUUID({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? undefined,
+            // journal_title_uuid: journal_title_uuid
+        });
+    }
 
-    // @Post('update-journal-log')
-    // @UsePipes(new bodyValidationPipe(journalLogsSchema))
-    // async updateJournalLog(
-    //     @Body() journalLogPayload: TCreateJournalLogDTO,
-    //     @Req() request: Request,
-    // ) {
-    //     try {
 
-    //         let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
-    //         let result: Record<string, string | number> = {};
-    //         if (journalLogPayload.action === 'borrow') {
-    //             result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'borrowed');
-    //         } else if (journalLogPayload.action === 'return') {
-    //             result = await this.journalsService.journalReturned(journalLogPayload, request, status = 'returned')
-    //         } else {
-    //             result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
-    //         }
-    //         return result;
-    //     } catch (error) {
-    //         if (!(error instanceof HttpException)) {
-    //             throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    //         }
-    //         throw error;
-    //     }
-    // }
+
+
 
 
 
