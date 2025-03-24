@@ -59,7 +59,7 @@ export class BooksV2Service {
     },
   ) {
     try {
-      console.log(page, limit, search);
+      //console.log(page, limit, search);
       const offset = (page - 1) * limit;
       const searchQuery = search ? `${search}%` : '%';
 
@@ -83,7 +83,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -166,7 +166,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -205,11 +205,11 @@ export class BooksV2Service {
         query += ` AND book_title LIKE $${queryParams.length + 1} `;
         queryParams.push(`${titlename}%`);
       }
-      console.log(query, queryParams);
+      //console.log(query, queryParams);
       const book = await this.booktitleRepository.query(query, queryParams);
 
-      console.log({ book });
-      console.log('THIS IS THE UUID', book[0]);
+      //console.log({ book });
+      //console.log('THIS IS THE UUID', book[0]);
 
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
@@ -250,7 +250,7 @@ export class BooksV2Service {
       const totalResult = await this.booktitleRepository.query(
         `SELECT COUNT(*) as total FROM book_copies `,
       );
-      console.log({ books });
+      //console.log({ books });
 
       return {
        data: books,
@@ -262,7 +262,7 @@ export class BooksV2Service {
       }
       };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -301,7 +301,7 @@ export class BooksV2Service {
     },
   ) {
     try {
-      console.log(page, limit, search);
+      //console.log(page, limit, search);
       const offset = (page - 1) * limit;
       const searchQuery = search ? `%${search}%` : '%';
 
@@ -311,7 +311,7 @@ export class BooksV2Service {
         LIMIT $2 OFFSET $3`,
         [searchQuery, limit, offset],
       );
-      console.log(books);
+      //console.log(books);
 
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
@@ -329,7 +329,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -438,7 +438,7 @@ export class BooksV2Service {
         `,
         [isbn],
       );
-      console.log({ bookTitle });
+      //console.log({ bookTitle });
       const result = await this.bookcopyRepository.query(
         `
         SELECT *
@@ -446,7 +446,7 @@ export class BooksV2Service {
         WHERE book_title_uuid = $1 AND is_available = false AND is_archived = false`,
         [bookTitle[0].book_uuid],
       );
-      console.log(result);
+      //console.log(result);
       return result;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -572,7 +572,7 @@ export class BooksV2Service {
         [barcode],
       );
 
-      console.log('Book', book[0]);
+      //console.log('Book', book[0]);
 
       const logs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
@@ -796,13 +796,13 @@ export class BooksV2Service {
 
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {
     try {
-      console.log(creatbookpayload.book_uuid);
+      //console.log(creatbookpayload.book_uuid);
       // Check if the book exists and is not archived
       const book = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_uuid =$1 AND is_archived = false`,
         [creatbookpayload.book_uuid],
       );
-      console.log({ book });
+      //console.log({ book });
 
       if (book.length === 0) {
         throw new HttpException(
@@ -866,7 +866,7 @@ export class BooksV2Service {
         [id],
       );
 
-      console.log({ bookCopy });
+      //console.log({ bookCopy });
 
       if (!bookCopy || bookCopy.length === 0) {
         throw new HttpException('Book copy not found', HttpStatus.NOT_FOUND);
@@ -908,7 +908,7 @@ export class BooksV2Service {
 
       return { message: 'Book copy updated successfully' };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(
         'Error updating book copy',
         HttpStatus.BAD_REQUEST,
@@ -963,7 +963,7 @@ export class BooksV2Service {
 
 async archiveBookCopy(book_copy_uuid: string) {
   try {
-    console.log("Archiving book copy...");
+    //console.log("Archiving book copy...");
 
     // Archive the book copy and get the bookTitleUUID
     const archiveResult = await this.bookcopyRepository.query(
@@ -974,7 +974,7 @@ async archiveBookCopy(book_copy_uuid: string) {
       [book_copy_uuid]
     );
 
-    console.log("Archive result:", archiveResult);
+    //console.log("Archive result:", archiveResult);
 
     // Ensure that a book copy was updated
     if (!archiveResult.length) {
@@ -983,7 +983,7 @@ async archiveBookCopy(book_copy_uuid: string) {
 
     // Extract bookTitleUUID correctly
     const bookTitleUUID = archiveResult[0][0].book_title_uuid;
-    console.log("Book Title UUID:", bookTitleUUID);
+    //console.log("Book Title UUID:", bookTitleUUID);
 
     // Reduce total_count and available_count in book_titles
     await this.booktitleRepository.query(
@@ -995,7 +995,7 @@ async archiveBookCopy(book_copy_uuid: string) {
       [bookTitleUUID]
     );
 
-    console.log("Book title counts updated.");
+    //console.log("Book title counts updated.");
     return { success: true, message: "Book copy archived successfully" };
   } catch (error) {
     console.error("Error archiving book copy:", error);
@@ -1037,7 +1037,7 @@ async archiveBookCopy(book_copy_uuid: string) {
 
       return { message: 'Book restored successfully' };
     } catch (error) {
-      console.log(error);
+      //console.log(error);
       throw new HttpException(
         'Error restoring book',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -1504,14 +1504,14 @@ async archiveBookCopy(book_copy_uuid: string) {
 
   async updateinstituteid(createinstitutepayload: TUpdateInstituteZodDTO) {
     try {
-      console.log('working');
+      //console.log('working');
 
       const result = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies WHERE book_copy_uuid=$1`,
         [createinstitutepayload.book_copy_uuid],
       );
 
-      console.log('working1');
+      //console.log('working1');
 
       if (result.length === 0) {
         throw new HttpException(

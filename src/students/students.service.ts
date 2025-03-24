@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Students, TStudents } from './students.entity';
 import { StudentQueryValidator } from './students.query-validator';
-import type { UnionUser } from './students.query-validator';
+import type { UnionStudent } from './students.query-validator';
 import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import {
   insertQueryHelper,
@@ -101,7 +101,7 @@ export class StudentsService {
     }
   }
 
-  async findStudentBy(query: UnionUser) {
+  async findStudentBy(query: UnionStudent) {
     try {
       let requiredKey: keyof typeof StudentQueryValidator | undefined =
         undefined;
