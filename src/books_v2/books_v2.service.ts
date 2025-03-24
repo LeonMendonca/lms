@@ -387,8 +387,15 @@ export class BooksV2Service {
     }
   }
 
-  async getavailablebookbyisbn(isbn: string) {
+  async getavailablebookbyisbn({isbn,page,limit}:
+    {
+      isbn: string,
+    page:number,
+    limit:number}
+  ) {
     try {
+      const offset = (page - 1) * limit;
+
       const bookTitle = await this.booktitleRepository.query(
         `
         SELECT * FROM book_titles
@@ -401,10 +408,26 @@ export class BooksV2Service {
         `
         SELECT *
           FROM book_copies 
+        WHERE book_title_uuid = $1 AND is_available = true AND is_archived = false LIMIT $2 OFFSET $3`,
+        [bookTitle[0].book_uuid ,limit,offset],
+      );
+      const total = await this.bookcopyRepository.query(
+        `
+        SELECT count(*)
+          FROM book_copies 
         WHERE book_title_uuid = $1 AND is_available = true AND is_archived = false`,
         [bookTitle[0].book_uuid],
       );
-      return result;
+     return {
+        data:result,
+        pagination:{
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        }
+
+      }
     } catch (error) {
       console.error('Error getting book in library:', error);
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -447,8 +470,14 @@ export class BooksV2Service {
     }
   }
 
-  async getunavailablebookbyisbn(isbn: string) {
+  async getunavailablebookbyisbn({isbn,page,limit}:
+  {  isbn: string,
+    page:number,
+     limit:number,
+    }) {
     try {
+      const offset = (page - 1) * limit;
+
       const bookTitle = await this.booktitleRepository.query(
         `
         SELECT * FROM book_titles
@@ -458,7 +487,7 @@ export class BooksV2Service {
         [isbn],
       );
       if(bookTitle.length==0){
-        throw new HttpException("invalid isbn !!",HttpStatus.BAD_GATEWAY)
+        throw new HttpException("invalid isbn !!",HttpStatus.BAD_REQUEST)
       }
       //console.log({ bookTitle });
       const result = await this.bookcopyRepository.query(
@@ -468,8 +497,24 @@ export class BooksV2Service {
         WHERE book_title_uuid = $1 AND is_available = false AND is_archived = false`,
         [bookTitle[0].book_uuid],
       );
+      const total = await this.bookcopyRepository.query(
+        `
+        SELECT count (*)
+          FROM book_copies 
+        WHERE book_title_uuid = $1 AND is_available = false AND is_archived = false LIMIT $2 OFFSET $3`,
+        [bookTitle[0].book_uuid ,limit,offset],
+      );
       //console.log(result);
-      return result;
+      return{
+        data:result,
+        pagination:{
+          total: parseInt(total[0].total, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].total, 10) / limit),
+        }
+      } 
+      ;
     } catch (error) {
       throw error
     }

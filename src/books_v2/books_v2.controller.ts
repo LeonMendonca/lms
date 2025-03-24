@@ -160,10 +160,19 @@ export class BooksV2Controller {
     );
   }
 
-  @Get('get_available_by_isbn') // working
-  async getavailablebookbyisbn(@Query('_isbn') isbn: string) {
+  @Get('get_available_by_isbn') // working// pagination
+  async getavailablebookbyisbn(
+    @Query('_isbn') isbn: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+) {
     try {
-      return await this.booksService.getavailablebookbyisbn(isbn);
+      return await this.booksService.getavailablebookbyisbn({
+        isbn,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10        
+      }
+      );
     } catch (error) {
       if(!(error instanceof HttpException)){
         throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
@@ -186,10 +195,18 @@ export class BooksV2Controller {
     );
   }
 
-  @Get('get_unavailable_by_isbn') // working
-  async getunavailablebookbyisbn(@Query('_isbn') isbn: string) {
+  @Get('get_unavailable_by_isbn') // working // pagination
+  async getunavailablebookbyisbn(
+    @Query('_isbn') isbn: string,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string
+  ) {
     try {
-      return await this.booksService.getunavailablebookbyisbn(isbn);
+      return await this.booksService.getunavailablebookbyisbn({
+        isbn,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10
+      }  );
     } catch (error) {
       if(!(error instanceof HttpException)){
         throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
@@ -389,8 +406,17 @@ export class BooksV2Controller {
   }
 
   @Get('available') // wait
-  async availableBook(@Query('isbn') isbn: string) {
-    return await this.booksService.getavailablebookbyisbn(isbn);
+  async availableBook(
+    @Query('isbn') isbn: string,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    return await this.booksService.getavailablebookbyisbn({
+      isbn,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+    
+    });
   }
 
   //logs part
