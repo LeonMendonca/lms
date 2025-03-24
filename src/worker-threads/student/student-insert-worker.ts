@@ -1,10 +1,6 @@
-import { insertQueryHelper } from "src/misc/custom-query-helper";
 import { TCreateStudentDTO } from "src/students/zod-validation/createstudents-zod";
 import { parentPort, workerData } from "worker_threads";
-import { Repository } from "typeorm";
-import { Students } from "src/students/students.entity";
 import { createStudentId } from "src/students/create-student-id";
-import { dataSource } from "../datasource-typeorm";
 import { pool } from "../pg.connect";
 
 let start = Date.now();
@@ -16,17 +12,21 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
 //console.log("Unique array done in", Date.now() - start, 'ms');
 
 (async() => {
+  let client = await pool.connect();
+
+  client.on('error', (err) => {
+    console.error("Pool Client in INSERT worker emitted error", err.message);
+  });
+
   start = Date.now();
-  //const d = await studentRepo.query(``);
-  //console.log(d);
   //Select maximum ID in Table 
   start = Date.now();
-  let maxStudentId: { rows: { max: string | null }[] } = await pool.query(`SELECT MAX(student_id) FROM students_table`);
+  let maxStudentId: { rows: { max: string | null }[] } = await client.query(`SELECT MAX(student_id) FROM students_table`);
   let studentId = maxStudentId.rows[0].max;
   //console.log("Max stu id", studentId);
   //console.log('Got Id in', Date.now() - start);
 
-  const bulkQuery = 'INSERT INTO students_table '
+  const bulkQuery1 = 'INSERT INTO students_table '
   let bulkQuery2 = '';
   let bulkQuery3 = '';
 
@@ -66,18 +66,20 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
   }
   bulkQuery3 = bulkQuery3.slice(0, -1);
 
-  const finalQuery = bulkQuery + bulkQuery2 + bulkQuery3;
+  const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3 + 'ON CONFLICT (email) DO NOTHING RETURNING email';
   //console.log("FINAL QUERY", finalQuery)
 
   try {
     start = Date.now();
-    await pool.query(finalQuery);
+    const result = await client.query(finalQuery);
+    client.release();
+    parentPort?.postMessage(result.rows) ?? 'Parent port is null'
     //console.log("Inserted in ", Date.now() - start);
   } catch (error) {
     console.error(error.message);
+    client.release();
     //console.log("this insert worker ended at", Date.now() - start, 'ms', false);
-    parentPort?.postMessage(false) ?? 'Parent port is null'
+    parentPort?.postMessage(error.message) ?? 'Parent port is null'
   }
   //console.log("this insert worker ended at", Date.now() - start, 'ms', true);
-  parentPort?.postMessage(true) ?? 'Parent port is null'
 })();

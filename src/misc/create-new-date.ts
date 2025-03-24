@@ -6,5 +6,3 @@ export function createNewDate(incBy: number) {
 
     return returnDate;
 }
-
-console.log(createNewDate(2));

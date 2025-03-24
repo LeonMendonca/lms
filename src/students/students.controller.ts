@@ -16,7 +16,7 @@ import {
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
-import type { UnionUser } from './students.query-validator';
+import type { UnionStudent } from './students.query-validator';
 import { StudentQueryValidator } from './students.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import {
@@ -56,7 +56,7 @@ export class StudentsController {
 
   @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
-  async getStudentDetail(@Query() query: UnionUser) {
+  async getStudentDetail(@Query() query: UnionStudent) {
     try {
       const result = await this.studentsService.findStudentBy(query);
       if (result) {

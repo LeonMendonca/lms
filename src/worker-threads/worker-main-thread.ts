@@ -12,7 +12,7 @@ export async function CreateWorker<T>(oneDArray: any[], workerScriptName: string
       return resolve(data);
     });
     worker.on('error', (err) => {
-      console.log("error is", err.message);
+      console.log("error is", err);
       console.log('create worker rejected', Date.now() - start, 'ms');
       return reject(err);
     })

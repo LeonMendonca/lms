@@ -1,21 +1,31 @@
-import { Client, Pool } from "pg";
+import { Pool } from "pg";
 import { config } from 'dotenv';
 
 config({ path: '.env' })
 
 export const pool = new Pool({
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    max: 5,
-    host: process.env.PGHOST,
-    database: process.env.PGDATABASE,
-    ssl: true
+    connectionString: process.env.DB_URL,
+    ssl: true,
+    idleTimeoutMillis: 0,
+    connectionTimeoutMillis: 0
 });
 
-export async function pgConnect() {
-    try {
-        return await pool.connect();
-    } catch (error) {
-        console.error(error.message);
+pool.on('connect', (client) => {
+    console.log("A client connected to Pool", "\n Total Count", pool.totalCount);
+});
+
+pool.on('release', (err, client) => {
+    if(!err) {
+        console.log("A client has been released from the Pool", "\n Total Count", pool.totalCount);
+    } else {
+        console.error(err.message);
     }
-}
+});
+
+pool.on('error', (err, client) => {
+    if(!err) {
+        console.log('pool error listener');
+    } else {
+        console.error(err.message);
+    }
+})
