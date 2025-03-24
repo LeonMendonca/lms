@@ -18,9 +18,6 @@ export const createStudentSchema = z
 
     [studentCreateObject.password]: z.string().optional(),
 
-    //doesn't include in Class, but required for password validation   add department uuid and image field
-    confirm_password: z.string().optional(),
-
     [studentCreateObject.dateOfBirth]: z.string().date().optional(),
 
     [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
@@ -28,7 +25,8 @@ export const createStudentSchema = z
     [studentCreateObject.address]: z
       .string()
       .min(1, 'Address is required')
-      .max(200, 'Address must be less than 200 characters'),
+      .max(200, 'Address must be less than 200 characters')
+      .optional(),
 
     [studentCreateObject.rollNo]: z.number().refine(
       (r_num) => {
@@ -63,7 +61,7 @@ export const createStudentSchema = z
 
     [studentCreateObject.instituteName]: z.string().min(2),
 
-    [studentCreateObject.instituteId]: z.string().uuid().optional(),
+    [studentCreateObject.instituteUUID]: z.string().uuid().optional(),
     [studentCreateObject.imageField]:z.string().optional(),
   })
   

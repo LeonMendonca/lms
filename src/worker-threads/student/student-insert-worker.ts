@@ -36,9 +36,6 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
   //Create columns with object received with explicit student_id column
   bulkQuery2 += '(';
   for(key in insertObjectCol) {
-    if(key === 'confirm_password') {
-      continue;
-    }
     bulkQuery2 = bulkQuery2.concat(`${key},`);
   }
   bulkQuery2 = bulkQuery2.slice(0, -1);
@@ -48,9 +45,6 @@ uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, 
   for(const stuObj of uniqueArray) {
     bulkQuery3 += '('
     for(key in { ...stuObj, student_id: '' }) {
-      if(key === 'confirm_password') {
-        continue;
-      }
       if(key === 'student_id') {
         studentId = createStudentId(studentId, stuObj.institute_name)
         stuObj[key] = studentId;

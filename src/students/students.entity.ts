@@ -16,12 +16,14 @@ export class Students {
   @PrimaryGeneratedColumn('uuid', { name: 'student_uuid' })
   studentUUID: "student_uuid" = 'student_uuid';
 
-  @Column({ name:'department_uuid', type:'uuid', nullable:true })
-  departmentUUID:'department_uuid'='department_uuid';
+  //Unsure
+  //@Column({ name:'department_uuid', type:'uuid', nullable:true })
+  //departmentUUID:'department_uuid'='department_uuid';
 
+  //student id format
+  //instinstnumber/deptabbrserialno
   @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
   studentId: 'student_id' = 'student_id';
-  // relation 
  
   @Column({
     name: 'email',
@@ -69,11 +71,6 @@ export class Students {
   @Column({ name: 'address', type: 'text', nullable: true })
   address: 'address' = 'address';
 
-  //instinstnumber/deptabbrserialno
-
-  //dept uuid
-  //new column
-
   @Column({
     name: 'department',
     //type: 'enum'
@@ -84,8 +81,8 @@ export class Students {
   })
   department: 'department' = 'department';
 
-  @Column({ name: 'institute_id', type: 'uuid', nullable: true })
-  instituteId: 'institute_id' = 'institute_id';
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUUID: 'institute_uuid' = 'institute_uuid';
 
   @Column({
     name: 'year_of_admission',
