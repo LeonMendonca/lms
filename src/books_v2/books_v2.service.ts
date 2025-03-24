@@ -254,7 +254,7 @@ export class BooksV2Service {
       );
 
       const totalResult = await this.booktitleRepository.query(
-        `SELECT COUNT(*) as total FROM book_copies where book_title_uuid = $1`,[book[0].book_uuid],
+        `SELECT COUNT(*) as total FROM book_copies where book_title_uuid = $1 and is_archived= false`,[book[0].book_uuid],
       );
       console.log({ books });
       if (books.length === 0) {
@@ -1017,6 +1017,51 @@ if(books.length===0){
 //     }
 //   }
 
+
+
+
+
+// async archiveBookCopy(book_copy_uuid: string) {
+//   try {
+//     console.log("Archiving book copy...");
+
+//     // Archive the book copy and get the bookTitleUUID
+//     const archiveResult = await this.bookcopyRepository.query(
+//       `UPDATE book_copies 
+//       SET is_archived = true 
+//       WHERE book_copy_uuid = $1 
+//       RETURNING book_title_uuid`,
+//       [book_copy_uuid]
+//     );
+
+//     console.log("Archive result:", archiveResult);
+
+//     // Ensure that a book copy was updated
+//     if (!archiveResult.length) {
+//       throw new Error("Book copy not found or already archived");
+//     }
+
+//     // Extract bookTitleUUID correctly
+//     const bookTitleUUID = archiveResult[0][0].book_title_uuid;
+//     console.log("Book Title UUID:", bookTitleUUID);
+
+//     // Reduce total_count and available_count in book_titles
+//     await this.booktitleRepository.query(
+//       `UPDATE book_titles 
+//       SET 
+//         total_count = GREATEST(total_count - 1, 0), 
+//         available_count = GREATEST(available_count - 1, 0)
+//       WHERE book_uuid = $1`,
+//       [bookTitleUUID]
+//     );
+
+//     console.log("Book title counts updated.");
+//     return { success: true, message: "Book copy archived successfully" };
+//   } catch (error) {
+//     console.error("Error archiving book copy:", error);
+//     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+//   }
+// }
 async archiveBookCopy(book_copy_uuid: string) {
   try {
     console.log("Archiving book copy...");
@@ -1041,14 +1086,23 @@ async archiveBookCopy(book_copy_uuid: string) {
     const bookTitleUUID = archiveResult[0][0].book_title_uuid;
     console.log("Book Title UUID:", bookTitleUUID);
 
-    // Reduce total_count and available_count in book_titles
+    // Retrieve the updated count of book copies for this title
+    const countResult = await this.bookcopyRepository.query(
+      `SELECT COUNT(*) AS total FROM book_copies WHERE book_title_uuid = $1 AND is_archived = false`,
+      [bookTitleUUID]
+    );
+
+    const totalCount = parseInt(countResult[0].total, 10);
+    console.log("Updated book copy count:", totalCount);
+
+    // Update total_count and available_count in book_titles
     await this.booktitleRepository.query(
       `UPDATE book_titles 
       SET 
-        total_count = GREATEST(total_count - 1, 0), 
-        available_count = GREATEST(available_count - 1, 0)
-      WHERE book_uuid = $1`,
-      [bookTitleUUID]
+        total_count = $1, 
+        available_count = $1
+      WHERE book_uuid = $2`,
+      [totalCount, bookTitleUUID]
     );
 
     console.log("Book title counts updated.");
