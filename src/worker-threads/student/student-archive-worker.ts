@@ -4,6 +4,12 @@ import { pool } from "../pg.connect";
 
 
 (async() => {
+    let client = await pool.connect();
+
+    client.on('error', (err) => {
+        console.error("Pool Client in ARCHIVE worker emitted error", err.message);
+    });
+
     let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
 
     let bulkQuery1 = 'UPDATE students_table SET is_archived = TRUE WHERE student_uuid IN ';
@@ -17,12 +23,14 @@ import { pool } from "../pg.connect";
 
     const finalQuery = bulkQuery1 + bulkQuery2;
 
-    console.log("FINAL QUERY", finalQuery)
+    //console.log("FINAL QUERY", finalQuery)
     try {
-        await pool.query(finalQuery);
+        await client.query(finalQuery);
         parentPort?.postMessage("Archived Successful")
     }
     catch (error) {
+        client.release();
         parentPort?.postMessage("Something went wrong while bulk archiving")
     }
+    client.release();
 })()

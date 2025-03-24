@@ -57,7 +57,6 @@ export class Students {
     type: 'char',
     length: 10,
     nullable: true,
-    unique: true,
   })
   phoneNo: 'phone_no' = 'phone_no';
 
