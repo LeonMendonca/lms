@@ -640,7 +640,7 @@ if(books.length===0){
     }
   }
 
-  async getLogDetailsOfStudent({
+  async  getLogDetailsOfStudent({
     student_id,
     page,
     limit,
@@ -652,16 +652,20 @@ if(books.length===0){
     try {
       const offset = (page - 1) * limit;
       const result: any[] = await this.booklogRepository.query(
-        `SELECT book_copy_uuid, new_book_title, date, new_book_copy, action, date, ip_address, email, institute_id, department, student_uuid, date_of_birth, gender, institute_name 
-        FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid 
-        AND students_table.student_id = $1 LIMIT $2 OFFSET $3`,
+        ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
+          INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid 
+         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
+ LIMIT $2 OFFSET $3`,
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 
-         INNER JOIN students_table 
-         ON students_table.student_uuid = book_logv2.borrower_uuid 
-         AND students_table.student_id = $1`,
+        `SELECT COUNT(*) 
+        FROM book_titles 
+        INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
+        INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+        INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  
+        WHERE student_id = $1;
+`,
         [student_id],
       );
       if(result.length===0){

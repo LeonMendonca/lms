@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { VisitLog } from './visitlog.entity';
 
 export const Department = {
@@ -98,6 +98,11 @@ export class Students {
 
   @UpdateDateColumn({ name: "updated_at"})
   updatedAt: "updated_at" = "updated_at";
+
+
+    // @ManyToOne(() => VisitLog, (visitlog) => visitlog.student_UUID)
+    // @JoinColumn({ name:"visitlog_student_id" })
+    // student_UUID:'student_uuid' = 'student_uuid';
 
   //  @OneToMany(() => VisitLog, (visit_log) => visit_log.student_UUID)
   //   visitlog: 'visit_log' = 'visit_log';
