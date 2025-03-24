@@ -1747,6 +1747,14 @@ async archiveBookCopy(book_copy_uuid: string) {
         `SELECT count (*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 ;`,
         [start, end ],
       );
+      if (result.length === 0) {
+        throw new HttpException(
+          { message: 'No data found!!' },
+          HttpStatus.ACCEPTED,
+        );
+
+      }
+
       return {
         data: result,
         pagination: {
@@ -1757,14 +1765,7 @@ async archiveBookCopy(book_copy_uuid: string) {
         },
       };
       //  console.log(result);
-      if (result.length === 0) {
-        throw new HttpException(
-          { message: 'No data found!!' },
-          HttpStatus.ACCEPTED,
-        );
-
-      }
-    } catch (error) {
+          } catch (error) {
       throw error;
     }
   }
