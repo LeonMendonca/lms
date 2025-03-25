@@ -87,16 +87,17 @@ export class StudentsService {
     };
   }
 
-  async getAllDepartments(): Promise<string[]> {
+  async getAllDepartments() {
     try {
       console.log('Fetching departments...');
       const departments = await this.studentsRepository.query(
         'SELECT DISTINCT department FROM students_table WHERE is_archived = false',
       );
-      return (
-        departments?.map((dept: { department: string }) => dept.department) ||
-        []
-      );
+      return {
+        data:
+          departments?.map((dept: { department: string }) => dept.department) ||
+          [],
+      };
     } catch (error) {
       throw error;
     }
@@ -104,6 +105,7 @@ export class StudentsService {
 
   async findStudentBy(query: UnionStudent) {
     try {
+      console.log({hello: "hello"})
       let requiredKey: keyof typeof StudentQueryValidator | undefined =
         undefined;
       let value: string | undefined = undefined;
@@ -162,56 +164,56 @@ export class StudentsService {
   //   }
   // }
 
-   async createStudent(studentPayload: TCreateStudentDTO) {
-      try {
-        console.log("part1");
-        type TCreateStudentDTOWithID = TCreateStudentDTO & {
-          student_id: string;
-        };
-        const max: [{ max: null | string }] = await this.studentsRepository.query(
-          `SELECT MAX(student_id) from students_table`,
-        );
-        const count: [{ count: null | string }] = await this.studentsRepository.query(
-          `SELECT count(student_id) from students_table WHERE institute_name=$1`,[studentPayload.institute_name]
-        );
-        const deptcount: [{ deptcount: null | string }] = await this.studentsRepository.query(
-          `SELECT count(*) AS deptcount from students_table WHERE department=$1`,[studentPayload.department]
-        );
-        let studentId = createStudentId(
-          max[0].max,
-          studentPayload.institute_name,
-        );
-
-        let studentId2 = createStudentId2(
-          count[0].count,
-          deptcount[0].deptcount,
-          studentPayload.institute_name,
-          studentPayload.department
-        );
-
-       
-
-        let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
-          { ...studentPayload, student_id: studentId2 },
-          [],
-        );
+  async createStudent(studentPayload: TCreateStudentDTO) {
+    try {
+      console.log('part1');
+      type TCreateStudentDTOWithID = TCreateStudentDTO & {
+        student_id: string;
+      };
+      const max: [{ max: null | string }] = await this.studentsRepository.query(
+        `SELECT MAX(student_id) from students_table`,
+      );
+      const count: [{ count: null | string }] =
         await this.studentsRepository.query(
-          `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-          queryData.values,
+          `SELECT count(student_id) from students_table WHERE institute_name=$1`,
+          [studentPayload.institute_name],
         );
-        return {
-          statusCode: HttpStatus.CREATED,
-          studentId: studentId2,
-        };
-      } catch (error) {
-        throw error;
-      }
+      const deptcount: [{ deptcount: null | string }] =
+        await this.studentsRepository.query(
+          `SELECT count(*) AS deptcount from students_table WHERE department=$1`,
+          [studentPayload.department],
+        );
+      let studentId = createStudentId(
+        max[0].max,
+        studentPayload.institute_name,
+      );
+
+      let studentId2 = createStudentId2(
+        count[0].count,
+        deptcount[0].deptcount,
+        studentPayload.institute_name,
+        studentPayload.department,
+      );
+
+      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+        { ...studentPayload, student_id: studentId2 },
+        [],
+      );
+      await this.studentsRepository.query(
+        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+        queryData.values,
+      );
+      return {
+        statusCode: HttpStatus.CREATED,
+        studentId: studentId2,
+      };
+    } catch (error) {
+      throw error;
     }
-  
- 
+  }
 
   async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
-    console.log("SERVICE calling main worker thread");
+    console.log('SERVICE calling main worker thread');
     return await (CreateWorker(
       arrStudentPayload,
       'student/student-insert-worker',
@@ -373,8 +375,8 @@ export class StudentsService {
       const total = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM visit_log`,
       );
-      if(visit_log.length === 0){
-        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);
+      if (visit_log.length === 0) {
+        throw new HttpException('no log data found', HttpStatus.NOT_FOUND);
       }
       return {
         data: visit_log,
@@ -420,8 +422,9 @@ export class StudentsService {
 
       // const total = parseInt(totalResult[0].total, 10);
       // const totalPages = Math.ceil(total / limit);
- if(visitLogs.length === 0){
-        throw new HttpException("no log data found", HttpStatus.NOT_FOUND);}
+      if (visitLogs.length === 0) {
+        throw new HttpException('no log data found', HttpStatus.NOT_FOUND);
+      }
       return {
         data: visitLogs,
         // pagination: {
@@ -569,16 +572,21 @@ export class StudentsService {
     }
   }
 
-  async studentProfile(student_id: string){
+  async studentProfile(student_id: string) {
     try {
-      const result = await this.studentsRepository.query(`SELECT student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`, [student_id]) 
-     if(result.length === 0){
-      throw new HttpException("invalid Student ID !!", HttpStatus.BAD_REQUEST);
-     }
+      const result = await this.studentsRepository.query(
+        `SELECT student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`,
+        [student_id],
+      );
+      if (result.length === 0) {
+        throw new HttpException(
+          'invalid Student ID !!',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       return result;
     } catch (error) {
       throw error;
     }
   }
-
 }

@@ -1237,8 +1237,8 @@ async archiveBookCopy(book_copy_uuid: string) {
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] =
         await this.bookcopyRepository.query(
-          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = FALSE AND is_archived = FALSE`,
-          [booklogPayload.book_copy_id, booklogPayload.barcode],
+          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = FALSE AND is_archived = FALSE`,
+          [booklogPayload.book_copy_id],
         );
 
       if (!bookPayloadFromBookCopies.length) {
@@ -1443,8 +1443,8 @@ async archiveBookCopy(book_copy_uuid: string) {
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] =
         await this.bookcopyRepository.query(
-          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = TRUE AND is_archived = FALSE`,
-          [booklogPayload.book_copy_id, booklogPayload.barcode],
+          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = TRUE AND is_archived = FALSE`,
+          [booklogPayload.book_copy_id],
         );
 
       if (!bookPayloadFromBookCopies.length) {
@@ -1591,12 +1591,12 @@ async archiveBookCopy(book_copy_uuid: string) {
       }
 
       const bookData = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE (barcode=$1 AND is_available=true)`,
-        [booklogpayload.barcode],
+        `SELECT * FROM book_copies WHERE (book_copy_id=$1 AND is_available=true)`,
+        [booklogpayload.book_copy_id],
       );
 
       if (bookData.length === 0) {
-        console.error(' Invalid Book UUID:', booklogpayload.book_copy_id);
+        // console.error(' Invalid Book UUID:', booklogpayload.book_copy_id);
         throw new HttpException('Invalid Barcode', HttpStatus.BAD_REQUEST);
       }
 
