@@ -76,9 +76,13 @@ import { pool } from "../pg.connect";
         const finalQueryTitle = bulkQuery1Title + bulkQuery2Title + ' WHERE book_uuid IN ' + bulkQuery3Title;
         await client.query(finalQueryTitle);
 
-        parentPort?.postMessage("Archived Successful")
+        parentPort?.postMessage("Archived Successful") ?? "Parent Port NULL"
     } catch (error) {
-        parentPort?.postMessage(error.message);
+        let errorMessage = "Something went wrong while bulk archiving";
+        if(error instanceof Error) {
+            errorMessage = error.message;
+        }
+        parentPort?.postMessage(errorMessage) ?? "Parent Port NULL";
     }
     client.release(true);
 })()
