@@ -1944,4 +1944,12 @@ async archiveBookCopy(book_copy_uuid: string) {
       throw error;
     }
   }
+
+  async renewbook(student_id:string){
+    try {
+      await this.booktitleRepository.query(`SELECT * FROM students_table WHERE student_id`)
+    } catch (error) {
+      throw error
+    }
+  } 
 }

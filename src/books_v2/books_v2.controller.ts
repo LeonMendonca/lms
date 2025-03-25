@@ -642,4 +642,20 @@ export class BooksV2Controller {
       throw error;
     }
   }
+
+  @Put('renew-book')
+  async renewBook(@Body('student_id') student_id:string){
+try {
+  return this.booksService.renewbook(student_id)
+} catch (error) {
+  if (!(error instanceof HttpException)) {
+    throw new HttpException(
+      error.message,
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+  throw error;
+}
+  }
+
 }
