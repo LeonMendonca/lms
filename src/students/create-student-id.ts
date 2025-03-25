@@ -4,7 +4,7 @@ export function createStudentId(
 ) {
   let getFullYear = new Date().getFullYear();
   if (!maxId) {
-    return `00001 helo-${instituteName}-${getFullYear}`;
+    return `00001-${instituteName}-${getFullYear}`;
   }
   const splitMaxId = maxId.split('-');
   let maxIdToNumber = Number(splitMaxId[0]);
@@ -34,19 +34,18 @@ export function createStudentId2(
     .join(""); // Join them into a single string
 
   if (!count) {
-    return `${institute}-${dept}001 `
+    return `${institute}001/${dept}${deptcount}`
   }
   if (!deptcount) {
-    return `${institute}${count}-${dept}001 `
-  }
+    return `${institute}${count}/${dept}001`  }
 
   if (!count && !deptcount) {
-    return `${institute}001-${dept}001 `
+    return `${institute}001/${dept}001 `
   }
-  const splitMaxId = count.split('-');
+  const splitMaxId = count.split('/');
   let maxIdToNumber = Number(splitMaxId[0]);
 
-  const departmentcount = deptcount.split('-');
+  const departmentcount = deptcount.split('/');
   let deptotal = Number(departmentcount[0]);
 
   console.log("institute:", institute, "department:", dept);

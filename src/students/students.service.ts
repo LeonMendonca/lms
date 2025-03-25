@@ -172,7 +172,7 @@ export class StudentsService {
           `SELECT MAX(student_id) from students_table`,
         );
         const count: [{ count: null | string }] = await this.studentsRepository.query(
-          `SELECT count(student_id) from students_table`,
+          `SELECT count(student_id) from students_table WHERE institute_name=$1`,[studentPayload.institute_name]
         );
         const deptcount: [{ deptcount: null | string }] = await this.studentsRepository.query(
           `SELECT count(*) AS deptcount from students_table WHERE department=$1`,[studentPayload.department]
