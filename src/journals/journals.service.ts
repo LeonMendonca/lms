@@ -7,8 +7,8 @@ import { JournalTitle, TJournalTitle } from './entity/journals_title.entity';
 import { JournalLogs, TJournalLogs } from './entity/journals_log.entity';
 import { TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
 import { genJournalId } from './create-journal-id';
-import { insertQueryHelper } from 'src/misc/custom-query-helper';
-import { UpdateJournalTitleDTO } from './zod-validation/updatejournaldto';
+import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
+import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/updatejournaldto';
 import { Students } from 'src/students/students.entity';
 import { TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 import { Request } from 'express';
@@ -1201,114 +1201,37 @@ export class JournalsService {
     }
 
 
-    // not working properly
-    // async updateJournalTitle(uuid: string, updateJournalPayload: UpdateJournalTitleDTO) {
-    //     try {
-    //         const journal = await this.journalsTitleRepository.query(
-    //             `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND is_archived = false LIMIT 1 `,
-    //             [uuid],
-    //         );
-    //         console.log(journal)
-
-    //         if (!journal) {
-    //             throw new HttpException('Journal not found', HttpStatus.NOT_FOUND);
-    //         }
-    //         console.log(updateJournalPayload)
-
-    //         await this.journalsTitleRepository.query(
-    //             `UPDATE journal_titles SET 
-    //             journal_title = COALESCE($2, journal_title),
-    //             editor_name = COALESCE($3, editor_name),
-    //             name_of_publisher = COALESCE($4, name_of_publisher),
-    //             place_of_publication = COALESCE($5, place_of_publication),
-    //             issn = COALESCE($6, issn),
-    //             total_count = COALESCE($7::integer, total_count), 
-    //             available_count = COALESCE($8::integer, available_count),
-    //             title_images = COALESCE($9::TEXT[], title_images),
-    //             title_additional_fields = COALESCE($10::jsonb, title_additional_fields),
-    //             title_description = COALESCE($11, title_description),
-    //             updated_at = NOW()
-    //             WHERE journal_uuid = $1`,
-    //             // [
-    //             //     uuid,
-    //             //     updateJournalPayload.journalTitle,
-    //             //     updateJournalPayload.editorName,
-    //             //     updateJournalPayload.nameOfPublisher,
-    //             //     updateJournalPayload.placeOfPublication,
-    //             //     updateJournalPayload.issn,
-    //             //     updateJournalPayload.totalCount,
-    //             //     updateJournalPayload.availableCount,
-    //             // ],
-    //             [uuid,
-    //                 updateJournalPayload.journalTitle,
-    //                 updateJournalPayload.editorName,
-    //                 updateJournalPayload.nameOfPublisher,
-    //                 updateJournalPayload.placeOfPublication,
-    //                 updateJournalPayload.issn,
-    //                 updateJournalPayload.totalCount,
-    //                 updateJournalPayload.availableCount,
-    //                 updateJournalPayload.titleImages ?? [],
-    //                 updateJournalPayload.titleAdditionalFields,
-    //                 updateJournalPayload.titleDescription]
-    //         );
-
-    //         return { message: 'Journal updated successfully' };
-    //     } catch (error) {
-    //         console.log(error);
-    //         throw new HttpException('Error updating journal', HttpStatus.BAD_REQUEST);
-    //     }
-    // }
-
-    async updateJournalTitle(uuid: string, updateJournalPayload: UpdateJournalTitleDTO) {
+    // working
+    async updateJournalTitle(updateJournalPayload: TUpdateJournalTitleDTO) {
         try {
-            // Fetch the journal by UUID
+            let queryData = updateQueryHelper<TUpdateJournalTitleDTO>
+                (updateJournalPayload, [])
             const journal = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND is_archived = false LIMIT 1`,
-                [uuid]
-            );
+                `SELECT * FROM journal_titles WHERE journal_uuid='${updateJournalPayload.journal_uuid}'`
+            )
+            if (journal.length === 0) {
+                throw new HttpException(
+                    'Journal Not Found ',
+                    HttpStatus.NOT_FOUND,
+                );
+            }
+            const result = await this.journalsTitleRepository.query(
+                `UPDATE journal_titles 
+                 SET ${queryData.queryCol}
+                 WHERE journal_uuid='${updateJournalPayload.journal_uuid}' AND is_archived=false`,
+                queryData.values
+            )
 
-            if (!journal.length) {
-                throw new HttpException('Journal not found', HttpStatus.NOT_FOUND);
+            return {
+                message: "Journal Updated Successfully!"
             }
 
-            console.log("Updating journal:", updateJournalPayload);
-
-            // Update the journal entry
-            await this.journalsTitleRepository.query(
-                `UPDATE journal_titles SET 
-                journal_title = COALESCE($2, journal_title),
-                editor_name = COALESCE($3, editor_name),
-                name_of_publisher = COALESCE($4, name_of_publisher),
-                place_of_publication = COALESCE($5, place_of_publication),
-                issn = COALESCE($6, issn),
-                total_count = COALESCE($7::integer, total_count), 
-                available_count = COALESCE($8::integer, available_count),
-                title_images = COALESCE($9::TEXT[], title_images),
-                title_additional_fields = COALESCE($10::jsonb, title_additional_fields),
-                title_description = COALESCE($11, title_description),
-                updated_at = NOW()
-            WHERE journal_uuid = $1`,
-                [
-                    uuid,
-                    updateJournalPayload.journalTitle,
-                    updateJournalPayload.editorName,
-                    updateJournalPayload.nameOfPublisher,
-                    updateJournalPayload.placeOfPublication,
-                    updateJournalPayload.issn,
-                    updateJournalPayload.totalCount,
-                    updateJournalPayload.availableCount,
-                    updateJournalPayload.titleImages ?? [], // Ensure it's always an array
-                    updateJournalPayload.titleAdditionalFields ?? {}, // Ensure it's always an object
-                    updateJournalPayload.titleDescription,
-                ]
-            );
-
-            return { message: 'Journal updated successfully' };
         } catch (error) {
-            console.error("Error updating journal:", error);
-            throw new HttpException('Error updating journal', HttpStatus.INTERNAL_SERVER_ERROR)
+            throw error
         }
     }
+
+
 
 
     // working

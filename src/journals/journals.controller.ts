@@ -3,7 +3,7 @@ import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Put, Que
 import { JournalsService } from './journals.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createJournalSchema, TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
-import { UpdateJournalTitleDTO } from './zod-validation/updatejournaldto';
+import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/updatejournaldto';
 import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 
 import type { Request } from 'express';
@@ -170,20 +170,21 @@ export class JournalsController {
         return this.journalsService.getSingleJournalCopyInfo(identifier);
     }
 
-    // @Patch('update_journal_title')
-    // async updateJournalTitle(
-    //     @Body('journal_uuid') journal_uuid: string,
-    //     @Body() journalPayload: UpdateJournalTitleDTO,
-    // ) {
-    //     return this.journalsService.updateJournalTitle(journal_uuid, journalPayload)
-    // }
     @Patch('update-journal-title')
+    @UsePipes(new bodyValidationPipe(updateJournalSchema))
     async updateJournalTitle(
-        @Body() updateJournalPayload: { journal_uuid: string; journalPayload: UpdateJournalTitleDTO }
+        @Body() updateJournalPayload: TUpdateJournalTitleDTO
     ) {
-        return this.journalsService.updateJournalTitle(updateJournalPayload.journal_uuid, updateJournalPayload.journalPayload);
+        try {
+            const result = await this.journalsService.updateJournalTitle(updateJournalPayload)
+            return result
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
     }
-
 
     @Put('archive-journal-copy')
     async archiveJournalCopy(@Body('journal_uuid') journal_uuid: string) {
@@ -251,7 +252,6 @@ export class JournalsController {
         @Query('_page') page: string,
         @Query('_limit') limit: string,
         @Query('_search') search: string,
-        // @Query('_journal_title_uuid') journal_title_uuid: string
     ) {
 
         console.log(page, limit, search);
@@ -259,7 +259,6 @@ export class JournalsController {
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 10,
             search: search ?? undefined,
-            // journal_title_uuid: journal_title_uuid
         });
     }
 
