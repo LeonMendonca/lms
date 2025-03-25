@@ -68,7 +68,7 @@ export class BooksV2Service {
       const searchQuery = search ? `${search}%` : '%';
 
       const books = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false LIMIT $2 OFFSET $3;`,
+        `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false AND available_count >0 AND total_count >0  LIMIT $2 OFFSET $3;`,
         [searchQuery, limit, offset],
       );
       if(books.length===0){
@@ -76,7 +76,7 @@ export class BooksV2Service {
       }
       const total = await this.booktitleRepository.query(
         `SELECT COUNT(*) as count FROM book_titles 
-        WHERE is_archived = false AND book_title ILIKE $1`,
+        WHERE is_archived = false AND book_title ILIKE $1 AND available_count >0 AND total_count >0`,
         [searchQuery],
       );
 
