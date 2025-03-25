@@ -10,12 +10,13 @@ import {
   updateQueryHelper,
 } from '../misc/custom-query-helper';
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
-import { createStudentId } from './create-student-id';
+import { createStudentId, createStudentId2 } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
+import { count } from 'console';
 
 @Injectable()
 export class StudentsService {
@@ -132,34 +133,82 @@ export class StudentsService {
     }
   }
 
-  async createStudent(studentPayload: TCreateStudentDTO) {
-    try {
-      type TCreateStudentDTOWithID = TCreateStudentDTO & {
-        student_id: string;
-      };
-      const max: [{ max: null | string }] = await this.studentsRepository.query(
-        `SELECT MAX(student_id) from students_table`,
-      );
-      let studentId = createStudentId(
-        max[0].max,
-        studentPayload.institute_name,
-      );
-      let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
-        { ...studentPayload, student_id: studentId },
-        [],
-      );
-      await this.studentsRepository.query(
-        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
-        queryData.values,
-      );
-      return {
-        statusCode: HttpStatus.CREATED,
-        studentId: studentId,
-      };
-    } catch (error) {
-      throw error;
+  // async createStudent(studentPayload: TCreateStudentDTO) {
+  //   try {
+  //     type TCreateStudentDTOWithID = TCreateStudentDTO & {
+  //       student_id: string;
+  //     };
+  //     const max: [{ max: null | string }] = await this.studentsRepository.query(
+  //       `SELECT MAX(student_id) from students_table`,
+  //     );
+  //     let studentId = createStudentId(
+  //       max[0].max,
+  //       studentPayload.institute_name,
+  //     );
+  //     let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+  //       { ...studentPayload, student_id: studentId },
+  //       [],
+  //     );
+  //     await this.studentsRepository.query(
+  //       `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+  //       queryData.values,
+  //     );
+  //     return {
+  //       statusCode: HttpStatus.CREATED,
+  //       studentId: studentId,
+  //     };
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
+
+   async createStudent(studentPayload: TCreateStudentDTO) {
+      try {
+        console.log("part1");
+        type TCreateStudentDTOWithID = TCreateStudentDTO & {
+          student_id: string;
+        };
+        const max: [{ max: null | string }] = await this.studentsRepository.query(
+          `SELECT MAX(student_id) from students_table`,
+        );
+        const count: [{ count: null | string }] = await this.studentsRepository.query(
+          `SELECT count(student_id) from students_table WHERE institute_name=$1`,[studentPayload.institute_name]
+        );
+        const deptcount: [{ deptcount: null | string }] = await this.studentsRepository.query(
+          `SELECT count(*) AS deptcount from students_table WHERE department=$1`,[studentPayload.department]
+        );
+        let studentId = createStudentId(
+          max[0].max,
+          studentPayload.institute_name,
+        );
+
+        let studentId2 = createStudentId2(
+          count[0].count,
+          deptcount[0].deptcount,
+          studentPayload.institute_name,
+          studentPayload.department
+        );
+
+       
+
+        let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
+          { ...studentPayload, student_id: studentId2 },
+          [],
+        );
+        await this.studentsRepository.query(
+          `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+          queryData.values,
+        );
+        return {
+          statusCode: HttpStatus.CREATED,
+          studentId: studentId2,
+        };
+      } catch (error) {
+        throw error;
+      }
     }
-  }
+  
+ 
 
   async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
     console.log("SERVICE calling main worker thread");
