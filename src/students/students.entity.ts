@@ -61,8 +61,7 @@ export class Students {
 
   @Column({
     name: 'phone_no',
-    type: 'char',
-    length: 10,
+    type: 'varchar',
     nullable: true,
   })
   phoneNo: 'phone_no' = 'phone_no';
