@@ -38,6 +38,8 @@ import {
 } from './zod/update-fp-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { bookUUIDZod, TbookUUIDZod } from './zod/bookuuid-zod';
+import { requestBookZodIssue, requestBookZodIssueReIssueAR, requestBookZodReIssue } from './zod/requestbook-zod';
+import type { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR, TRequestBookZodReIssue } from './zod/requestbook-zod'
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -479,25 +481,31 @@ export class BooksV2Controller {
     @Req() request: Request,
   ) {
     try {
-      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
-        undefined;
+      if (!request.ip) {
+        throw new HttpException(
+          'Unable to get IP address of the Client',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
-          request,
+          request.ip,
           (status = 'borrowed'),
         );
       } else if (booklogPayload.action === 'return') {
         result = await this.booksService.bookReturned(
           booklogPayload,
-          request,
+          request.ip,
           (status = 'returned'),
         );
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
-          request,
+          request.ip,
           (status = 'in_library_borrowed'),
         );
       }
@@ -642,4 +650,70 @@ export class BooksV2Controller {
       throw error;
     }
   }
+
+  //REQUEST BOOK
+
+  @Get('request_booklog')
+  async getRequestBooklog() {}
+
+  @Post('request_booklog_issue')
+  @UsePipes(new bodyValidationPipe(requestBookZodIssue))
+  async createRequestBooklogIssue(@Body() requestBookIssuePayload: TRequestBookZodIssue, @Req() request: Request) {
+    try {
+      if(!request.ip) {
+        throw new HttpException(
+          'Unable to get IP address of the Client',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      //Adding IP address, since required for issuing
+      return await this.booksService.createRequestBooklogIssue(requestBookIssuePayload, request.ip);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  //Approve or Reject for Issue
+  @Post('request_booklog_issue_ar')
+  @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
+  async createRequestBooklogIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+    try {
+      return await this.booksService.createRequestBooklogIssueAR(requestBookIssueARPayload);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  @Post('request_booklog_reissue')
+  @UsePipes(new bodyValidationPipe(requestBookZodReIssue))
+  async createRequestBooklogReIssue(@Body() requestBookReIssuePayload: TRequestBookZodReIssue) {
+    try {
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  //Approve or Reject for ReIssue
+  @Post('request_booklog_reissue_ar')
+  @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
+  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+    try {
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+
 }

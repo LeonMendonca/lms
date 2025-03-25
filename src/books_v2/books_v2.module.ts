@@ -7,8 +7,9 @@ import { BookCopy } from './entity/books_v2.copies.entity';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
 import { FeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { RequestBook } from './entity/request-book.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([BookTitle, BookCopy, Students, Booklog_v2, FeesPenalties])],
+  imports: [TypeOrmModule.forFeature([BookTitle, BookCopy, Students, Booklog_v2, FeesPenalties, RequestBook])],
   controllers: [BooksV2Controller],
   providers: [BooksV2Service],
 })

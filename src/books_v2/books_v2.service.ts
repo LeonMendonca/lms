@@ -7,6 +7,7 @@ import { TCreateBookZodDTO } from './zod/createbookdtozod';
 import {
   insertQueryHelper,
   selectQueryHelper,
+  updateQueryHelper,
 } from 'src/misc/custom-query-helper';
 import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
@@ -35,6 +36,8 @@ import { number } from 'zod';
 import { TbookUUIDZod } from './zod/bookuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
+import { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR } from './zod/requestbook-zod';
+import { RequestBook, TRequestBook } from './entity/request-book.entity';
 
 @Injectable()
 export class BooksV2Service {
@@ -46,13 +49,16 @@ export class BooksV2Service {
     private readonly booktitleRepository: Repository<BookTitle>,
 
     @InjectRepository(Students)
-    private readonly sudentRepository: Repository<Students>,
+    private readonly studentRepository: Repository<Students>,
 
     @InjectRepository(Booklog_v2)
     private readonly booklogRepository: Repository<Booklog_v2>,
 
     @InjectRepository(FeesPenalties)
     private readonly fpRepository: Repository<FeesPenalties>,
+
+    @InjectRepository(RequestBook)
+    private readonly requestBooklogRepository: Repository<RequestBook>
   ) {}
 
   async getBooks(
@@ -1212,18 +1218,13 @@ async archiveBookCopy(book_copy_uuid: string) {
 
   async bookReturned(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
-    request: Request,
+    ipAddress: string,
     status: 'returned',
   ) {
     try {
-      if (!request.ip) {
-        throw new HttpException(
-          'Unable to get IP address of the Client',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      
       const studentExists: { student_uuid: string }[] =
-        await this.sudentRepository.query(
+        await this.studentRepository.query(
           `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
@@ -1408,7 +1409,7 @@ async archiveBookCopy(book_copy_uuid: string) {
           newBookCopy,
           oldBookTitle,
           newBookTitle,
-          request.ip,
+          ipAddress,
           fpUUID[0][0].fp_uuid,
         ],
       );
@@ -1424,18 +1425,13 @@ async archiveBookCopy(book_copy_uuid: string) {
 
   async bookBorrowed(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
-    request: Request,
+    ipAddress: string,
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {
-      if (!request.ip) {
-        throw new HttpException(
-          'Unable to get IP address of the Client',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      
       const studentExists: { student_uuid: string }[] =
-        await this.sudentRepository.query(
+        await this.studentRepository.query(
           `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
@@ -1567,7 +1563,7 @@ async archiveBookCopy(book_copy_uuid: string) {
           newBookCopy,
           oldBookTitle,
           newBookTitle,
-          request.ip,
+          ipAddress,
           fpUUID[0].fp_uuid,
         ],
       );
@@ -1584,7 +1580,7 @@ async archiveBookCopy(book_copy_uuid: string) {
   async setbooklibrary(booklogpayload: TCreateBooklogV2DTO, ipAddress: string) {
     try {
       // Validate student existence
-      const studentExists = await this.sudentRepository.query(
+      const studentExists = await this.studentRepository.query(
         `SELECT * FROM students_table WHERE student_uuid = $1 AND is_archived = FALSE`,
         [booklogpayload.student_id],
       );
@@ -1880,7 +1876,7 @@ async archiveBookCopy(book_copy_uuid: string) {
         paid_amount: number;
         is_penalised: boolean;
         is_completed: boolean;
-      }[] = await this.sudentRepository.query(
+      }[] = await this.studentRepository.query(
         `
         SELECT student_uuid, book_copies.book_copy_uuid, penalty_amount, return_date, returned_at, paid_amount, is_penalised, is_completed 
         FROM fees_penalties 
@@ -1940,6 +1936,98 @@ async archiveBookCopy(book_copy_uuid: string) {
         statusCode: HttpStatus.OK,
         messsage: 'Penalty paid successfully!',
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createRequestBooklogIssue(requestBookIssuePayload: TRequestBookZodIssue, ipAddress: string) {
+    try { 
+
+    const studentExists: Pick<TStudents, 'student_id'>[] =
+      await this.studentRepository.query(
+        `SELECT student_id FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+        [requestBookIssuePayload.student_id],
+      );
+      if (!studentExists.length) {
+        throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
+      }
+
+      const bookPayloadFromBookCopies: Pick<TBookCopy, 'book_copy_id'>[] =
+      await this.bookcopyRepository.query(
+        `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = TRUE AND is_archived = FALSE`,
+        [requestBookIssuePayload.barcode],
+      );
+
+      if (!bookPayloadFromBookCopies.length) {
+        throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
+      }
+
+      const requestExists: Pick<TRequestBook, 'request_id'>[] = await this.requestBooklogRepository.query
+      (`
+        SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
+        [requestBookIssuePayload.student_id, requestBookIssuePayload.barcode]
+      );
+
+      if(requestExists.length) {
+        throw new HttpException('Already been request!', HttpStatus.BAD_REQUEST);
+      }
+
+      //Unsafe object, Don't use it!
+      const insertObject = Object.assign(
+        requestBookIssuePayload, 
+        { 
+          request_id: Date.now(),
+          ip_address: ipAddress, 
+          book_copy_id: bookPayloadFromBookCopies[0].book_copy_id,
+        }
+      ) as TRequestBook;
+
+      const queryData = insertQueryHelper(insertObject, []);
+      const result: Pick<TRequestBook, 'request_id'>[] = await this.requestBooklogRepository.query
+      (`
+        INSERT INTO request_book_log (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING request_id`,
+        queryData.values
+      );
+      return {
+        request_id: result[0].request_id
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createRequestBooklogIssueAR(requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+    try {
+      let isCompleted = false;
+      if(requestBookIssueARPayload.status === 'approved') {
+        //overwrite reject reason
+        requestBookIssueARPayload.reject_reason = undefined;
+        const result: Pick<TRequestBook, 'student_id' | 'barcode' | 'book_copy_id' | 'ip_address'>[] = await this.requestBooklogRepository.query
+        (`
+          SELECT * FROM request_book_log WHERE request_id = $1 AND is_archived = FALSE AND is_completed = FALSE`,
+          [requestBookIssueARPayload.request_id]
+        );
+
+        if(!result.length) {
+          throw new HttpException('Cannot find this request', HttpStatus.NOT_FOUND);
+        }
+        await this.bookBorrowed(result[0], result[0].ip_address, 'borrowed');
+        isCompleted = true;
+      }
+
+      const queryData = updateQueryHelper(requestBookIssueARPayload, ['request_id']);
+      const result: [[], 0 | 1] = await this.requestBooklogRepository.query
+      (`
+        UPDATE request_book_log SET ${queryData.queryCol}, is_archived = TRUE, is_completed = ${isCompleted} 
+        WHERE request_id = '${requestBookIssueARPayload.request_id}' AND is_archived = FALSE AND is_completed = FALSE`,
+        queryData.values
+      );
+      const updatedStatus = result[1];
+      if(!updatedStatus) {
+        throw new HttpException('Failed to update request', HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      return { statusCode: HttpStatus.OK, message: 'Request has been updated!' };
     } catch (error) {
       throw error;
     }

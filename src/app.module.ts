@@ -17,6 +17,7 @@ import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { VisitLog } from './students/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
 import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
+import { RequestBook } from './books_v2/entity/request-book.entity';
 
 config({ path: '.env' });
 @Module({
@@ -30,7 +31,8 @@ config({ path: '.env' });
         BookTitle,
         Booklog_v2,
         VisitLog,
-        FeesPenalties
+        FeesPenalties,
+        RequestBook
       ],
       ssl: true,
       synchronize: true,
