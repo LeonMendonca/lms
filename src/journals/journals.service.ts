@@ -110,8 +110,7 @@ export class JournalsService {
 
 
             const journals = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy
-        WHERE is_archived = false AND journal_title_uuid = $1`,
+                `SELECT * FROM journal_copy WHERE is_archived = false AND journal_title_uuid = $1`,
                 [journal[0].journal_uuid],
             );
 

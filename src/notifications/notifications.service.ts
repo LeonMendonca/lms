@@ -31,14 +31,10 @@ export class NotificationsService {
     // ---------------------- BOOKS NOTIFICATION --------------------------
 
     @Cron('0 0 9 * * *')
-    async notifyForBookOnDueDate(returnDate: string, bookName: string) {
+    async notifyForBookOnDueDate(returnDate: string, bookName: string, studentName: string, publisherName: string) {
         try {
             let template = bookDueToday
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Book Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName)
 
             return template
         } catch (error) {
@@ -49,14 +45,10 @@ export class NotificationsService {
     }
 
     @Cron('0 0 10 * * *')
-    async notifyForBookBefore3Days(returnDate: string, bookName: string) {
+    async notifyForBookBefore3Days(returnDate: string, bookName: string, studentName: string, publisherName: string) {
         try {
             let template = bookDue3Days
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Book Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName)
 
             return template
         } catch (error) {
@@ -66,14 +58,10 @@ export class NotificationsService {
     }
 
     @Cron('0 0 10 * * 1')
-    async notifyForBookIfNotReturned(returnDate: string, bookName: string, total_fine: number, fine: number) {
+    async notifyForBookIfNotReturned(returnDate: string, bookName: string, studentName: string, publisherName: string, totalFine: number, fine: number) {
         try {
             let template = bookOverDue
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name).replaceAll("[Total Fine]", String(total_fine)).replaceAll("[Fine Amount]", String(fine))
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Book Title]", bookName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName).replaceAll("[Total Fine]", String(totalFine)).replaceAll("[Fine Amount]", String(fine))
 
             return template
         } catch (error) {
@@ -85,16 +73,11 @@ export class NotificationsService {
 
     // ---------------------- JOURNALS NOTIFICATION --------------------------------
 
-    @Cron('0 0 9 * * *')
-    async notifyForJouralOnDueDate(returnDate: string, journalName: string) {
+    // @Cron('0 0 9 * * *')
+    async notifyForJouralOnDueDate(returnDate: string, journalName: string, studentName: string, publisherName: string) {
         try {
             let template = journalDueToday
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
-
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Book Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName)
             return template
         } catch (error) {
             return {
@@ -103,16 +86,11 @@ export class NotificationsService {
         }
     }
 
-    @Cron('0 0 10 * * *')
-    async notifyForJournalBefore3Days(returnDate: string, journalName: string) {
+    // @Cron('0 0 10 * * *')
+    async notifyForJournalBefore3Days(returnDate: string, journalName: string, studentName: string, publisherName: string) {
         try {
             let template = journalDue3Days
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Book Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name)
-
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Journal Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName)
             return template
         } catch (error) {
             throw new Error("Error While Sending Email: ", error)
@@ -120,16 +98,11 @@ export class NotificationsService {
         }
     }
 
-    @Cron('0 0 10 * * 1')
-    async notifyForJournalIfNotReturned(returnDate: string, journalName: string, total_fine: number, fine: number) {
+    // @Cron('0 0 10 * * 1')
+    async notifyForJournalIfNotReturned(returnDate: string, journalName: string, studentName: string, publisherName: string, totalFine: number, fine: number) {
         try {
             let template = journalOverDue
-            // things to change
-            const student_name = "Jigisha Ghanekar"
-            const library_name = "Library 1"
-
-            template = template.replaceAll("[User's Name]", student_name).replaceAll("[Journal Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", library_name).replaceAll("[Total Fine]", String(total_fine)).replaceAll("[Fine Amount]", String(fine))
-
+            template = template.replaceAll("[User's Name]", studentName).replaceAll("[Journal Title]", journalName).replaceAll("[Return Date]", returnDate).replaceAll("[Library Name]", publisherName).replaceAll("[Total Fine]", String(totalFine)).replaceAll("[Fine Amount]", String(fine))
             return template
         } catch (error) {
             throw new Error("Error While Sending Email", error)

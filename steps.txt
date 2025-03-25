@@ -103,17 +103,6 @@ P2 : Delete Journal in journal_copy and journal_table
 - Test
 
 
-13 March
-P0 : Db Transactions implemented
-
-15 March
-P0 : Made changes in Journals module
-P1 : Started with Notifications module
-
-17 March
-P0 : Updated the Update and Delete journals http methods
-P1 : Made the Email Notification template
-P2 : Working on Transactions
 
 ----->> Things To Do Today
 - Map data from the book_log and students_table table into the notifs part
@@ -123,28 +112,9 @@ P2 : Working on Transactions
 book_logs -> 
 students_table -> master
 
-15 March
-P0 : Made changes in Journals module
-P1 : Started with Notifications module
 
-17 March
-P0 : Updated the Update and Delete journals http methods
-P1 : Made the Email Notification template
-P2 : Working on Transactions
-
-18 March 
-P0 : Refatored half of the journals according to books
-P1 : Made Notifications for journals
-
-19 March 
-P0 : Journals Refactoring done
-P1 : Testing the routes
-P2 : Simultaenuously making changes in the journals notifications
-
-
-20 March 
-P0 : Complete testing refactored journals with frontend
-P1 : Complete Notification module
+P0 : Integration of Periodicals done
+P1 : Refactored Journals Notifications
 
 
 
