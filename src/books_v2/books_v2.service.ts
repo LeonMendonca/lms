@@ -1947,7 +1947,11 @@ async archiveBookCopy(book_copy_uuid: string) {
 
   async renewbook(student_id:string){
     try {
-      await this.booktitleRepository.query(`SELECT * FROM students_table WHERE student_id`)
+     const result:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[student_id])
+      if(result.length===0){
+        throw new HttpException("Invalid id !!", HttpStatus.BAD_REQUEST);
+      }
+      const data =await this.booktitleRepository
     } catch (error) {
       throw error
     }
