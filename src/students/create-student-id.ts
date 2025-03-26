@@ -25,11 +25,9 @@ export function createStudentId2(
     .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
     .join("");
 
-  const dept = department
-    .split(" ")
-    .filter(word => word[0] && word[0] === word[0].toUpperCase()) // Ensure the first letter is uppercase
-    .map(word => word[0]) // Get first letter of each word
-    .join(""); // Join them into a single string
+  const dept = department.split(" ")
+  .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
+  .join(""); 
 
   if (!count) {
     return `${institute_name}001/${dept}${deptcount}`
