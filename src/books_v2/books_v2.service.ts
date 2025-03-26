@@ -13,7 +13,7 @@ import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { student, Students, TStudents } from 'src/students/students.entity';
 import { Booklog_v2, booklogV2, TBooklog_v2 } from './entity/book_logv2.entity';
-import { genBookId } from './create-book-id';
+import { genBookId, genBookId2 } from './create-book-id';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { TRestoreZodDTO } from './zod/restorearchive';
 import { TCopyarchiveZodDTO } from './zod/archivebookcopy';
@@ -809,7 +809,7 @@ if(books.length===0){
   async createBook(createBookpayload: TCreateBookZodDTO) {
     try {
       //Check if book exists in BookTitle Table
-      let bookTitleUUID: [{ book_uuid: string }] =
+      let bookTitleUUID: Pick<TBookTitle, 'book_uuid'>[] =
         await this.booktitleRepository.query(
           `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
           [createBookpayload.isbn],
@@ -839,6 +839,7 @@ if(books.length===0){
           'accession_number',
           'barcode',
           'item_type',
+          'institute_name',
           'institute_uuid',
           'created_by',
           'remarks',
@@ -866,20 +867,25 @@ if(books.length===0){
       //Book Copy Table logic
 
       //Create custom Book Id
-      const max: [{ max: null | string }] =
+      const count: [{ count: string }] =
         await this.booktitleRepository.query(
-          `SELECT MAX(book_copy_id) FROM book_copies`,
+          `SELECT COUNT(*) FROM book_copies WHERE institute_name = $1`, [createBookpayload.institute_name],
         );
-      const bookId = genBookId(max[0].max, 'BC');
-      const bookCopyPayloadWithId = {
-        ...createBookpayload,
-        book_copy_id: bookId,
-        book_title_uuid: bookTitleUUID[0].book_uuid,
-      };
+        console.log("count is", count);
+      //const bookId = genBookId2(count[0].count, createBookpayload.institute_name);
+      //console.log(bookId);
+      //This variable also includes book title payload
+      const bookPayloadWithCopyId = Object.assign(
+        createBookpayload,
+        {
+          //book_copy_id: bookId,
+          book_title_uuid: bookTitleUUID[0].book_uuid
+        } 
+      ) as (TBookCopy & TBookTitle);
 
       //Create the required Columns, Arg, and Values
       //Ignore the Columns that are used by Title table
-      const bookCopyQueryData = insertQueryHelper(bookCopyPayloadWithId, [
+      const bookCopyQueryData = insertQueryHelper(bookPayloadWithCopyId, [
         'book_title',
         'book_author',
         'name_of_publisher',
