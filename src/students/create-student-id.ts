@@ -21,9 +21,9 @@ export function createStudentId2(
   instituteName: string,
   department: string
 ) {
-  const institute = instituteName.split(" ");
-    let x = institute.map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "");
-   let institute_name= x.join(""); // Join them into a single string
+  const institute_name = instituteName.split(" ")
+    .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
+    .join("");
 
   const dept = department
     .split(" ")
