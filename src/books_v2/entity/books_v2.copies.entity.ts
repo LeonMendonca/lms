@@ -40,6 +40,9 @@ export class BookCopy {
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
   itemType: "item_type" = "item_type";
 
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: "institute_name" = "institute_name";
+
   @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
   instituteUUID: "institute_uuid" = "institute_uuid";
 
@@ -79,9 +82,9 @@ export class BookCopy {
   @JoinColumn({ name: "book_title_uuid" })
   bookTitleUUID: "book_title_uuid" = "book_title_uuid";
 
-  @ManyToOne(() => VisitLog, (visitlog) => visitlog.visitlogId)
-  @JoinColumn({ name:"book_copy_visitlog_id" })
-  visitlogId:'visitlogid' = 'visitlogid';
+  //@ManyToOne(() => VisitLog, (visitlog) => visitlog.visitlogId)
+  //@JoinColumn({ name:"book_copy_visitlog_id" })
+  //visitlogId:'visitlogid' = 'visitlogid';
 }
 
 const book_copy = new BookCopy();

@@ -44,6 +44,7 @@ export const createBookSchema = z.object({
 
     //Book Copy fields
 
+    [createBookCopyObject.instituteName]: z.string(),
     [createBookCopyObject.sourceOfAcquisition]: z.string(),
     [createBookCopyObject.dateOfAcquisition]: z.string().date(),
     [createBookCopyObject.billNo]: z.string(),
