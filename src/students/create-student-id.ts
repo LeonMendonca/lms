@@ -21,11 +21,11 @@ export function createStudentId2(
   instituteName: string,
   department: string
 ) {
-  const institute_name = instituteName.split(" ")
+  const institute_name = instituteName.trim().split(" ")
     .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
     .join("");
 
-  const dept = department.split(" ")
+  const dept = department.trim().split(" ")
   .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
   .join(""); 
 
@@ -47,36 +47,5 @@ export function createStudentId2(
   // console.log("institute:", institute, "department:", dept);
   return (`${institute_name}${(maxIdToNumber + 1).toString().padStart(3, '0')}/${dept}${(deptotal + 1).toString().padStart(3, '0')}`)
 }
-
-
-
-export function bookBarcode(
-  count: string | null,
-  
-  instituteName: string,
-
-) {
-  const institute = instituteName
-    .split(" ")
-    .filter(word => word[0] && word[0] === word[0].toUpperCase()) // Ensure the first letter is uppercase
-    .map(word => word[0]) // Get first letter of each word
-    .join(""); // Join them into a single string
-
-
-
-  if (!count) {
-    return `${institute}-001 `
-  }
-  
-
-  
-  const splitMaxId = count.split('-');
-  let maxIdToNumber = Number(splitMaxId[0]);
-
-  
-
-  return (`${institute}${(maxIdToNumber + 1).toString().padStart(3, '0')}`)
-}
-
 
 

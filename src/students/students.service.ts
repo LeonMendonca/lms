@@ -166,7 +166,6 @@ export class StudentsService {
 
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      console.log('part1');
       type TCreateStudentDTOWithID = TCreateStudentDTO & {
         student_id: string;
       };
