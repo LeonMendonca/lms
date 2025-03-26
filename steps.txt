@@ -119,5 +119,9 @@ P1 : Refactored Journals Notifications
 
 
 ---------- For Date Conversion ----------
-- Install date-fns library
-- Follow the code
+- differenceInBusinessDays : Doesnt count Saturday Sunday
+
+
+
+--------------------- For Calendar -------------------------
+- Created module controller and services

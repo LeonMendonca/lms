@@ -22,6 +22,8 @@ import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { JournalTitle } from './journals/entity/journals_title.entity';
 import { JournalLogs } from './journals/entity/journals_log.entity';
+import { CalendarModule } from './calendar/calendar.module';
+import { Calendar } from './calendar/entity/calendar.entity';
 
 config({ path: '.env' });
 @Module({
@@ -29,7 +31,7 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy],
+      entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy, Calendar],
       ssl: true,
       synchronize: true,
     }),
@@ -42,6 +44,7 @@ config({ path: '.env' });
     JournalsModule,
     NotificationsModule,
     TrialModule,
+    CalendarModule,
   ],
 })
 export class AppModule {

@@ -32,7 +32,7 @@ export class NotificationsController {
         // @InjectRepository(JournalsTable) private journalRepo: Repository<JournalsTable>,
     ) { }
 
-    @Post('books')
+    // @Post('books')
     // async notifyStudent(@Body('journal_uuid') journal_uuid: UUID) {
     // async notifyStudentAboutBooks() {
     //     // select the journal log from the table
