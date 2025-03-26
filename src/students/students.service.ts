@@ -166,7 +166,6 @@ export class StudentsService {
 
   async createStudent(studentPayload: TCreateStudentDTO) {
     try {
-      console.log('part1');
       type TCreateStudentDTOWithID = TCreateStudentDTO & {
         student_id: string;
       };
@@ -195,14 +194,20 @@ export class StudentsService {
         studentPayload.department,
       );
 
+      if(!studentPayload.password || studentPayload.password.trim() === "") {
+        studentPayload.password = studentId2
+      }
+
       let queryData = insertQueryHelper<TCreateStudentDTOWithID>(
         { ...studentPayload, student_id: studentId2 },
         [],
       );
+
       await this.studentsRepository.query(
-        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg})`,
+        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg} )`,
         queryData.values,
       );
+
       return {
         statusCode: HttpStatus.CREATED,
         studentId: studentId2,
