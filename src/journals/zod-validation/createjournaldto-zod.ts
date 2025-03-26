@@ -17,14 +17,20 @@ const createJournalCopyObject = createObjectOmitProperties(
 export const createJournalSchema = z.object({
     // Journal Title fields
 
-    [createJournalTitleObject.journalTitle]: z.string(),
-    [createJournalTitleObject.editorName]: z.string(),
+    // [createJournalTitleObject.journalTitle]: z.string(),
+    // [createJournalTitleObject.editorName]: z.string(),
+    [createJournalTitleObject.category]: z.string(),
     [createJournalTitleObject.nameOfPublisher]: z.string(),
     [createJournalTitleObject.placeOfPublication]: z.string(),
     [createJournalTitleObject.subscriptionStartDate]: z.string().date(),
     [createJournalTitleObject.subscriptionEndDate]: z.string().date(),
     [createJournalTitleObject.issn]: z.string(), // add validation for issn
     [createJournalTitleObject.volumeNumber]: z.string(), // add validation for issn
+    [createJournalTitleObject.frequency]: z.string(),
+    [createJournalTitleObject.issueNumber]: z.string(),
+    [createJournalTitleObject.vendorName]: z.string(),
+    [createJournalTitleObject.subscriptionPrice]: z.number(),
+    [createJournalTitleObject.libraryName]: z.string(),
     [createJournalTitleObject.classificationNumber]: z.string(),
     [createJournalTitleObject.isArchived]: z.boolean(),
     [createJournalTitleObject.totalCount]: z.number(),
@@ -35,11 +41,14 @@ export const createJournalSchema = z.object({
 
     // Journal Copy fields,
 
+    [createJournalCopyObject.journalTitle]: z.string(),
+    [createJournalCopyObject.editorName]: z.string(),
     [createJournalCopyObject.barcode]: z.string(),
     [createJournalCopyObject.itemType]: z.string(),
     [createJournalCopyObject.instituteUUID]: z.string().uuid().optional(),
     // [createJournalCopyObject.isArchived]: z.boolean(),
     [createJournalCopyObject.isAvailable]: z.boolean(),
+    // [createJournalCopyObject.frequency]: z.string(),
     [createJournalCopyObject.createdBy]: z.string().uuid().optional(),
     [createJournalCopyObject.remarks]: z.string().optional(),
     [createJournalCopyObject.copyImages]: z.array(z.string()).optional(),

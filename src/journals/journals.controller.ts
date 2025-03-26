@@ -12,8 +12,12 @@ import type { Request } from 'express';
 export class JournalsController {
     constructor(private journalsService: JournalsService) { }
 
-    // Get all journals
-    @Get('all')
+
+    // --------------- JOURNAL TITLE -------------------------
+
+    // GET ALL JOURNALS/MAGAZINES
+    // Get all journals from titles 
+    @Get('all-periodicals')
     async getAllJournals(
         @Query('_page') page: string,
         @Query('_limit') limit: string,
@@ -27,19 +31,104 @@ export class JournalsController {
         });
     }
 
-    @Get('get_copies_with_title')
-    async getJournalCopiesByTitle(
-        @Query('_journal_uuid') journal_uuid: string,
-        @Query('_issn') issn: string,
-        @Query('_titlename') titlename: string,
+    // CREATE A NEW JOURNAL/MAGAZINE
+    @Post('create-new-journal')
+    @UsePipes(new bodyValidationPipe(createJournalSchema))
+    async createJournal(@Body() journalPayload: TCreateJournalZodDTO) {
+        try {
+            const result = await this.journalsService.createJournal(journalPayload);
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
+    }
+
+    // UPDATE JOURNAL/MAGAZINE
+
+    // DELTE JOURNAL/MAGAZINE
+    @Put('uparchive')
+    async archivePeriodical(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.archivePeriodical(journal_uuid);
+    }
+
+    // RESTORE PERIODICAL
+    @Put('restore-archive')
+    async restoreJournal(@Body('journal_uuid') journal_uuid: string) {
+        return this.journalsService.restoreJournal(journal_uuid);
+    }
+
+
+    // FIND JOURNAL/MAGAZINE
+    // search periodicals from copies and titles table both 
+    // Note: You can pass all the required search parameters and get the data from titles AND/OR copy tables
+    // Edit: trim() to be added at each field
+    @Get('search-periodicals')
+    async searchPeriodicals(
+        @Query('_journal_uuid') journal_uuid?: string,
+        @Query('_journal_title_id') journal_title_id?: string, //e
+        @Query('_journal_title') journal_title?: string,
+        @Query('_editor_name') editor_name?: string, //e
+        @Query('_name_of_publisher') name_of_publisher?: string,
+        @Query('_issn') issn?: string,
+        @Query('_frequency') frequency?: string,
+        @Query('_issue_number') issue_number?: string,
+        @Query('_vendor_name') vendor_name?: string,
+        @Query('_library_name') library_name?: string,
+        @Query('_classification_number') classification_number?: string,
+        // @Query('_barcode') barcode?: string,
+        // @Query('_item_type') item_type?: string,
+        // @Query('_institute_uuid') institute_uuid?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
     ) {
-        return this.journalsService.getJournalCopiesByTitle({
-            journal_uuid,
-            issn,
-            titlename,
+        return this.journalsService.searchPeriodicals({
+            journal_uuid: journal_uuid ?? '',
+            journal_title_id: journal_title_id ?? '',
+            journal_title: journal_title ?? '',
+            editor_name: editor_name ?? '',
+            name_of_publisher: name_of_publisher ?? '',
+            issn: issn ?? '',
+            frequency: frequency ?? '',
+            issue_number: issue_number ?? '',
+            vendor_name: vendor_name ?? '',
+            library_name: library_name ?? '',
+            classification_number: classification_number ?? '',
+            // barcode: barcode ?? '',
+            // item_type: item_type ?? '',
+            // institute_uuid: institute_uuid ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
         });
     }
 
+
+
+
+    // get journal by journal_title_id
+    @Get('get-journals-by-journalid')
+    async getJournalsByID(
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string,
+        @Query('_journal_title_id') journal_title_id?: string
+    ) {
+        return this.journalsService.getJournalsByID({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+            journal_title_id: journal_title_id ?? ''
+        });
+    }
+
+
+
+
+    // get journal logs from journal_log_uuid or issn number
     @Get('get-journal-logs-by-title')
     async getJournalLogDetailsByTitle(
         @Query('journal_log_uuid') journal_log_uuid: string,
@@ -58,9 +147,19 @@ export class JournalsController {
         });
     }
 
-    @Get('get_all_available')
-    async getAllAvailableJournals() {
-        return this.journalsService.getAllAvailableJournals();
+    @Get('get-all-available')
+    async getAllAvailableJournalsOrByIssn(
+        @Query('_issn') issn?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getAllAvailableJournalsOrByIssn({
+            issn: issn ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        });
     }
 
     @Get('get_available_by_issn')
@@ -82,10 +181,7 @@ export class JournalsController {
         return this.journalsService.getUnavailableJournalByIssn(issn);
     }
 
-    @Put('uparchive')
-    async updateJournalTitleArchive(@Body('journal_uuid') journal_uuid: string) {
-        return this.journalsService.updateJournalTitleArchive(journal_uuid);
-    }
+
 
     @Get('issn')
     async searchJournalIssn(@Query('_issn') issn: string) {
@@ -97,20 +193,7 @@ export class JournalsController {
         }
     }
 
-    @Post('create')
-    @UsePipes(new bodyValidationPipe(createJournalSchema))
-    async createJournal(@Body() journalPayload: TCreateJournalZodDTO) {
-        try {
-            // console.log(journalPayload)
-            const result = await this.journalsService.createJournal(journalPayload);
-            return result;
-        } catch (error) {
-            if (!(error instanceof HttpException)) {
-                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            throw error;
-        }
-    }
+
 
     @Get('all_archived')
     async getAllArchivedJournals(
@@ -136,10 +219,6 @@ export class JournalsController {
         });
     }
 
-    @Put('restore_archive')
-    async restoreJournal(@Body('journal_uuid') journal_uuid: string) {
-        return this.journalsService.restoreJournal(journal_uuid);
-    }
 
     @Get('get_journal_title_details')
     async getJournalTitleDetails(

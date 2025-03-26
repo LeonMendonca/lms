@@ -113,8 +113,8 @@ book_logs ->
 students_table -> master
 
 
-P0 : Integration of Periodicals done
-P1 : Refactored Journals Notifications
+P0 : Calendar CRUD n Find Done
+P1 : Refactor Journal DB and Add a few more functions
 
 
 

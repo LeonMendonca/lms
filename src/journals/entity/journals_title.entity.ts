@@ -1,6 +1,12 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { JournalCopy } from "./journals_copy.entity";
 
+
+export const CATEGORY = {
+    JOURNAL: "journal",
+    MAGAZINE: "magazine"
+} as const
+
 @Entity('journal_titles')
 export class JournalTitle {
     @PrimaryGeneratedColumn('uuid', { name: 'journal_uuid' })
@@ -15,11 +21,8 @@ export class JournalTitle {
     })
     journalTitleId: 'journal_title_id' = 'journal_title_id';
 
-    @Column({ name: 'journal_title', type: 'varchar', length: 255 })
-    journalTitle: 'journal_title' = 'journal_title';
-
-    @Column({ name: 'editor_name', type: 'varchar', length: 255 })
-    editorName: 'editor_name' = 'editor_name';
+    @Column({ name: 'category', type: 'enum', enum: CATEGORY })
+    category: "category" = "category";
 
     @Column({ name: 'name_of_publisher', type: 'varchar', length: 255 })
     nameOfPublisher: 'name_of_publisher' = 'name_of_publisher';
@@ -38,6 +41,25 @@ export class JournalTitle {
 
     @Column({ name: "volume_no", type: "varchar", length: 255 })
     volumeNumber: "volume_no" = "volume_no"
+
+    // added
+
+    @Column({ name: 'frequency', type: 'varchar', length: 255 })
+    frequency: "frequency" = "frequency"
+
+    @Column({ name: 'issue_number', type: 'varchar', length: 255 })
+    issueNumber: "issue_number" = "issue_number"
+
+    @Column({ name: 'vendor_name', type: 'varchar', length: 255 })
+    vendorName: 'vendor_name' = "vendor_name"
+
+    @Column({ name: 'subscription_price', type: 'int' })
+    subscriptionPrice: "subscription_price" = "subscription_price"
+
+    @Column({ name: 'library_name', type: 'varchar', length: 255 })
+    libraryName: "library_name" = "library_name"
+
+    // --added
 
     @Column({ name: 'classification_number', type: 'varchar', length: 255, nullable: true })
     classificationNumber: 'classification_number' = 'classification_number';

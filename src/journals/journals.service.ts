@@ -6,13 +6,13 @@ import { JournalCopy, TJournalCopy } from './entity/journals_copy.entity';
 import { JournalTitle, TJournalTitle } from './entity/journals_title.entity';
 import { JournalLogs, TJournalLogs } from './entity/journals_log.entity';
 import { TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
-import { genJournalId } from './create-journal-id';
+import { genJournalId } from './id-generation/create-journal-id';
 import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
 import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/updatejournaldto';
 import { Students } from 'src/students/students.entity';
 import { TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 import { Request } from 'express';
-import { constructFromSymbol } from 'date-fns/constants';
+import { title } from 'process';
 
 @Injectable()
 export class JournalsService {
@@ -74,54 +74,166 @@ export class JournalsService {
         }
     }
 
+    async getJournalsByID({
+        page,
+        limit,
+        search,
+        journal_title_id
+    }: { page: number; limit: number; search: string; journal_title_id: string }) {
+        try {
+            if (!journal_title_id) {
+                return { message: "Journal Title ID Not Found" }
+            }
+            // check if the journal_id exists in the db or not 
+            const journals = await this.journalsTitleRepository.query(
+                `SELECT * FROM journal_titles WHERE journal_title_id=$1`, [journal_title_id]
+            )
+
+            if (journals.length) {
+                return { journals: journals }
+            } else {
+                return { message: "No Journal With The journal_title_id Found" }
+            }
+        } catch (error) {
+            return { error }
+        }
+    }
+
+
     // working
-    async getJournalCopiesByTitle({
-        journal_uuid,
-        issn,
-        titlename,
+    async searchPeriodicals({
+        journal_uuid = '',
+        journal_title_id = '',
+        journal_title = '',
+        editor_name = '',
+        name_of_publisher = '',
+        issn = '',
+        frequency = '',
+        issue_number = '',
+        vendor_name = '',
+        library_name = '',
+        classification_number = '',
+        // barcode = '',
+        // item_type = '',
+        // institute_uuid = '',
+        page = 1,
+        limit = 10,
+        search = '',
     }: {
-        journal_uuid: string;
-        issn: string;
-        titlename: string;
+        journal_uuid?: string;
+        journal_title_id?: string,
+        journal_title?: string;
+        editor_name?: string,
+        name_of_publisher?: string,
+        issn?: string;
+        frequency?: string;
+        issue_number?: string;
+        vendor_name?: string;
+        library_name?: string;
+        classification_number?: string;
+        // barcode?: string;
+        // item_type?: string;
+        // institute_uuid?: string;
+        page?: number;
+        limit?: number;
+        search?: string;
     }) {
         try {
+            const offset = (page - 1) * limit;
+            const searchQuery = search ? `${search}%` : '%';
+
+            if (!journal_uuid && !journal_title_id && !journal_title && !editor_name && !name_of_publisher && !issn && !frequency && !issue_number && !vendor_name && !library_name && !classification_number
+                // && !barcode && !item_type && !institute_uuid
+            ) {
+                return { message: "Enter Parameter(s) To Search" }
+            }
+
             const queryParams: string[] = [];
-            let query = `SELECT journal_uuid, journal_title FROM journal_titles WHERE 1=1`;
+            let query = `SELECT * FROM journal_titles WHERE 1=1`;
 
             if (journal_uuid) {
                 query += ` AND journal_uuid = $${queryParams.length + 1}`;
                 queryParams.push(journal_uuid);
             }
+            if (journal_title_id) {
+                query += ` AND journal_title_id = $${queryParams.length + 1}`;
+                queryParams.push(journal_title_id);
+            }
+            if (journal_title) {
+                query += ` AND journal_title LIKE $${queryParams.length + 1}`;
+                queryParams.push(`${journal_title}%`);
+            }
+            if (editor_name) {
+                query += ` AND editor_name LIKE $${queryParams.length + 1}`;
+                queryParams.push(`${editor_name}%`);
+            }
+            if (name_of_publisher) {
+                query += ` AND name_of_publisher LIKE $${queryParams.length + 1}`;
+                queryParams.push(`${name_of_publisher}%`);
+            }
             if (issn) {
                 query += ` AND issn = $${queryParams.length + 1}`;
                 queryParams.push(issn);
             }
-            if (titlename) {
-                query += ` AND journal_title LIKE $${queryParams.length + 1}`;
-                queryParams.push(`${titlename}%`);
+            if (frequency) {
+                query += ` AND frequency = $${queryParams.length + 1}`;
+                queryParams.push(frequency);
+            }
+            if (issue_number) {
+                query += ` AND issue_number = $${queryParams.length + 1}`;
+                queryParams.push(issue_number);
+            }
+            if (vendor_name) {
+                query += ` AND vendor_name = $${queryParams.length + 1}`;
+                queryParams.push(vendor_name);
+            }
+            if (library_name) {
+                query += ` AND library_name = $${queryParams.length + 1}`;
+                queryParams.push(library_name);
+            }
+            if (classification_number) {
+                query += ` AND classification_number = $${queryParams.length + 1}`;
+                queryParams.push(classification_number);
             }
 
+            // if (barcode) {
+            //     query += ` AND barcode = $${queryParams.length + 1}`;
+            //     queryParams.push(barcode);
+            // }
+            // if (item_type) {
+            //     query += ` AND item_type = $${queryParams.length + 1}`;
+            //     queryParams.push(item_type);
+            // }
+            // if (institute_uuid) {
+            //     query += ` AND institute_uuid = $${queryParams.length + 1}`;
+            //     queryParams.push(institute_uuid);
+            // }
+
             const journal = await this.journalsTitleRepository.query(query, queryParams);
-
-
             if (journal.length === 0) {
                 throw new HttpException('Journal not found', HttpStatus.NOT_FOUND);
             }
-
 
             const journals = await this.journalsCopyRepository.query(
                 `SELECT * FROM journal_copy WHERE is_archived = false AND journal_title_uuid = $1`,
                 [journal[0].journal_uuid],
             );
 
-            console.log({ journals });
+            const total = await this.journalsTitleRepository.query(
+                `SELECT COUNT(*) as count FROM journal_titles WHERE is_archived = false AND journal_title ILIKE $1`,
+                [searchQuery],
+            );
 
             return {
-                title: journal,
-                copies: journals,
+                data: journal,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
             };
         } catch (error) {
-            console.log(error);
             throw new HttpException(
                 'Error fetching Journals',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -179,10 +291,12 @@ export class JournalsService {
     }
 
     // working
-    async getAllAvailableJournals(
-        { page, limit }: { page: number; limit: number } = {
+    async getAllAvailableJournalsOrByIssn(
+        { issn, page, limit, search }: { issn: string; page: number; limit: number; search: string } = {
+            issn: '',
             page: 1,
             limit: 10,
+            search: ''
         },
     ) {
         try {
@@ -194,8 +308,7 @@ export class JournalsService {
             );
 
             const total = await this.journalsCopyRepository.query(
-                `SELECT COUNT(*) as count FROM journal_copy 
-        WHERE is_archived = false AND is_available = true`,
+                `SELECT COUNT(*) as count FROM journal_copy WHERE is_archived = false AND is_available = true`,
             );
 
             return {
@@ -208,7 +321,6 @@ export class JournalsService {
                 },
             };
         } catch (error) {
-            console.log(error);
             throw new HttpException(
                 'Error fetching Journals',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -839,35 +951,29 @@ export class JournalsService {
     }
 
     // working
-    async updateJournalTitleArchive(journal_uuid: string) {
+    async archivePeriodical(journal_uuid: string) {
         try {
             // Check if the book exists and is not archived
             const journal = await this.journalsTitleRepository.query(
                 `SELECT * FROM journal_titles WHERE journal_uuid ='${journal_uuid}' AND is_archived = false`,
             );
-            console.log({ journal });
-
             if (journal.length === 0) {
                 throw new HttpException(
                     'Journal not found or already archived',
                     HttpStatus.NOT_FOUND,
                 );
             }
-
             // Update is_archived to true
             await this.journalsTitleRepository.query(
                 `UPDATE journal_titles SET is_archived = true WHERE journal_uuid = $1`,
                 [journal_uuid],
             );
-
             await this.journalsCopyRepository.query(
                 `UPDATE journal_copy SET is_archived = true WHERE journal_title_uuid = $1`,
                 [journal_uuid],
             );
-
             return { message: 'Journal archived successfully' };
         } catch (error) {
-            console.log(error);
             throw new HttpException(
                 'Error archiving journal',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -953,7 +1059,7 @@ export class JournalsService {
             //Create the required Columns, Arg, and Values
             //Ignore the Columns that are used by Title table
             const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, [
-                'journal_title', 'editor_name', 'name_of_publisher', 'place_of_publication', 'subscription_start_date', 'subscription_end_date', 'issn', 'volume_no', 'classification_number', 'is_archived', 'total_count', 'available_count', 'title_images', 'title_additional_fields', 'title_description'
+                'journal_title', 'editor_name', 'name_of_publisher', 'place_of_publication', 'subscription_start_date', 'subscription_end_date', 'issn', 'volume_no', 'frequency', 'issue_number', 'vendor_name', 'subscription_price', 'library_name', 'classification_number', 'is_archived', 'total_count', 'available_count', 'title_images', 'title_additional_fields', 'title_description'
             ]);
 
             //Convert some specific fields to string

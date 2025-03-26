@@ -38,6 +38,13 @@ export class JournalLogs {
     @Column({ name: 'description', type: 'varchar', length: 255 })
     description: 'description' = 'description';
 
+    // added
+
+    // @Column({ name: 'frequency', type: 'varchar', length: 255 })
+    // frequency: "frequency" = "frequency"
+
+    // --added
+
     @Column({ name: 'issn', type: 'varchar', length: 255 })
     issn: 'issn' = 'issn';
 

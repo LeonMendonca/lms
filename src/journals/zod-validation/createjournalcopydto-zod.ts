@@ -13,6 +13,9 @@ export class CreateJournalCopyDTO {
     @IsString()
     itemType: string;
 
+    // @IsString()
+    // frequency: string;
+
     @IsUUID()
     @IsOptional()
     instituteUuid?: string;
