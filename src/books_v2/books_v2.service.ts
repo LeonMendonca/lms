@@ -582,7 +582,7 @@ if(books.length===0){
       // );
 
       const studentLogs = await this.booklogRepository.query(
-        `SELECT book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2`,
+        `SELECT book_logv2.action,book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2`,
         [limit, offset]
       );
 
