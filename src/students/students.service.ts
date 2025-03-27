@@ -9,6 +9,7 @@ import {
   insertQueryHelper,
   updateQueryHelper,
 } from '../misc/custom-query-helper';
+const jwt = require('jsonwebtoken');
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId, createStudentId2 } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';

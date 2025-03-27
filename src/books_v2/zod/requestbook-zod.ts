@@ -15,7 +15,7 @@ export const requestBookZodReIssue = z.object({
     [createRequestBooklogObject.studentId]: z.string().nonempty(),
     [createRequestBooklogObject.bookBarcode]: z.string().nonempty(),
     [createRequestBooklogObject.requestType]: z.literal('re-issue'),
-    no_of_days_extended: z.number().min(1).max(7)
+    extended_period: z.number().min(1).max(7)
 });
 
 export const requestBookZodIssueReIssueAR = z.object({

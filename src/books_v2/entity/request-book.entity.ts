@@ -43,6 +43,9 @@ export class RequestBook {
 
     @Column({ name: 'is_completed', type: 'bool', default: false })
     isCompleted: 'is_completed' = 'is_completed';
+
+    @Column({ name: 'extended_period', type: 'int' ,nullable:true})
+    extendePeriod: 'extended_period' = 'extended_period';
 }
 
 export const request_book = new RequestBook();

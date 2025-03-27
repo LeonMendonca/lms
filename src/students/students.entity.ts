@@ -103,7 +103,7 @@ export class Students {
   imageField:'image_field'='image_field';
 
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: "created_at",  type:'date'})
   createdAt: "created_at" = "created_at";
 
   @UpdateDateColumn({ name: "updated_at"})
