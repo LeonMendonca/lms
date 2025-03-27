@@ -642,16 +642,16 @@ if(books.length===0){
       queryValue.push(`${limit}`);
       queryValue.push(`${offset}`);
       
-      const totalResult=await this.bookcopyRepository.query(`SELECT count(*) FROM book_logv2 `)
+      const totalResult=await this.bookcopyRepository.query(`SELECT count(*) FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid  WHERE (book_titles.isbn= $1  OR book_titles.book_title_id= $2)`,[isbn,book_title_id])
 
       const logs = await this.booklogRepository.query(query, queryValue);
       return {
         data: logs,
         agination: {
-          total: parseInt(totalResult[0].total, 10),
+          total: parseInt(totalResult[0].count, 10),
           page,
           limit,
-          totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+          totalPages: Math.ceil(parseInt(totalResult[0].count, 10) / limit),
         },
       };
     } catch (error) {
@@ -2099,16 +2099,28 @@ async archiveBookCopy(book_copy_uuid: string) {
         const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
   // date is not getting updated
   const date:{return_date:string}[]= await this.booktitleRepository.query(`SELECT return_date FROM fees_penalties WHERE borrower_uuid= $1`,[student[0].student_uuid])
-  console.log(date[0].return_date )
-    
-  const penalupdate=await this.booktitleRepository.query(  `UPDATE fees_penalties 
-      SET return_date = return_date + INTERVAL '1 day'  $1 
-      WHERE borrower_uuid = $2  `,[Number(result[0].extended_period),student[0].student_uuid])
-      console.log("update penal part ");
-    
 
+  let returnDate = new Date(date[0].return_date); // Convert to Date object
 
-      
+  if (!isNaN(returnDate.getTime())) { // Check if the date is valid
+      let daysToAdd = Number(result[0].extended_period); // Ensure it's a number
+   
+      returnDate.setDate(returnDate.getDate() + daysToAdd ); // Add days
+  
+      const final_date = returnDate.toISOString(); // Convert to ISO format
+      console.log("final_date:", final_date, "returnDate:", returnDate);
+
+      const penalupdate=await this.booktitleRepository.query(  `UPDATE fees_penalties 
+        SET return_date=  $1 
+        WHERE borrower_uuid = $2  `,[final_date,student[0].student_uuid])
+        console.log("update penal part ");
+  } else {
+      console.error("Invalid date format:", date[0].return_date);
+  }
+
+  
+
+  
          throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)  
 
     } 
