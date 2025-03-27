@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 import { config } from "dotenv";
+import { pgPLV8 } from './misc/pg-plv8';
 
 config({ path: '.env' })
 const PORT = process.env.PORT ?? 3001;
@@ -13,6 +14,7 @@ export async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+  await pgPLV8();
   await app.listen(PORT, '0.0.0.0', () => {
     console.log(`Listening on port ${PORT}`);
   });
