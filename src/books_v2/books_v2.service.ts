@@ -2144,4 +2144,18 @@ async archiveBookCopy(book_copy_uuid: string) {
       throw error
         }
   }
+  
+  async studentCurrentBooks( student_id:string){  
+  try {
+  const result:{student_uuid:string}[] = await this.booktitleRepository.query(`SELECT student_uuid  FROM students_table WHERE student_id= $1`,[student_id]);
+  if(!result.length){
+    throw new HttpException (" Invalid StudentId!! ", HttpStatus.BAD_REQUEST);}
+  const booklog:{book_title_uuid:string}[]= await this.booktitleRepository.query(`SELECT book_title_uuid FROM book_logv2 WHERE borrower_uuid = $1 AND status = 'borrowed' ORDER BY borrowed DESC ;`,[result[0].student_uuid]);
+ const data= await this.booktitleRepository.query(`SELECT * FROM  book_titles INNER JOIN book_copies ON book_titles.book_uuid=book_copies.book_title_uuid WHERE book_copies.book_title_uuid= $1 limit 1`,[booklog[0].book_title_uuid]) 
+ return data;  
+} catch (error) {
+  throw error  
+  }
+
+  }
 }
