@@ -9,7 +9,7 @@ export const updateJournalSchema = z.object({
     place_of_publication: z.string().optional(),
     issn: z.string().optional(),
     category: CategoryEnum.optional(),
-    // subscription_id: z.string().optional(),
+    subscription_id: z.string().optional(),
     frequency: z.string().optional(),
     issue_number: z.string().optional(),
     vendor_name: z.string().optional(),

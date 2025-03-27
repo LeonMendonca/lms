@@ -227,9 +227,7 @@ export class JournalsService {
                 [searchQuery],
             );
 
-            return {
-                data: journal,
-            };
+            return journal;
         } catch (error) {
             throw new HttpException(
                 'Error fetching Journals',
@@ -1160,48 +1158,25 @@ export class JournalsService {
     // working
     async createJournal(createJournalPayload: TCreateJournalZodDTO) {
         try {
-            // SET VALUES FROM BACKEND
-            // const subscription_id = "subs_id_03"
-
-            const latestSubscriptionQuery = await this.journalsTitleRepository.query(
-                `SELECT subscription_id FROM journal_titles ORDER BY subscription_id DESC LIMIT 1`
-            );
-
-            let newSubscriptionId = "sub_id_03"; // Default starting value
-
-            if (latestSubscriptionQuery.length > 0) {
-                const latestSubscription = latestSubscriptionQuery[0].subscription_id;
-                const match = latestSubscription.match(/sub_id_(\d{2})/); // Extract last two digits
-
-                if (match) {
-                    let latestNumber = parseInt(match[1], 10);
-                    latestNumber++; // Increment the number
-                    newSubscriptionId = `sub_id_${String(latestNumber).padStart(2, '0')}`;
-                }
-            }
-            console.log(newSubscriptionId)
+            // SET VALUES FROM BACKEND            
 
             const totalCountQuery = await this.journalsTitleRepository.query(
                 `SELECT COUNT(*)::int AS total_count FROM journal_titles WHERE subscription_id = $1`,
-                [newSubscriptionId]
+                [createJournalPayload.subscription_id]
             );
             const total_count = totalCountQuery[0]?.total_count || 0;
 
 
             const availableCountQuery = await this.journalsTitleRepository.query(
                 `SELECT COUNT(*)::int AS available_count FROM journal_titles WHERE is_archived = false AND subscription_id = $1`,
-                [newSubscriptionId]
+                [createJournalPayload.subscription_id]
             );
             const available_count = availableCountQuery[0]?.available_count || 0;
-
-            console.log({ total_count, available_count });
-
-
 
             //Check if journal exists in JournalTitle Table
             let journalTitleUUID: [{ journal_uuid: string }] = await this.journalsTitleRepository.query(
                 `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
-                [newSubscriptionId]
+                [createJournalPayload.subscription_id]
             );
 
 
@@ -1216,7 +1191,7 @@ export class JournalsService {
                 const journalTitlePayloadWithId = {
                     ...createJournalPayload,
                     journal_title_id: journalId,
-                    subscription_id: newSubscriptionId,
+                    subscription_id: createJournalPayload.subscription_id,
                     total_count: total_count + 1, // Increment for the new journal
                     available_count: available_count + 1, // New journal is available
                 };
@@ -1244,7 +1219,7 @@ export class JournalsService {
                 // If journal title already exists, update total_count and available_count
                 await this.journalsTitleRepository.query(
                     `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
-                    [newSubscriptionId]
+                    [createJournalPayload.subscription_id]
                 );
             }
 
@@ -1259,7 +1234,7 @@ export class JournalsService {
                 ...createJournalPayload,
                 journal_copy_id: journalCopyId,
                 journal_title_uuid: journalTitleUUID[0].journal_uuid,
-                subscription_id: newSubscriptionId,
+                subscription_id: createJournalPayload.subscription_id,
                 total_count: total_count + 1, // Ensure consistency
                 available_count: available_count + 1,
             };

@@ -5,7 +5,7 @@ import { JournalCopy } from '../entity/journals_copy.entity';
 
 const createJournalTitleObject = createObjectOmitProperties(
     new JournalTitle(),
-    ['updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies', 'subscriptionId', 'totalCount', 'availableCount', 'isArchived']
+    ['updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies', 'totalCount', 'availableCount', 'isArchived']
 );
 
 const createJournalCopyObject = createObjectOmitProperties(
@@ -22,7 +22,7 @@ export const createJournalSchema = z.object({
     [createJournalTitleObject.category]: z.string(),
     [createJournalTitleObject.nameOfPublisher]: z.string(),
     [createJournalTitleObject.placeOfPublication]: z.string(),
-    // [createJournalTitleObject.subscriptionId]: z.string(), --set from backend
+    [createJournalTitleObject.subscriptionId]: z.string(),
     [createJournalTitleObject.subscriptionStartDate]: z.string().date(),
     [createJournalTitleObject.subscriptionEndDate]: z.string().date(),
     // [createJournalTitleObject.issn]: z.string(), // add validation for issn
