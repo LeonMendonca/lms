@@ -582,8 +582,8 @@ if(books.length===0){
       // );
 
       const studentLogs = await this.booklogRepository.query(
-        `SELECT book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2;`,
-        [limit, offset],
+        `SELECT book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2`,
+        [limit, offset]
       );
 
       const total = await this.booklogRepository.query(
@@ -603,7 +603,7 @@ if(books.length===0){
         },
       };
     } catch (error) {
-      console.log(error    )
+      console.log(error);
       throw error;
     }
   }
@@ -1558,7 +1558,7 @@ async archiveBookCopy(book_copy_uuid: string) {
       await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid,
+          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
         [
           studentExists[0].student_uuid,
