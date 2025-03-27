@@ -1,3 +1,4 @@
+import { Subscription } from 'rxjs';
 // import { journalCopyQueryValidator } from './validators/journalcopy.query-validator';
 import { HttpException, HttpStatus, Injectable, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -116,9 +117,7 @@ export class JournalsService {
         // barcode = '',
         // item_type = '',
         // institute_uuid = '',
-        page = 1,
-        limit = 10,
-        search = '',
+        search = ''
     }: {
         journal_uuid?: string;
         journal_title_id?: string,
@@ -135,12 +134,10 @@ export class JournalsService {
         // barcode?: string;
         // item_type?: string;
         // institute_uuid?: string;
-        page?: number;
-        limit?: number;
-        search?: string;
+        search?: string
     }) {
         try {
-            const offset = (page - 1) * limit;
+            // const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
             if (!journal_uuid && !journal_title_id && !journal_title && !editor_name && !name_of_publisher && !issn && !frequency && !issue_number && !vendor_name && !library_name && !classification_number && !subscription_id
@@ -232,12 +229,6 @@ export class JournalsService {
 
             return {
                 data: journal,
-                pagination: {
-                    total: parseInt(total[0].count, 10),
-                    page,
-                    limit,
-                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-                },
             };
         } catch (error) {
             throw new HttpException(
@@ -1169,71 +1160,133 @@ export class JournalsService {
     // working
     async createJournal(createJournalPayload: TCreateJournalZodDTO) {
         try {
+            // SET VALUES FROM BACKEND
+            // const subscription_id = "subs_id_03"
+
+            const latestSubscriptionQuery = await this.journalsTitleRepository.query(
+                `SELECT subscription_id FROM journal_titles ORDER BY subscription_id DESC LIMIT 1`
+            );
+
+            let newSubscriptionId = "sub_id_03"; // Default starting value
+
+            if (latestSubscriptionQuery.length > 0) {
+                const latestSubscription = latestSubscriptionQuery[0].subscription_id;
+                const match = latestSubscription.match(/sub_id_(\d{2})/); // Extract last two digits
+
+                if (match) {
+                    let latestNumber = parseInt(match[1], 10);
+                    latestNumber++; // Increment the number
+                    newSubscriptionId = `sub_id_${String(latestNumber).padStart(2, '0')}`;
+                }
+            }
+            console.log(newSubscriptionId)
+
+            const totalCountQuery = await this.journalsTitleRepository.query(
+                `SELECT COUNT(*)::int AS total_count FROM journal_titles WHERE subscription_id = $1`,
+                [newSubscriptionId]
+            );
+            const total_count = totalCountQuery[0]?.total_count || 0;
+
+
+            const availableCountQuery = await this.journalsTitleRepository.query(
+                `SELECT COUNT(*)::int AS available_count FROM journal_titles WHERE is_archived = false AND subscription_id = $1`,
+                [newSubscriptionId]
+            );
+            const available_count = availableCountQuery[0]?.available_count || 0;
+
+            console.log({ total_count, available_count });
+
+
+
             //Check if journal exists in JournalTitle Table
             let journalTitleUUID: [{ journal_uuid: string }] = await this.journalsTitleRepository.query(
-                `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`, //change issn here
-                [createJournalPayload.subscription_id],
+                `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
+                [newSubscriptionId]
             );
 
 
             //Book Title Table logic
             if (!journalTitleUUID.length) {
-                //Create custom Book Id
-                const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_title_id) FROM journal_titles`);
-                const journalId = genJournalId(max[0].max, 'PT');
-                const journalTitlePayloadWithId = { ...createJournalPayload, journal_title_id: journalId };
+                // Create custom Journal Title ID
+                const maxTitleIdQuery = await this.journalsTitleRepository.query(
+                    `SELECT MAX(journal_title_id) FROM journal_titles`
+                );
+                const journalId = genJournalId(maxTitleIdQuery[0]?.max, 'PT');
 
-                //Create the required Columns, Arg, and Values
-                //Ignore the Columns that are used by Copy table
+                const journalTitlePayloadWithId = {
+                    ...createJournalPayload,
+                    journal_title_id: journalId,
+                    subscription_id: newSubscriptionId,
+                    total_count: total_count + 1, // Increment for the new journal
+                    available_count: available_count + 1, // New journal is available
+                };
+
+                // Generate INSERT query for journal_titles
                 const journalTitleQueryData = insertQueryHelper(journalTitlePayloadWithId, [
-                    'barcode', 'item_type', 'issn', 'journal_title', 'editor_name', 'institute_uuid', 'is_archived', 'is_available', 'created_by', 'remarks', 'copy_images', 'copy_additional_fields', 'copy_description'
+                    'barcode', 'item_type', 'issn', 'journal_title', 'editor_name',
+                    'institute_uuid', 'created_by', 'remarks', 'copy_images',
+                    'copy_additional_fields', 'copy_description'
                 ]);
 
-
-                //Convert some specific fields to string
+                // Convert arrays/objects to strings for storage
                 journalTitleQueryData.values.forEach((element, idx) => {
                     if (Array.isArray(element) || typeof element === 'object') {
                         journalTitleQueryData.values[idx] = JSON.stringify(element);
                     }
                 });
-                journalTitleUUID = await this.journalsTitleRepository.query
-                    (
-                        `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
-                        journalTitleQueryData.values
-                    );
+
+                // Insert journal title into DB and get the new UUID
+                journalTitleUUID = await this.journalsTitleRepository.query(
+                    `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
+                    journalTitleQueryData.values
+                );
             } else {
-                await this.journalsTitleRepository.query
-                    (
-                        `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`, //change the libray_name
-                        [createJournalPayload.subscription_id],
-                    );
+                // If journal title already exists, update total_count and available_count
+                await this.journalsTitleRepository.query(
+                    `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
+                    [newSubscriptionId]
+                );
             }
+
             //Book Copy Table logic
-
             //Create custom Book Id
-            const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_copy_id) FROM journal_copy`);
-            const journalId = genJournalId(max[0].max, 'PC');
-            const journalCopyPayloadWithId = { ...createJournalPayload, journal_copy_id: journalId, journal_title_uuid: journalTitleUUID[0].journal_uuid };
+            const maxCopyIdQuery = await this.journalsTitleRepository.query(
+                `SELECT MAX(journal_copy_id) FROM journal_copy`
+            );
+            const journalCopyId = genJournalId(maxCopyIdQuery[0]?.max, 'PC');
 
-            //Create the required Columns, Arg, and Values
-            //Ignore the Columns that are used by Title table
-            const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, ['category',
-                'name_of_publisher', 'place_of_publication', 'subscription_id', 'subscription_start_date', 'subscription_end_date', 'volume_no', 'frequency', 'issue_number', 'vendor_name', 'subscription_price', 'library_name', 'classification_number', 'is_archived', 'total_count', 'available_count', 'title_images', 'title_additional_fields', 'title_description'
+            const journalCopyPayloadWithId = {
+                ...createJournalPayload,
+                journal_copy_id: journalCopyId,
+                journal_title_uuid: journalTitleUUID[0].journal_uuid,
+                subscription_id: newSubscriptionId,
+                total_count: total_count + 1, // Ensure consistency
+                available_count: available_count + 1,
+            };
+
+            // Generate INSERT query for journal_copy
+            const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, [
+                'category', 'name_of_publisher', 'place_of_publication', 'subscription_start_date',
+                'subscription_end_date', 'volume_no', 'frequency', 'issue_number', 'vendor_name',
+                'subscription_price', 'library_name', 'classification_number', 'title_images',
+                'title_additional_fields', 'title_description', 'total_count', 'available_count', 'subscription_id'
             ]);
 
-            //Convert some specific fields to string
+            // Convert arrays/objects to strings
             journalCopyQueryData.values.forEach((element, idx) => {
                 if (Array.isArray(element) || typeof element === 'object') {
                     journalCopyQueryData.values[idx] = JSON.stringify(element);
                 }
             });
 
-            await this.journalsCopyRepository.query
-                (
-                    `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
-                    journalCopyQueryData.values
-                );
-            return { statusCode: HttpStatus.CREATED, message: "Periodical Created!" }
+            // Insert journal copy into DB
+            await this.journalsCopyRepository.query(
+                `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
+                journalCopyQueryData.values
+            );
+
+            return { statusCode: HttpStatus.CREATED, message: "Periodical Created!" };
+
         } catch (error) {
             throw error;
         }

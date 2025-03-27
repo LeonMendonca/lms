@@ -99,8 +99,6 @@ export class JournalsController {
         // @Query('_barcode') barcode?: string,
         // @Query('_item_type') item_type?: string,
         // @Query('_institute_uuid') institute_uuid?: string,
-        @Query('_page') page?: string,
-        @Query('_limit') limit?: string,
         @Query('_search') search?: string
     ) {
         return this.journalsService.searchPeriodicals({
@@ -119,8 +117,6 @@ export class JournalsController {
             // barcode: barcode ?? '',
             // item_type: item_type ?? '',
             // institute_uuid: institute_uuid ?? '',
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 10,
             search: search ?? '',
         });
     }

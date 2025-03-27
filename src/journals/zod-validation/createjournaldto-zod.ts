@@ -5,12 +5,12 @@ import { JournalCopy } from '../entity/journals_copy.entity';
 
 const createJournalTitleObject = createObjectOmitProperties(
     new JournalTitle(),
-    ['updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies']
+    ['updatedAt', 'createdAt', 'journalUUID', 'journalTitleId', 'journalCopies', 'subscriptionId', 'totalCount', 'availableCount', 'isArchived']
 );
 
 const createJournalCopyObject = createObjectOmitProperties(
     new JournalCopy(),
-    ['journalCopyUUID', 'journalCopyId']
+    ['journalCopyUUID', 'journalCopyId', 'isAvailable']
 );
 
 // Schema for Title and Copies
@@ -22,7 +22,7 @@ export const createJournalSchema = z.object({
     [createJournalTitleObject.category]: z.string(),
     [createJournalTitleObject.nameOfPublisher]: z.string(),
     [createJournalTitleObject.placeOfPublication]: z.string(),
-    [createJournalTitleObject.subscriptionId]: z.string(),
+    // [createJournalTitleObject.subscriptionId]: z.string(), --set from backend
     [createJournalTitleObject.subscriptionStartDate]: z.string().date(),
     [createJournalTitleObject.subscriptionEndDate]: z.string().date(),
     // [createJournalTitleObject.issn]: z.string(), // add validation for issn
@@ -33,9 +33,9 @@ export const createJournalSchema = z.object({
     [createJournalTitleObject.subscriptionPrice]: z.number(),
     [createJournalTitleObject.libraryName]: z.string(),
     [createJournalTitleObject.classificationNumber]: z.string(),
-    [createJournalTitleObject.isArchived]: z.boolean(),
-    [createJournalTitleObject.totalCount]: z.number(),
-    [createJournalTitleObject.availableCount]: z.number(),
+    // [createJournalTitleObject.isArchived]: z.boolean(), --default=false
+    // [createJournalTitleObject.totalCount]: z.number(),
+    // [createJournalTitleObject.availableCount]: z.number(),
     [createJournalTitleObject.titleImages]: z.array(z.string()).optional(),
     [createJournalTitleObject.titleAdditionalFields]: z.record(z.any()).optional(),
     [createJournalTitleObject.titleDescription]: z.string().optional(),
@@ -48,7 +48,7 @@ export const createJournalSchema = z.object({
     [createJournalCopyObject.itemType]: z.string(),
     [createJournalCopyObject.instituteUUID]: z.string().uuid().optional(),
     // [createJournalCopyObject.isArchived]: z.boolean(),
-    [createJournalCopyObject.isAvailable]: z.boolean(),
+    // [createJournalCopyObject.isAvailable]: z.boolean(), -- default=true
     [createJournalCopyObject.issn]: z.string(),
     // [createJournalCopyObject.frequency]: z.string(),
     [createJournalCopyObject.createdBy]: z.string().uuid().optional(),
