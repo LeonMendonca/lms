@@ -594,4 +594,14 @@ export class StudentsService {
       throw error;
     }
   }
+  async studentLogin(student_id:string,password:string){
+try {
+  const valid= await this.studentsRepository.query(`SELECT * FROM students_table WHERE student_id= $1 AND password= $2`,[student_id,password]);
+  if(!valid.length){
+    throw new HttpException("Invalid Student_id OR Password !! ",HttpStatus.BAD_REQUEST);
+  }
+} catch (error) {
+  throw error
+}
+  }
 }

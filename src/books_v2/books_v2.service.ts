@@ -2041,7 +2041,7 @@ async archiveBookCopy(book_copy_uuid: string) {
       const barcode:{book_copy_id:string; book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_id, book_copy_uuid FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,[requestBookReIssuePayload.barcode])
        if(!barcode.length){
         throw new HttpException(" Invalid barcode !!",HttpStatus.BAD_REQUEST);
-      }
+      }console.log(barcode[0].book_copy_uuid);
       const log= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1 AND action='borrowed' AND borrower_uuid= $2`,[barcode[0].book_copy_uuid, student[0].student_uuid]);
       if(!log.length){
         throw new HttpException(" The book has not been borrowed!!",HttpStatus.BAD_REQUEST);
@@ -2085,20 +2085,31 @@ async archiveBookCopy(book_copy_uuid: string) {
        if(!result.length){
         throw new HttpException("Request not Found !!", HttpStatus.BAD_REQUEST);
        }
-      //  const book:{book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_uuid FROM  book_copies WHERE book_copy_id= $1`,[result[0].book_copy_id])
+     console.log("part 1");
+       //  const book:{book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_uuid FROM  book_copies WHERE book_copy_id= $1`,[result[0].book_copy_id])
       //  const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
       //  const borrow= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1  AND borrower_uuid= $2`,[book[0].book_copy_uuid, student[0].student_uuid]);
       if(requestBookIssueARPayload.status==="approved"){
+        console.log("approved part in work");
         const isCompleted=true;
         const update= await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,[requestBookIssueARPayload.status,isCompleted,requestBookIssueARPayload.reject_reason,requestBookIssueARPayload.request_id]);
-     const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
-     const penalupdate=await this.booktitleRepository.query(`UPDATE fees_penalties SET return_date = return_date + $1 WHERE borrower_uuid =$2 `,[student[0].student_uuid,result[0].extended_period])
+        console.log("update log part ");
+
+        const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
+  // date is not getting updated
+     const penalupdate=await this.booktitleRepository.query(  `UPDATE fees_penalties 
+      SET return_date = return_date + INTERVAL '1 day'  $1 
+      WHERE borrower_uuid = $2  `,[Number(result[0].extended_period),student[0].student_uuid])
+      console.log("update penal part ");
+    
+
+      
          throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)  
 
     } 
       else if(requestBookIssueARPayload.status==="rejected"){
         const isCompleted=false;
-        const update= await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,[requestBookIssueARPayload.status,isCompleted,requestBookIssueARPayload.reject_reason,requestBookIssueARPayload.request_id]);
+        const update= await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4 AND status='pending' `,[requestBookIssueARPayload.status,isCompleted,requestBookIssueARPayload.reject_reason,requestBookIssueARPayload.request_id]);
         throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)
       
     }

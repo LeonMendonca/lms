@@ -32,6 +32,7 @@ import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
 import { TVisit_log } from './zod-validation/visitlog';
+import { string } from 'zod';
 
 @Controller('student')
 export class StudentsController {
@@ -429,5 +430,17 @@ export class StudentsController {
       throw error
     }
 
+  }
+
+  @Post('login')
+  async student_Login(@Body('student_id') student_id: string, @Body('password') password: string){
+try {
+  return await this.studentsService.studentLogin(student_id,password)
+} catch (error) {
+  if(!(error instanceof HttpException)){
+    throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+  }
+  throw error
+}
   }
 }
