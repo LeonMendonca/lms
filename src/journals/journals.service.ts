@@ -1482,27 +1482,13 @@ export class JournalsService {
     }
 
     // working
-    async getSingleJournalCopyInfo(identifier: string) {
+    async getSingleJournalCopyInfo(journal_title_uuid: string) {
         try {
-            let query = `SELECT * FROM journal_copy WHERE `;
-            let params: string[] = []; // Only store strings since barcode is a string
-
-            if (!isNaN(Number(identifier))) { // Check if identifier is a numeric string (barcode)
-                query += `(barcode = $1) `;
-            } else {
-                query += `(journal_copy_uuid=$1) `
-            }
-
-            params.push(identifier); // Always store identifier as a string
-            query += ` AND is_archived = false`; // Ensure correct query syntax
-
-            const journal = await this.journalsCopyRepository.query(query, params);
-
-            if (!journal.length) {
-                throw new HttpException('No journal found', HttpStatus.NOT_FOUND);
-            }
-
-            return { message: 'Journal fetched successfully', journal: journal[0] };
+            const copy = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE journal_title_uuid=$1`,
+                [journal_title_uuid]
+            )
+            return copy
         } catch (error) {
             throw new HttpException('Error fetching copy', HttpStatus.INTERNAL_SERVER_ERROR);
         }

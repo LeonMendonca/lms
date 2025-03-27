@@ -166,6 +166,37 @@ export class JournalsController {
     }
 
 
+    // ---------- PERIODICALS COPY ---------------
+
+    // FIND JOURNAL/MAGAZINE COPY - working
+    @Get('get-all-copies')
+    async fetchAllJournalCopyInfo(
+        @Query('_journal_title') journal_title?: string,
+        @Query('_editor_name') editor_name?: string,
+        @Query('_issn') issn?: string,
+        @Query('_barcode') barcode?: string,
+        @Query('_item_type') item_type?: string,
+        @Query('_institute_uuid') institute_uuid?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getJournalCopies({
+            journal_title: journal_title ?? '',
+            editor_name: editor_name ?? '',
+            issn: issn ?? '',
+            barcode: barcode ?? '',
+            item_type: item_type ?? '',
+            institute_uuid: institute_uuid ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        });
+    }
+
+
+
+
     // ------------------- PERIODICAL LOGS ---------------------
 
 
@@ -278,34 +309,10 @@ export class JournalsController {
         });
     }
 
-    @Get('get-all-copies')
-    async fetchAllJournalCopyInfo(
-        @Query('_journal_title') journal_title?: string,
-        @Query('_editor_name') editor_name?: string,
-        @Query('_issn') issn?: string,
-        @Query('_barcode') barcode?: string,
-        @Query('_item_type') item_type?: string,
-        @Query('_institute_uuid') institute_uuid?: string,
-        @Query('_page') page?: string,
-        @Query('_limit') limit?: string,
-        @Query('_search') search?: string
-    ) {
-        return this.journalsService.getJournalCopies({
-            journal_title: journal_title ?? '',
-            editor_name: editor_name ?? '',
-            issn: issn ?? '',
-            barcode: barcode ?? '',
-            item_type: item_type ?? '',
-            institute_uuid: institute_uuid ?? '',
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 10,
-            search: search ?? '',
-        });
-    }
 
-    @Get('get_journal_copy')
-    async fetchSingleJournalCopyInfo(@Query('_identifier') identifier: string) {
-        return this.journalsService.getSingleJournalCopyInfo(identifier);
+    @Get('get-periodical-copies')
+    async fetchSingleJournalCopyInfo(@Query('_journal_title_uuid') journal_title_uuid: string) {
+        return this.journalsService.getSingleJournalCopyInfo(journal_title_uuid);
     }
 
 
