@@ -1,3 +1,4 @@
+import { Subscription } from "rxjs"
 import { z } from "zod"
 
 const CategoryEnum = z.enum(["journal", "magazine"])
@@ -13,7 +14,8 @@ export const updateJournalSchema = z.object({
     frequency: z.string().optional(),
     issue_number: z.string().optional(),
     vendor_name: z.string().optional(),
-    subscription_price: z.string().transform((val) => Number(val)).optional(),
+    subscription_price: z.number().optional(),
+    // subscription_price: z.string().transform((val) => Number(val)).optional(),
     library_name: z.string().optional(),
     // total_count: z.string().transform((val) => Number(val)).optional(),
     // available_count: z.string().transform((val) => Number(val)).optional(),

@@ -104,43 +104,31 @@ export class JournalsService {
     async searchPeriodicals({
         journal_uuid = '',
         journal_title_id = '',
-        journal_title = '',
-        editor_name = '',
         name_of_publisher = '',
-        issn = '',
         frequency = '',
         issue_number = '',
         vendor_name = '',
         library_name = '',
         classification_number = '',
         subscription_id = '',
-        // barcode = '',
-        // item_type = '',
-        // institute_uuid = '',
         search = ''
     }: {
         journal_uuid?: string;
         journal_title_id?: string,
-        journal_title?: string;
-        editor_name?: string,
         name_of_publisher?: string,
-        issn?: string;
         frequency?: string;
         issue_number?: string;
         vendor_name?: string;
         library_name?: string;
         classification_number?: string;
         subscription_id?: string;
-        // barcode?: string;
-        // item_type?: string;
-        // institute_uuid?: string;
         search?: string
     }) {
         try {
             // const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
-            if (!journal_uuid && !journal_title_id && !journal_title && !editor_name && !name_of_publisher && !issn && !frequency && !issue_number && !vendor_name && !library_name && !classification_number && !subscription_id
+            if (!journal_uuid && !journal_title_id && !name_of_publisher && !frequency && !issue_number && !vendor_name && !library_name && !classification_number && !subscription_id
                 // && !barcode && !item_type && !institute_uuid
             ) {
                 return { message: "Enter Parameter(s) To Search" }
@@ -157,21 +145,9 @@ export class JournalsService {
                 query += ` AND journal_title_id = $${queryParams.length + 1}`;
                 queryParams.push(journal_title_id);
             }
-            if (journal_title) {
-                query += ` AND journal_title LIKE $${queryParams.length + 1}`;
-                queryParams.push(`${journal_title}%`);
-            }
-            if (editor_name) {
-                query += ` AND editor_name LIKE $${queryParams.length + 1}`;
-                queryParams.push(`${editor_name}%`);
-            }
             if (name_of_publisher) {
                 query += ` AND name_of_publisher LIKE $${queryParams.length + 1}`;
                 queryParams.push(`${name_of_publisher}%`);
-            }
-            if (issn) {
-                query += ` AND issn = $${queryParams.length + 1}`;
-                queryParams.push(issn);
             }
             if (frequency) {
                 query += ` AND frequency = $${queryParams.length + 1}`;
@@ -197,20 +173,6 @@ export class JournalsService {
                 query += ` AND subscription_id = $${queryParams.length + 1}`;
                 queryParams.push(subscription_id);
             }
-
-            // if (barcode) {
-            //     query += ` AND barcode = $${queryParams.length + 1}`;
-            //     queryParams.push(barcode);
-            // }
-            // if (item_type) {
-            //     query += ` AND item_type = $${queryParams.length + 1}`;
-            //     queryParams.push(item_type);
-            // }
-            // if (institute_uuid) {
-            //     query += ` AND institute_uuid = $${queryParams.length + 1}`;
-            //     queryParams.push(institute_uuid);
-            // }
-
             const journal = await this.journalsTitleRepository.query(query, queryParams);
 
             if (journal.length === 0) {
@@ -1426,25 +1388,79 @@ export class JournalsService {
     }
 
     // working
-    async getJournalCopies(
-        { page, limit }: { page: number; limit: number } = {
-            page: 1,
-            limit: 10,
-        },
-    ) {
+    async getJournalCopies({
+        journal_title = '',
+        editor_name = '',
+        issn = '',
+        barcode = '',
+        item_type = '',
+        institute_uuid = '',
+        page = 1,
+        limit = 10,
+        search = ''
+    }: {
+        journal_title?: string;
+        editor_name?: string,
+        issn?: string,
+        barcode?: string;
+        item_type?: string;
+        institute_uuid?: string;
+        page?: number;
+        limit?: number;
+        search?: string;
+    }) {
         try {
             const offset = (page - 1) * limit;
+            const searchQuery = search ? `${search}%` : '%';
+
+            if (!journal_title && !editor_name && !issn && !barcode && !item_type && !institute_uuid) {
+                return { message: "Enter Parameter(s) To Search" }
+            }
+
+            const queryParams: string[] = [];
+            let query = `SELECT * FROM journal_copy WHERE 1=1`;
+
+            if (journal_title) {
+                query += ` AND journal_title = $${queryParams.length + 1}`;
+                queryParams.push(journal_title);
+            }
+            if (editor_name) {
+                query += ` AND editor_name = $${queryParams.length + 1}`;
+                queryParams.push(editor_name);
+            }
+            if (issn) {
+                query += ` AND issn = $${queryParams.length + 1}`;
+                queryParams.push(issn);
+            }
+            if (barcode) {
+                query += ` AND barcode = $${queryParams.length + 1}`;
+                queryParams.push(barcode);
+            }
+            if (item_type) {
+                query += ` AND item_type = $${queryParams.length + 1}`;
+                queryParams.push(item_type);
+            }
+            if (institute_uuid) {
+                query += ` AND institute_uuid = $${queryParams.length + 1}`;
+                queryParams.push(institute_uuid);
+            }
+
+            const journal = await this.journalsCopyRepository.query(query, queryParams);
+
+            console.log(journal)
+
+            if (journal.length === 0) {
+                throw new HttpException('Periodical not found', HttpStatus.NOT_FOUND);
+            }
 
             const journals = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy 
-            WHERE is_archived = false
-            LIMIT $1 OFFSET $2`,
-                [limit, offset],
+                `SELECT * FROM journal_copy WHERE is_archived = false AND is_available=true AND journal_title_uuid = $1 LIMIT $2 OFFSET $3`,
+                [journal[0].journal_title_uuid, limit, offset],
             );
 
             const total = await this.journalsCopyRepository.query(
-                `SELECT COUNT(*) as count FROM journal_copy
-            WHERE is_archived = false`,
+                `SELECT COUNT(*) as count FROM journal_copy WHERE is_archived = false AND is_available = true AND journal_copy_id ILIKE $1`,
+                [searchQuery]
             );
 
             return {

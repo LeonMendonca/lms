@@ -86,37 +86,25 @@ export class JournalsController {
     async searchPeriodicals(
         @Query('_journal_uuid') journal_uuid?: string,
         @Query('_journal_title_id') journal_title_id?: string,
-        @Query('_journal_title') journal_title?: string,
-        @Query('_editor_name') editor_name?: string,
         @Query('_name_of_publisher') name_of_publisher?: string,
-        @Query('_issn') issn?: string,
         @Query('_frequency') frequency?: string,
         @Query('_issue_number') issue_number?: string,
         @Query('_vendor_name') vendor_name?: string,
         @Query('_library_name') library_name?: string,
         @Query('_classification_number') classification_number?: string,
         @Query('_subscription_id') subscription_id?: string,
-        // @Query('_barcode') barcode?: string,
-        // @Query('_item_type') item_type?: string,
-        // @Query('_institute_uuid') institute_uuid?: string,
         @Query('_search') search?: string
     ) {
         return this.journalsService.searchPeriodicals({
             journal_uuid: journal_uuid ?? '',
             journal_title_id: journal_title_id ?? '',
-            journal_title: journal_title ?? '',
-            editor_name: editor_name ?? '',
             name_of_publisher: name_of_publisher ?? '',
-            issn: issn ?? '',
             frequency: frequency ?? '',
             issue_number: issue_number ?? '',
             vendor_name: vendor_name ?? '',
             library_name: library_name ?? '',
             classification_number: classification_number ?? '',
             subscription_id: subscription_id ?? '',
-            // barcode: barcode ?? '',
-            // item_type: item_type ?? '',
-            // institute_uuid: institute_uuid ?? '',
             search: search ?? '',
         });
     }
@@ -290,14 +278,28 @@ export class JournalsController {
         });
     }
 
-    @Get('get_all_journal_copy')
+    @Get('get-all-copies')
     async fetchAllJournalCopyInfo(
-        @Query('_page') page: string,
-        @Query('_limit') limit: string,
+        @Query('_journal_title') journal_title?: string,
+        @Query('_editor_name') editor_name?: string,
+        @Query('_issn') issn?: string,
+        @Query('_barcode') barcode?: string,
+        @Query('_item_type') item_type?: string,
+        @Query('_institute_uuid') institute_uuid?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
     ) {
         return this.journalsService.getJournalCopies({
+            journal_title: journal_title ?? '',
+            editor_name: editor_name ?? '',
+            issn: issn ?? '',
+            barcode: barcode ?? '',
+            item_type: item_type ?? '',
+            institute_uuid: institute_uuid ?? '',
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
         });
     }
 
