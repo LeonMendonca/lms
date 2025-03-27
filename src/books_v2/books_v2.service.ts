@@ -32,11 +32,11 @@ import {
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
-import { number } from 'zod';
+import { number, object } from 'zod';
 import { TbookUUIDZod } from './zod/bookuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
-import { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR } from './zod/requestbook-zod';
+import { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR, TRequestBookZodReIssue } from './zod/requestbook-zod';
 import { RequestBook, TRequestBook } from './entity/request-book.entity';
 
 @Injectable()
@@ -2031,5 +2031,81 @@ async archiveBookCopy(book_copy_uuid: string) {
     } catch (error) {
       throw error;
     }
+  }
+  async createBooklogReissue( requestBookReIssuePayload: TRequestBookZodReIssue,ip_address: string){
+  try {
+      const student:{student_id:string,student_uuid:string}[]=await this.booktitleRepository.query(`SELECT student_uuid, student_id FROM students_table WHERE student_id= $1`,[requestBookReIssuePayload.student_id])  
+      if(!student.length){
+        throw new HttpException(" Invalid StudentId !!",HttpStatus.BAD_REQUEST);
+      }
+      const barcode:{book_copy_id:string; book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_id, book_copy_uuid FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,[requestBookReIssuePayload.barcode])
+       if(!barcode.length){
+        throw new HttpException(" Invalid barcode !!",HttpStatus.BAD_REQUEST);
+      }
+      const log= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1 AND action='borrowed' AND borrower_uuid= $2`,[barcode[0].book_copy_uuid, student[0].student_uuid]);
+      if(!log.length){
+        throw new HttpException(" The book has not been borrowed!!",HttpStatus.BAD_REQUEST);
+
+      }
+      const validDate=await this.booktitleRepository.query(`SELECT * FROM fees_penalties WHERE NOW() <= return_date`);
+      if(!validDate.length){
+        throw new HttpException(" The Student is not valid for Renewing this book !!",HttpStatus.BAD_REQUEST);
+      }
+   
+
+      const insertObject = Object.assign({}, requestBookReIssuePayload, {
+        request_id: Date.now(),
+        book_copy_id:barcode[0].book_copy_id,
+        ip_address: ip_address,
+        request_type: requestBookReIssuePayload.request_type, 
+        extended_period: requestBookReIssuePayload.extended_period,
+        student_id:requestBookReIssuePayload.student_id
+      });
+      
+      const result=await this.booktitleRepository.query(`SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,[requestBookReIssuePayload.student_id,requestBookReIssuePayload.barcode]);
+     if(result.length){
+      throw new HttpException('Already been request!', HttpStatus.BAD_REQUEST);
+     }
+      const queryData = insertQueryHelper(insertObject, []);
+      
+      const insert = await this.booklogRepository.query(
+        `INSERT INTO request_book_log(${queryData.queryCol}) VALUES (${queryData.queryArg}) RETURNING request_id`, 
+        queryData.values
+      );
+       
+      throw new HttpException( "Student inserted sucessfully ",HttpStatus.ACCEPTED);
+    
+    } catch (error) {
+      throw error
+    }
+  }
+  async requestBooklogReissuear(requestBookIssueARPayload: TRequestBookZodIssueReIssueAR){
+    try {
+       const result:{book_copy_id:string,student_id:string, extended_period}[]= await this.booktitleRepository.query(`SELECT book_copy_id, student_id, extended_period FROM request_book_log WHERE request_id= $1`,[requestBookIssueARPayload.request_id]);
+       if(!result.length){
+        throw new HttpException("Request not Found !!", HttpStatus.BAD_REQUEST);
+       }
+      //  const book:{book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_uuid FROM  book_copies WHERE book_copy_id= $1`,[result[0].book_copy_id])
+      //  const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
+      //  const borrow= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1  AND borrower_uuid= $2`,[book[0].book_copy_uuid, student[0].student_uuid]);
+      if(requestBookIssueARPayload.status==="approved"){
+        const isCompleted=true;
+        const update= await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,[requestBookIssueARPayload.status,isCompleted,requestBookIssueARPayload.reject_reason,requestBookIssueARPayload.request_id]);
+     const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
+     const penalupdate=await this.booktitleRepository.query(`UPDATE fees_penalties SET return_date = return_date + $1 WHERE borrower_uuid =$2 `,[student[0].student_uuid,result[0].extended_period])
+         throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)  
+
+    } 
+      else if(requestBookIssueARPayload.status==="rejected"){
+        const isCompleted=false;
+        const update= await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,[requestBookIssueARPayload.status,isCompleted,requestBookIssueARPayload.reject_reason,requestBookIssueARPayload.request_id]);
+        throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)
+      
+    }
+      throw new HttpException("Invalid Status !!",HttpStatus.BAD_REQUEST);
+      
+     } catch (error) {
+      throw error
+        }
   }
 }

@@ -692,8 +692,16 @@ export class BooksV2Controller {
 
   @Post('request_booklog_reissue')
   @UsePipes(new bodyValidationPipe(requestBookZodReIssue))
-  async createRequestBooklogReIssue(@Body() requestBookReIssuePayload: TRequestBookZodReIssue) {
+  async createRequestBooklogReIssue(@Body() requestBookReIssuePayload: TRequestBookZodReIssue, @Req() request: Request) {
     try {
+      if (!request.ip) {
+        throw new HttpException(
+          'Unable to get IP address of the Client',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return await this.booksService.createBooklogReissue(requestBookReIssuePayload, request.ip)
+
     } catch (error) {
       if(!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -703,10 +711,11 @@ export class BooksV2Controller {
   }
 
   //Approve or Reject for ReIssue
-  @Post('request_booklog_reissue_ar')
+  @Put('request_booklog_reissue_ar')
   @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
-  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR   ) {
     try {
+      return await this.booksService.requestBooklogReissuear(requestBookIssueARPayload);
     } catch (error) {
       if(!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
