@@ -9,6 +9,7 @@ import {
   insertQueryHelper,
   updateQueryHelper,
 } from '../misc/custom-query-helper';
+const jwt = require('jsonwebtoken');
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { createStudentId, createStudentId2 } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
@@ -17,6 +18,9 @@ import { Chunkify } from 'src/worker-threads/chunk-array';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
 import { count } from 'console';
+import { config } from 'dotenv';
+config({ path: '.env' });
+
 
 @Injectable()
 export class StudentsService {
@@ -594,14 +598,5 @@ export class StudentsService {
       throw error;
     }
   }
-  async studentLogin(student_id:string,password:string){
-try {
-  const valid= await this.studentsRepository.query(`SELECT * FROM students_table WHERE student_id= $1 AND password= $2`,[student_id,password]);
-  if(!valid.length){
-    throw new HttpException("Invalid Student_id OR Password !! ",HttpStatus.BAD_REQUEST);
-  }
-} catch (error) {
-  throw error
-}
-  }
+
 }

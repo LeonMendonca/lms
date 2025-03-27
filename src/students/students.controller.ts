@@ -12,7 +12,10 @@ import {
   Put,
   Delete,
   UseFilters,
+  Res,
 } from '@nestjs/common';
+const jwt = require('jsonwebtoken');
+
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
@@ -432,15 +435,5 @@ export class StudentsController {
 
   }
 
-  @Post('login')
-  async student_Login(@Body('student_id') student_id: string, @Body('password') password: string){
-try {
-  return await this.studentsService.studentLogin(student_id,password)
-} catch (error) {
-  if(!(error instanceof HttpException)){
-    throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
-  }
-  throw error
-}
-  }
+  
 }

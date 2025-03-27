@@ -641,7 +641,8 @@ if(books.length===0){
       );
       queryValue.push(`${limit}`);
       queryValue.push(`${offset}`);
-      const totalResult=await this.bookcopyRepository.query(`SELECT count(*) FROM F`)
+      
+      const totalResult=await this.bookcopyRepository.query(`SELECT count(*) FROM book_logv2 `)
 
       const logs = await this.booklogRepository.query(query, queryValue);
       return {
@@ -2097,11 +2098,15 @@ async archiveBookCopy(book_copy_uuid: string) {
 
         const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
   // date is not getting updated
-     const penalupdate=await this.booktitleRepository.query(  `UPDATE fees_penalties 
+  const date:{return_date:string}[]= await this.booktitleRepository.query(`SELECT return_date FROM fees_penalties WHERE borrower_uuid= $1`,[student[0].student_uuid])
+  console.log(date[0].return_date )
+    
+  const penalupdate=await this.booktitleRepository.query(  `UPDATE fees_penalties 
       SET return_date = return_date + INTERVAL '1 day'  $1 
       WHERE borrower_uuid = $2  `,[Number(result[0].extended_period),student[0].student_uuid])
       console.log("update penal part ");
     
+
 
       
          throw new HttpException ("Status updated Sucessfully!!",HttpStatus.ACCEPTED)  
