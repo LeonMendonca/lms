@@ -1,6 +1,6 @@
 import { parentPort, workerData } from "worker_threads";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
-import { pool } from "../pg.connect";
+import { pool } from "../../pg.connect";
 
 
 (async() => {

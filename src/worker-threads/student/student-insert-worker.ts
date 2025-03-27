@@ -1,7 +1,7 @@
 import { TCreateStudentDTO } from "src/students/zod-validation/createstudents-zod";
 import { parentPort, workerData } from "worker_threads";
 import { createStudentId } from "src/students/create-student-id";
-import { pool } from "../pg.connect";
+import { pool } from "../../pg.connect";
 import { insertQueryHelper } from "src/misc/custom-query-helper";
 import { QueryResult } from "typeorm";
 
