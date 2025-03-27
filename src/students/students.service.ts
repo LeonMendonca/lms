@@ -16,7 +16,8 @@ import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
-import { count } from 'console';
+import { TStudentCredZodType } from './zod-validation/studentcred-zod';
+import { setTokenFromPayload } from 'src/jwt/jwt-main';
 
 @Injectable()
 export class StudentsService {
@@ -519,4 +520,23 @@ export class StudentsService {
       throw error;
     }
   }
+
+  async studentLogin(studentCredPayload: TStudentCredZodType) {
+    try {
+      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] = 
+      await this.studentsRepository.query(
+        `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
+        [studentCredPayload.email_or_student_id, studentCredPayload.password]
+      );
+
+      if(!jwtPayload.length) {
+        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
+      }
+
+      return setTokenFromPayload(jwtPayload[0]);
+    } catch (error) {
+      throw error;
+    }
+  }
+
 }

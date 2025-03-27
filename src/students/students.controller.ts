@@ -32,6 +32,7 @@ import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
 import { TVisit_log } from './zod-validation/visitlog';
+import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
 
 @Controller('student')
 export class StudentsController {
@@ -429,5 +430,18 @@ export class StudentsController {
       throw error
     }
 
+  }
+
+  @Post('login')
+  @UsePipes(new bodyValidationPipe(studentCredZodSchema))
+  async studentLogin(@Body() studentCredPayload: TStudentCredZodType) {
+    try {
+      return await this.studentsService.studentLogin(studentCredPayload);
+    } catch (error) {
+      if(!(error instanceof HttpException)) {
+        throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 }
