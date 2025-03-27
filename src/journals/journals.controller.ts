@@ -7,6 +7,7 @@ import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/up
 import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 
 import type { Request } from 'express';
+import { Subscription } from 'rxjs';
 
 @Controller('journals')
 export class JournalsController {
@@ -15,7 +16,7 @@ export class JournalsController {
 
     // --------------- JOURNAL TITLE -------------------------
 
-    // GET ALL JOURNALS/MAGAZINES
+    // GET ALL JOURNALS/MAGAZINES - working
     // Get all journals from titles 
     @Get('all-periodicals')
     async getAllJournals(
@@ -31,7 +32,7 @@ export class JournalsController {
         });
     }
 
-    // CREATE A NEW JOURNAL/MAGAZINE
+    // CREATE A NEW JOURNAL/MAGAZINE - working
     @Post('create-new-journal')
     @UsePipes(new bodyValidationPipe(createJournalSchema))
     async createJournal(@Body() journalPayload: TCreateJournalZodDTO) {
@@ -46,7 +47,23 @@ export class JournalsController {
         }
     }
 
-    // UPDATE JOURNAL/MAGAZINE
+    // UPDATE JOURNAL/MAGAZINE - working
+    @Patch('update-periodical')
+    @UsePipes(new bodyValidationPipe(updateJournalSchema))
+    async updateJournalTitle(
+        @Body() updateJournalPayload: TUpdateJournalTitleDTO
+    ) {
+        try {
+            const result = await this.journalsService.updateJournalTitle(updateJournalPayload)
+            return result
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
+    }
+
 
     // DELTE JOURNAL/MAGAZINE
     @Put('uparchive')
@@ -61,16 +78,16 @@ export class JournalsController {
     }
 
 
-    // FIND JOURNAL/MAGAZINE
+    // FIND JOURNAL/MAGAZINE - working
     // search periodicals from copies and titles table both 
     // Note: You can pass all the required search parameters and get the data from titles AND/OR copy tables
     // Edit: trim() to be added at each field
     @Get('search-periodicals')
     async searchPeriodicals(
         @Query('_journal_uuid') journal_uuid?: string,
-        @Query('_journal_title_id') journal_title_id?: string, //e
+        @Query('_journal_title_id') journal_title_id?: string,
         @Query('_journal_title') journal_title?: string,
-        @Query('_editor_name') editor_name?: string, //e
+        @Query('_editor_name') editor_name?: string,
         @Query('_name_of_publisher') name_of_publisher?: string,
         @Query('_issn') issn?: string,
         @Query('_frequency') frequency?: string,
@@ -78,6 +95,7 @@ export class JournalsController {
         @Query('_vendor_name') vendor_name?: string,
         @Query('_library_name') library_name?: string,
         @Query('_classification_number') classification_number?: string,
+        @Query('_subscription_id') subscription_id?: string,
         // @Query('_barcode') barcode?: string,
         // @Query('_item_type') item_type?: string,
         // @Query('_institute_uuid') institute_uuid?: string,
@@ -97,6 +115,7 @@ export class JournalsController {
             vendor_name: vendor_name ?? '',
             library_name: library_name ?? '',
             classification_number: classification_number ?? '',
+            subscription_id: subscription_id ?? '',
             // barcode: barcode ?? '',
             // item_type: item_type ?? '',
             // institute_uuid: institute_uuid ?? '',
@@ -106,6 +125,64 @@ export class JournalsController {
         });
     }
 
+
+
+    // -------------- GET ROUTES --------------
+
+    // GET AVAILABLE PERIODICALS WITH/WITHOUT ISSN
+    @Get('get-all-available-periodicals') //this returns as many copies of the same journal in copy but one entry in titles 
+    async getAllAvailableJournalsOrByIssn(
+        @Query('_issn') issn?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getAllAvailableJournalsOrByIssn({
+            issn: issn ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        });
+    }
+
+    // GET UNAVAILABLE PERIODICALS WITH/WITHOUT ISSN
+    @Get('get-all-unavailable-periodicals')//this returns as many copies of the same journal in copy but one entry in titles 
+    async getAllUnavailableJournals(
+        @Query('_issn') issn?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getAllUnavailableJournals({
+            issn: issn ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        });
+    }
+
+
+
+    // ------------------ FILTER ----------------
+    @Get('filter-periodicals')
+    async filterByCategory(
+        @Query('_category') category: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.filterByCategory(
+            {
+                category: category ?? '',
+                page: page ? parseInt(page, 10) : 1,
+                limit: limit ? parseInt(limit, 10) : 10,
+                search: search ?? '',
+            }
+        )
+    }
+
+
+    // ------------------- PERIODICAL LOGS ---------------------
 
 
 
@@ -147,20 +224,7 @@ export class JournalsController {
         });
     }
 
-    @Get('get-all-available')
-    async getAllAvailableJournalsOrByIssn(
-        @Query('_issn') issn?: string,
-        @Query('_page') page?: string,
-        @Query('_limit') limit?: string,
-        @Query('_search') search?: string
-    ) {
-        return this.journalsService.getAllAvailableJournalsOrByIssn({
-            issn: issn ?? '',
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 10,
-            search: search ?? '',
-        });
-    }
+
 
     @Get('get_available_by_issn')
     async getAvailableJournalByIssn(
@@ -169,10 +233,7 @@ export class JournalsController {
         return this.journalsService.getAvailableJournalByIssn(issn);
     }
 
-    @Get('get_all_unavailable')
-    async getAllUnavailableJournals() {
-        return this.journalsService.getAllUnavailableJournals();
-    }
+
 
     @Get('get_unavailable_by_issn')
     async getUnavailableJournalByIssn(
@@ -249,21 +310,6 @@ export class JournalsController {
         return this.journalsService.getSingleJournalCopyInfo(identifier);
     }
 
-    @Patch('update-journal-title')
-    @UsePipes(new bodyValidationPipe(updateJournalSchema))
-    async updateJournalTitle(
-        @Body() updateJournalPayload: TUpdateJournalTitleDTO
-    ) {
-        try {
-            const result = await this.journalsService.updateJournalTitle(updateJournalPayload)
-            return result
-        } catch (error) {
-            if (!(error instanceof HttpException)) {
-                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            throw error;
-        }
-    }
 
     @Put('archive-journal-copy')
     async archiveJournalCopy(@Body('journal_uuid') journal_uuid: string) {

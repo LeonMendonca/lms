@@ -13,6 +13,8 @@ import { Students } from 'src/students/students.entity';
 import { TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 import { Request } from 'express';
 import { title } from 'process';
+import { Console } from 'console';
+import { json } from 'stream/consumers';
 
 @Injectable()
 export class JournalsService {
@@ -47,17 +49,14 @@ export class JournalsService {
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
-            const books = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE journal_title LIKE $1 AND is_archived = false LIMIT $2 OFFSET $3;`,
-                [searchQuery, limit, offset]
-            );
+            const journals = await this.journalsTitleRepository.query(
+                `SELECT * FROM journal_titles WHERE is_archived=false AND available_count>0`
+            )
             const total = await this.journalsTitleRepository.query(
-                `SELECT COUNT(*) as count FROM journal_titles WHERE is_archived = false AND journal_title ILIKE $1`,
-                [searchQuery],
-            );
-
+                `SELECT COUNT(*) AS count FROM journal_titles WHERE is_archived=false AND available_count>0`
+            )
             return {
-                data: books,
+                data: journals,
                 pagination: {
                     total: parseInt(total[0].count, 10),
                     page,
@@ -113,6 +112,7 @@ export class JournalsService {
         vendor_name = '',
         library_name = '',
         classification_number = '',
+        subscription_id = '',
         // barcode = '',
         // item_type = '',
         // institute_uuid = '',
@@ -131,6 +131,7 @@ export class JournalsService {
         vendor_name?: string;
         library_name?: string;
         classification_number?: string;
+        subscription_id?: string;
         // barcode?: string;
         // item_type?: string;
         // institute_uuid?: string;
@@ -142,7 +143,7 @@ export class JournalsService {
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
-            if (!journal_uuid && !journal_title_id && !journal_title && !editor_name && !name_of_publisher && !issn && !frequency && !issue_number && !vendor_name && !library_name && !classification_number
+            if (!journal_uuid && !journal_title_id && !journal_title && !editor_name && !name_of_publisher && !issn && !frequency && !issue_number && !vendor_name && !library_name && !classification_number && !subscription_id
                 // && !barcode && !item_type && !institute_uuid
             ) {
                 return { message: "Enter Parameter(s) To Search" }
@@ -195,6 +196,10 @@ export class JournalsService {
                 query += ` AND classification_number = $${queryParams.length + 1}`;
                 queryParams.push(classification_number);
             }
+            if (subscription_id) {
+                query += ` AND subscription_id = $${queryParams.length + 1}`;
+                queryParams.push(subscription_id);
+            }
 
             // if (barcode) {
             //     query += ` AND barcode = $${queryParams.length + 1}`;
@@ -210,17 +215,18 @@ export class JournalsService {
             // }
 
             const journal = await this.journalsTitleRepository.query(query, queryParams);
+
             if (journal.length === 0) {
-                throw new HttpException('Journal not found', HttpStatus.NOT_FOUND);
+                throw new HttpException('Periodical not found', HttpStatus.NOT_FOUND);
             }
 
             const journals = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE is_archived = false AND journal_title_uuid = $1`,
+                `SELECT * FROM journal_copy WHERE is_archived = false AND is_available=true AND journal_title_uuid = $1`,
                 [journal[0].journal_uuid],
             );
 
             const total = await this.journalsTitleRepository.query(
-                `SELECT COUNT(*) as count FROM journal_titles WHERE is_archived = false AND journal_title ILIKE $1`,
+                `SELECT COUNT(*) as count FROM journal_titles WHERE is_archived = false AND available_count>0 AND subscription_id ILIKE $1`,
                 [searchQuery],
             );
 
@@ -301,11 +307,19 @@ export class JournalsService {
     ) {
         try {
             const offset = (page - 1) * limit;
+            let journals = []
 
-            const journals = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE is_archived = false AND is_available = true LIMIT $1 OFFSET $2`,
-                [limit, offset],
-            );
+            if (issn.length) {
+                journals = await this.journalsCopyRepository.query(
+                    `SELECT * FROM journal_copy WHERE issn=$1 ANd is_archived=false AND is_available=true`,
+                    [issn]
+                )
+            } else {
+                journals = await this.journalsCopyRepository.query(
+                    `SELECT * FROM journal_copy WHERE is_archived = false AND is_available = true LIMIT $1 OFFSET $2`,
+                    [limit, offset],
+                );
+            }
 
             const total = await this.journalsCopyRepository.query(
                 `SELECT COUNT(*) as count FROM journal_copy WHERE is_archived = false AND is_available = true`,
@@ -553,41 +567,47 @@ export class JournalsService {
             const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query(
                 `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = FALSE`,
                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-            );
+            ); // correct
 
             if (!journalPayloadFromJournalCopies.length) {
                 throw new HttpException("Cannot find Borrowed Journal", HttpStatus.NOT_FOUND);
-            }
+            } // correct
 
             // 3. Verify Student Actually Borrowed This Journal
             const journalBorrowedPayload: TJournalLogs[] = await this.journalLogRepository.query(
                 `SELECT * FROM journal_logs WHERE borrower_uuid = $1 AND journal_copy_uuid = $2 AND action = 'borrowed'`,
                 [studentExists[0].student_uuid, journalPayloadFromJournalCopies[0].journal_copy_uuid]
-            );
+            ); // correct
 
             if (!journalBorrowedPayload.length) {
                 throw new HttpException('Student hasn\'t borrowed this journal, or an invalid journal is being returned', HttpStatus.NOT_FOUND);
-            }
+            } // correct
 
             // 4. Check if Journal Title Exists & Not Fully Returned
             const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND available_count != total_count`,
-                [journalPayloadFromJournalCopies[0].journal_title_uuid]
-            );
+                `SELECT * FROM journal_titles WHERE subscription_id = $1 AND is_archived=false AND available_count != total_count`,
+                [journalLogPayload.subscription_id]
+            ); // correct
 
             if (!journalPayloadFromJournalTitle.length) {
-                throw new HttpException("Journal appears to be fully returned in Titles, but exists in Logs as not returned", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+                throw new HttpException("Periodical appears to be fully returned in Titles, but exists in Logs as not returned", HttpStatus.INTERNAL_SERVER_ERROR);
+            } // correct
 
             // Get ISSN from Journal Titles
-            const issn = journalPayloadFromJournalTitle[0].issn;
-            if (!issn) {
-                throw new HttpException("ISSN not found for the journal title", HttpStatus.INTERNAL_SERVER_ERROR);
+            const subscription_id = journalLogPayload.subscription_id;
+            if (!subscription_id) {
+                throw new HttpException("subscription_id Not Found For The Periodical Title", HttpStatus.INTERNAL_SERVER_ERROR);
             }
+            // set value of issn
+            const issn = await this.journalsCopyRepository.query(
+                `SELECT issn FROM journal_copy WHERE journal_copy_id=$1`,
+                [journalLogPayload.journal_copy_id]
+            )
+            console.log(journalPayloadFromJournalCopies)
 
             // 5. Update Journal Copy - Set is_available to TRUE
             const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query(
-                `UPDATE journal_copy SET is_available = TRUE WHERE journal_copy_uuid = $1 AND barcode = $2 AND is_available = FALSE RETURNING *`,
+                `UPDATE journal_copy SET is_available = FALSE WHERE journal_copy_uuid = $1 AND barcode = $2 AND is_available = FALSE RETURNING *`,
                 [journalPayloadFromJournalCopies[0].journal_copy_uuid, journalPayloadFromJournalCopies[0].barcode]
             );
 
@@ -604,8 +624,8 @@ export class JournalsService {
 
             // 6. Update Journal Title - Increase Available Count
             const updatedJournalTitlePayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
-                `UPDATE journal_titles SET available_count = available_count + 1 WHERE journal_uuid = $1 RETURNING *`,
-                [journalTitleUUID]
+                `UPDATE journal_titles SET available_count = available_count + 1 WHERE subscription_id = $1 RETURNING *`,
+                [journalLogPayload.subscription_id]
             );
 
             // 7. Convert Old & New Data to JSON
@@ -614,6 +634,9 @@ export class JournalsService {
 
             const oldJournalTitle = JSON.stringify(journalPayloadFromJournalTitle[0]);
             const newJournalTitle = JSON.stringify(updatedJournalTitlePayload[0][0]);
+
+
+
 
             // 8. Insert Log into journal_logs (Including ISSN)
             await this.journalLogRepository.query(
@@ -628,7 +651,7 @@ export class JournalsService {
                     status,
                     'Journal has been returned',
                     journalTitleUUID,
-                    issn,  // Now included
+                    issn[0].issn,  // Now included
                     oldJournalCopy,
                     newJournalCopy,
                     oldJournalTitle,
@@ -661,31 +684,34 @@ export class JournalsService {
     //             throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
     //         }
 
-    //         //Check if Book exists in Book Copies
-    //         //Insert into old_book_copy COLUMN
-    //         const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query
-    //             (
-    //                 `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = TRUE`,
-    //                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-    //             );
+    //         //Check if Book exists in Book Copies . Insert into old_book_copy COLUMN
+    //         const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query(
+    //             `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_archived=false AND is_available = true`,
+    //             [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
+    //         );
 
+    //         console.log(journalPayloadFromJournalCopies)
     //         if (!journalPayloadFromJournalCopies.length) {
     //             console.log(journalPayloadFromJournalCopies)
-    //             throw new HttpException("Cannot find Journal", HttpStatus.NOT_FOUND);
+    //             throw new HttpException("Cannot find Periodical", HttpStatus.NOT_FOUND);
     //         }
 
 
     //         //Check if Book exists in Book Titles through book_title_uuid received from Book Copies via SELECT query
     //         //Also make sure it's available
     //         //Insert into old_book_title COLUMN
+
+    //         // Note: Here im making changes by replacing journal_uuid by library_name
     //         const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsCopyRepository.query
     //             (
-    //                 `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND available_count > 0`,
-    //                 [journalPayloadFromJournalCopies[0].journal_title_uuid]
+    //                 `SELECT * FROM journal_titles WHERE subscription_id = $1 AND is_archived=false AND available_count > 0`,
+    //                 // [journalPayloadFromJournalCopies[0].journal_title_uuid]
+    //                 [journalLogPayload.subscription_id]
     //             )
 
+    //         console.log(journalPayloadFromJournalTitle)
     //         if (!journalPayloadFromJournalTitle.length) {
-    //             throw new HttpException("Journal doesn't seems to be available in Journal Titles, but exists in Journal Copies", HttpStatus.INTERNAL_SERVER_ERROR);
+    //             throw new HttpException("Periodical doesn't seems to be available in Journal Titles, but exists in Journal Copies", HttpStatus.INTERNAL_SERVER_ERROR);
     //         }
 
     //         //UPDATING now is safe
@@ -723,17 +749,22 @@ export class JournalsService {
     //         const oldJournalTitle = JSON.stringify(journalPayloadFromJournalTitle[0]);
     //         const newJournalTitle = JSON.stringify(updatedJournalTitlePayload[0][0]);
 
+    //         const issn = await this.journalsCopyRepository.query(
+    //             `SELECT issn FROM journal_copy WHERE journal_copy_id=$1`,
+    //             [journalLogPayload.journal_copy_id]
+    //         )
+
 
     //         await this.journalLogRepository.query
     //             (
-    //                 `INSERT INTO journal_logs (borrower_uuid, journal_copy_uuid, action, description, journal_title_uuid, old_journal_copy, new_journal_copy,  old_journal_title, new_journal_title, ip_address) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    //                 `INSERT INTO journal_logs (borrower_uuid, journal_copy_uuid, action, description, journal_title_uuid, old_journal_copy, new_journal_copy,  old_journal_title, new_journal_title, ip_address, issn) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     //                 [
     //                     studentExists[0].student_uuid, journalCopyUUID, status, 'Journal Has Been Borrowed', journalTitleUUID,
-    //                     oldJournalCopy, newJournalCopy, oldJournalTitle, newJournalTitle, request.ip
+    //                     oldJournalCopy, newJournalCopy, oldJournalTitle, newJournalTitle, request.ip, issn
     //                 ]
     //             );
 
-    //         return { statusCode: HttpStatus.CREATED, message: 'Journal borrowed successfully' };
+    //         return { statusCode: HttpStatus.CREATED, message: 'Periodical borrowed successfully' };
     //     } catch (error) {
     //         throw error;
     //     }
@@ -744,107 +775,201 @@ export class JournalsService {
         request: Request,
         status: 'borrowed' | 'in_library_borrowed'
     ) {
+        // see if student_exists
+        // see if periodical exists in journal_copy
+        // see if periodical exists in journal_titles
+        // update the journal_copy
+        // update the journal_titles
+        // convert old and new data to json
+        // insert log in to journal_logs
+
         try {
             if (!request.ip) {
-                throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
+                throw new HttpException("Unable to get IP address of the User", HttpStatus.INTERNAL_SERVER_ERROR);
             }
 
-            // 1. Validate Student ID Exists
-            const studentExists: { student_uuid: string }[] = await this.studentsRepository.query(
-                `SELECT student_uuid FROM students_table WHERE student_id = $1`,
+            const student: { student_uuid: string }[] = await this.studentsRepository.query(
+                `SELECT * FROM students_table WHERE student_id=$1`,
                 [journalLogPayload.student_id]
-            );
-
-            if (!studentExists.length) {
-                throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
+            )
+            if (!student.length) {
+                return { message: "No Student Found" }
             }
 
-            // 2. Check if Journal Exists in Copies
             const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = TRUE`,
+                `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND barcode=$2 AND is_archived=false AND is_available=true`,
                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-            );
-
+            )
             if (!journalPayloadFromJournalCopies.length) {
-                throw new HttpException("Cannot find Journal", HttpStatus.NOT_FOUND);
+                return { message: "Periodical Does Not Exist in Copies Table" }
             }
+            const issn = journalPayloadFromJournalCopies[0].issn
 
-            // 3. Check if Journal Exists in Titles & Get ISSN
-            const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND available_count > 0`,
-                [journalPayloadFromJournalCopies[0].journal_title_uuid]
-            );
+            console.log("journalPayloadFromJournalCopies: ", journalPayloadFromJournalCopies[0])
 
-            if (!journalPayloadFromJournalTitle.length) {
-                throw new HttpException("Journal doesn't seem to be available in Journal Titles, but exists in Journal Copies", HttpStatus.INTERNAL_SERVER_ERROR);
+            const journalPayloadFromJournalTitles: TJournalTitle[] = await this.journalsTitleRepository.query(
+                `SELECT * FROM journal_titles WHERE subscription_id=$1 AND journal_uuid=$2 AND is_archived=false`,
+                [journalLogPayload.subscription_id, journalPayloadFromJournalCopies[0].journal_title_uuid]
+            )
+            if (!journalPayloadFromJournalTitles.length) {
+                return { message: "Periodical Does Not Exist in Titles Table" }
             }
+            console.log("journalPayloadFromJournalTitles: ", journalPayloadFromJournalTitles[0])
 
-            // Get ISSN from Journal Titles
-            const issn = journalPayloadFromJournalTitle[0].issn;
-            if (!issn) {
-                throw new HttpException("ISSN not found for the journal title", HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-
-            // 4. Update Journal Copy - Set is_available to FALSE
             const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query(
-                `UPDATE journal_copy SET is_available = FALSE WHERE journal_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE RETURNING *`,
-                [journalPayloadFromJournalCopies[0].journal_copy_uuid, journalPayloadFromJournalCopies[0].barcode]
-            );
-
+                `UPDATE journal_copy SET is_available=false WHERE journal_copy_id=$1 AND barcode=$2 AND is_available=true`,
+                [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
+            )
             if (!updatedJournalCopiesPayload[1]) {
-                throw new HttpException("Failed To Update Journal", HttpStatus.INTERNAL_SERVER_ERROR);
+                return {
+                    message: "Failed To Update Periodical",
+                    error: HttpStatus.INTERNAL_SERVER_ERROR
+                }
             }
-
-            if (!updatedJournalCopiesPayload[0].length) {
-                throw new HttpException("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+            if (!updatedJournalCopiesPayload[0]) {
+                return {
+                    message: "Something Went Wrong",
+                    error: HttpStatus.INTERNAL_SERVER_ERROR
+                }
             }
+            const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid
+            const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_id
 
-            const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid;
-            const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_uuid;
 
-            // 5. Update Journal Title - Decrease Available Count
-            const updatedJournalTitlePayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
-                `UPDATE journal_titles SET available_count = available_count - 1 WHERE journal_uuid = $1 RETURNING *`,
-                [journalTitleUUID]
-            );
+            const updatedJournalTitlesPayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
+                `UPDATE journal_titles SET available_count = available_count-1 WHERE subscription_id=$1`,
+                [journalLogPayload.subscription_id]
+            )
 
-            // 6. Convert Old & New Data to JSON
-            const oldJournalCopy = JSON.stringify(journalPayloadFromJournalCopies[0]);
-            const newJournalCopy = JSON.stringify(updatedJournalCopiesPayload[0][0]);
 
-            const oldJournalTitle = JSON.stringify(journalPayloadFromJournalTitle[0]);
-            const newJournalTitle = JSON.stringify(updatedJournalTitlePayload[0][0]);
+            const oldJournalCopy = JSON.stringify(journalPayloadFromJournalCopies[0])
+            const newJournalCopy = JSON.stringify(updatedJournalCopiesPayload[0])
 
-            // 7. Insert Log into journal_logs (Including ISSN)
-            await this.journalLogRepository.query(
-                `INSERT INTO journal_logs (
-                borrower_uuid, journal_copy_uuid, action, description, 
-                journal_title_uuid, issn, old_journal_copy, new_journal_copy, 
-                old_journal_title, new_journal_title, ip_address
-            ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-                [
-                    studentExists[0].student_uuid,
-                    journalCopyUUID,
-                    status,
-                    'Journal Has Been Borrowed',
-                    journalTitleUUID,
-                    issn,
-                    oldJournalCopy,
-                    newJournalCopy,
-                    oldJournalTitle,
-                    newJournalTitle,
-                    request.ip
-                ]
-            );
+            const oldJournalTitle = JSON.stringify(journalPayloadFromJournalTitles[0])
+            const newJournalTitle = JSON.stringify(updatedJournalTitlesPayload[0])
+
+            const result = await this.journalLogRepository.query(
+                `INSERT INTO journal_logs (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                [oldJournalCopy, newJournalCopy, oldJournalTitle, newJournalTitle, status, 'Periodical Has Been Borrowed', issn, request.ip, student[0].student_uuid, journalTitleUUID, journalCopyUUID]
+            )
+
+            console.log("Result: ", result)
 
             return { statusCode: HttpStatus.CREATED, message: 'Journal borrowed successfully' };
         } catch (error) {
-            throw error;
+            return error
         }
+
     }
+
+    // async journalBorrowed(
+    //     journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
+    //     request: Request,
+    //     status: 'borrowed' | 'in_library_borrowed'
+    // ) {
+    //     try {
+    //         if (!request.ip) {
+    //             throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+
+    //         // 1. Validate Student ID Exists
+    //         const studentExists: { student_uuid: string }[] = await this.studentsRepository.query(
+    //             `SELECT student_uuid FROM students_table WHERE student_id = $1`,
+    //             [journalLogPayload.student_id]
+    //         );
+
+    //         if (!studentExists.length) {
+    //             throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
+    //         }
+
+    //         // 2. Check if Journal Exists in Copies
+    //         const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query(
+    //             `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = TRUE`,
+    //             [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
+    //         );
+
+    //         if (!journalPayloadFromJournalCopies.length) {
+    //             throw new HttpException("Cannot find Journal", HttpStatus.NOT_FOUND);
+    //         }
+
+    //         // 3. Check if Journal Exists in Titles & Get ISSN
+    //         const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsTitleRepository.query(
+    //             `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND available_count > 0`,
+    //             [journalPayloadFromJournalCopies[0].journal_title_uuid]
+    //         );
+
+    //         if (!journalPayloadFromJournalTitle.length) {
+    //             throw new HttpException("Journal doesn't seem to be available in Journal Titles, but exists in Journal Copies", HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+
+    //         // Get ISSN from Journal Titles
+    //         const issn = journalPayloadFromJournalTitle[0].issn;
+    //         if (!issn) {
+    //             throw new HttpException("ISSN not found for the journal title", HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+
+    //         // 4. Update Journal Copy - Set is_available to FALSE
+    //         const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query(
+    //             `UPDATE journal_copy SET is_available = FALSE WHERE journal_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE RETURNING *`,
+    //             [journalPayloadFromJournalCopies[0].journal_copy_uuid, journalPayloadFromJournalCopies[0].barcode]
+    //         );
+
+    //         if (!updatedJournalCopiesPayload[1]) {
+    //             throw new HttpException("Failed To Update Journal", HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+
+    //         if (!updatedJournalCopiesPayload[0].length) {
+    //             throw new HttpException("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+    //         }
+
+    //         const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid;
+    //         const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_uuid;
+
+    //         // 5. Update Journal Title - Decrease Available Count
+    //         const updatedJournalTitlePayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
+    //             `UPDATE journal_titles SET available_count = available_count - 1 WHERE journal_uuid = $1 RETURNING *`,
+    //             [journalTitleUUID]
+    //         );
+
+    //         // 6. Convert Old & New Data to JSON
+    //         const oldJournalCopy = JSON.stringify(journalPayloadFromJournalCopies[0]);
+    //         const newJournalCopy = JSON.stringify(updatedJournalCopiesPayload[0][0]);
+
+    //         const oldJournalTitle = JSON.stringify(journalPayloadFromJournalTitle[0]);
+    //         const newJournalTitle = JSON.stringify(updatedJournalTitlePayload[0][0]);
+
+    //         // 7. Insert Log into journal_logs (Including ISSN)
+    //         await this.journalLogRepository.query(
+    //             `INSERT INTO journal_logs (
+    //             borrower_uuid, journal_copy_uuid, action, description, 
+    //             journal_title_uuid, issn, old_journal_copy, new_journal_copy, 
+    //             old_journal_title, new_journal_title, ip_address
+    //         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    //             [
+    //                 studentExists[0].student_uuid,
+    //                 journalCopyUUID,
+    //                 status,
+    //                 'Journal Has Been Borrowed',
+    //                 journalTitleUUID,
+    //                 issn,
+    //                 oldJournalCopy,
+    //                 newJournalCopy,
+    //                 oldJournalTitle,
+    //                 newJournalTitle,
+    //                 request.ip
+    //             ]
+    //         );
+
+    //         return { statusCode: HttpStatus.CREATED, message: 'Journal borrowed successfully' };
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
 
     // working
+
+
     async getJournalLogsByJournalUUID(
         { page, limit, search }: { page: number; limit: number; search?: string } = {
             page: 1,
@@ -890,24 +1015,31 @@ export class JournalsService {
 
     // working
     async getAllUnavailableJournals(
-        { page, limit }: { page: number; limit: number } = {
+        { issn, page, limit, search }: { issn: string; page: number; limit: number; search: string } = {
+            issn: '',
             page: 1,
             limit: 10,
+            search: ''
         },
     ) {
         try {
             const offset = (page - 1) * limit;
+            let journals = []
 
-            const journals = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy
-        WHERE is_archived = false AND is_available = false
-        LIMIT $1 OFFSET $2`,
-                [limit, offset],
-            );
+            if (issn.length) {
+                journals = await this.journalsCopyRepository.query(
+                    `SELECT * FROM journal_copy WHERE issn=$1 ANd is_archived=true AND is_available=true`,
+                    [issn]
+                )
+            } else {
+                journals = await this.journalsCopyRepository.query(
+                    `SELECT * FROM journal_copy WHERE is_archived = true AND is_available = true LIMIT $1 OFFSET $2`,
+                    [limit, offset],
+                );
+            }
 
             const total = await this.journalsCopyRepository.query(
-                `SELECT COUNT(*) as count FROM journal_copy 
-        WHERE is_archived = false AND is_available = false`,
+                `SELECT COUNT(*) as count FROM journal_copy WHERE is_archived = true AND is_available = true`,
             );
 
             return {
@@ -920,13 +1052,38 @@ export class JournalsService {
                 },
             };
         } catch (error) {
-            console.log(error);
             throw new HttpException(
-                'Error fetching journals',
+                'Error fetching Journals',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
     }
+
+
+    async filterByCategory(
+        { category, page, limit, search }: { category: string; page: number; limit: number; search: string } = {
+            category: '',
+            page: 1,
+            limit: 10,
+            search: ''
+        },
+    ) {
+        if (!category.length) {
+            return { message: "Enter The Category Type" }
+        }
+
+        // check if the category has some entries in the journal_titles db 
+        const periodical = await this.journalsTitleRepository.query(
+            `SELECT * FROM journal_titles WHERE category=$1 AND is_archived=false AND available_count>0`, [category]
+        )
+        if (!periodical.length) {
+            // throw error
+            return { message: `No ${category}\'s Found` }
+        } else {
+            return { periodical }
+        }
+    }
+
 
     // working
     async getUnavailableJournalByIssn(issn: string) {
@@ -1014,22 +1171,24 @@ export class JournalsService {
         try {
             //Check if journal exists in JournalTitle Table
             let journalTitleUUID: [{ journal_uuid: string }] = await this.journalsTitleRepository.query(
-                `SELECT journal_uuid FROM journal_titles WHERE issn = $1`,
-                [createJournalPayload.issn],
+                `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`, //change issn here
+                [createJournalPayload.subscription_id],
             );
+
 
             //Book Title Table logic
             if (!journalTitleUUID.length) {
                 //Create custom Book Id
                 const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_title_id) FROM journal_titles`);
-                const journalId = genJournalId(max[0].max, 'JT');
+                const journalId = genJournalId(max[0].max, 'PT');
                 const journalTitlePayloadWithId = { ...createJournalPayload, journal_title_id: journalId };
 
                 //Create the required Columns, Arg, and Values
                 //Ignore the Columns that are used by Copy table
                 const journalTitleQueryData = insertQueryHelper(journalTitlePayloadWithId, [
-                    'barcode', 'item_type', 'institute_uuid', 'is_archived', 'is_available', 'created_by', 'remarks', 'copy_images', 'copy_additional_fields', 'copy_description'
+                    'barcode', 'item_type', 'issn', 'journal_title', 'editor_name', 'institute_uuid', 'is_archived', 'is_available', 'created_by', 'remarks', 'copy_images', 'copy_additional_fields', 'copy_description'
                 ]);
+
 
                 //Convert some specific fields to string
                 journalTitleQueryData.values.forEach((element, idx) => {
@@ -1045,21 +1204,21 @@ export class JournalsService {
             } else {
                 await this.journalsTitleRepository.query
                     (
-                        `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE issn = $1`,
-                        [createJournalPayload.issn],
+                        `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`, //change the libray_name
+                        [createJournalPayload.subscription_id],
                     );
             }
             //Book Copy Table logic
 
             //Create custom Book Id
             const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_copy_id) FROM journal_copy`);
-            const journalId = genJournalId(max[0].max, 'JC');
+            const journalId = genJournalId(max[0].max, 'PC');
             const journalCopyPayloadWithId = { ...createJournalPayload, journal_copy_id: journalId, journal_title_uuid: journalTitleUUID[0].journal_uuid };
 
             //Create the required Columns, Arg, and Values
             //Ignore the Columns that are used by Title table
-            const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, [
-                'journal_title', 'editor_name', 'name_of_publisher', 'place_of_publication', 'subscription_start_date', 'subscription_end_date', 'issn', 'volume_no', 'frequency', 'issue_number', 'vendor_name', 'subscription_price', 'library_name', 'classification_number', 'is_archived', 'total_count', 'available_count', 'title_images', 'title_additional_fields', 'title_description'
+            const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, ['category',
+                'name_of_publisher', 'place_of_publication', 'subscription_id', 'subscription_start_date', 'subscription_end_date', 'volume_no', 'frequency', 'issue_number', 'vendor_name', 'subscription_price', 'library_name', 'classification_number', 'is_archived', 'total_count', 'available_count', 'title_images', 'title_additional_fields', 'title_description'
             ]);
 
             //Convert some specific fields to string
@@ -1074,7 +1233,7 @@ export class JournalsService {
                     `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
                     journalCopyQueryData.values
                 );
-            return { statusCode: HttpStatus.CREATED, message: "Journal created" }
+            return { statusCode: HttpStatus.CREATED, message: "Periodical Created!" }
         } catch (error) {
             throw error;
         }
@@ -1312,23 +1471,23 @@ export class JournalsService {
             let queryData = updateQueryHelper<TUpdateJournalTitleDTO>
                 (updateJournalPayload, [])
             const journal = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE journal_uuid='${updateJournalPayload.journal_uuid}'`
+                `SELECT * FROM journal_titles WHERE journal_uuid='${updateJournalPayload.journal_uuid}' AND is_archived=false AND available_count>0`
             )
             if (journal.length === 0) {
                 throw new HttpException(
-                    'Journal Not Found ',
+                    "Periodical Not Found",
                     HttpStatus.NOT_FOUND,
                 );
             }
             const result = await this.journalsTitleRepository.query(
                 `UPDATE journal_titles 
                  SET ${queryData.queryCol}
-                 WHERE journal_uuid='${updateJournalPayload.journal_uuid}' AND is_archived=false`,
+                 WHERE journal_uuid='${updateJournalPayload.journal_uuid}' AND is_archived=false AND available_count>0`,
                 queryData.values
             )
 
             return {
-                message: "Journal Updated Successfully!"
+                message: `Periodical Updated Successfully!`
             }
 
         } catch (error) {

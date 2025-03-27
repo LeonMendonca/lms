@@ -12,13 +12,7 @@ export class JournalTitle {
     @PrimaryGeneratedColumn('uuid', { name: 'journal_uuid' })
     journalUUID: 'journal_uuid' = 'journal_uuid';
 
-    @Column({
-        name: 'journal_title_id',
-        type: 'varchar',
-        length: 255,
-        unique: true,
-        nullable: true,
-    })
+    @Column({ name: 'journal_title_id', type: 'varchar', length: 255, unique: true, nullable: true })
     journalTitleId: 'journal_title_id' = 'journal_title_id';
 
     @Column({ name: 'category', type: 'enum', enum: CATEGORY })
@@ -30,14 +24,17 @@ export class JournalTitle {
     @Column({ name: 'place_of_publication', type: 'varchar', length: 255 })
     placeOfPublication: 'place_of_publication' = 'place_of_publication';
 
+    @Column({ name: 'subscription_id', type: 'varchar', length: 255, unique: true })
+    subscriptionId: 'subscription_id' = 'subscription_id';
+
     @Column({ name: 'subscription_start_date', type: 'date' })
     subscriptionStartDate: 'subscription_start_date' = 'subscription_start_date';
 
     @Column({ name: 'subscription_end_date', type: 'date' })
     subscriptionEndDate: 'subscription_end_date' = 'subscription_end_date';
 
-    @Column({ name: 'issn', type: 'varchar', length: 255 })
-    issn: 'issn' = 'issn';
+    // @Column({ name: 'issn', type: 'varchar', length: 255 })
+    // issn: 'issn' = 'issn';
 
     @Column({ name: "volume_no", type: "varchar", length: 255 })
     volumeNumber: "volume_no" = "volume_no"
@@ -91,6 +88,8 @@ export class JournalTitle {
     //Relationships
     @OneToMany(() => JournalCopy, (journalcopy) => journalcopy.journalTitleUUID)
     journalCopies: 'journal_copies' = 'journal_copies';
+
+
 }
 
 const journal_title = new JournalTitle();

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const journalLogsSchema = z.object({
+    subscription_id: z.string(),
     student_id: z.string().min(10),
     journal_copy_id: z.string(),
     barcode: z.string(),

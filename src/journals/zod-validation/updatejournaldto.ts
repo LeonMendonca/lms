@@ -1,11 +1,15 @@
 import { z } from "zod"
 
+const CategoryEnum = z.enum(["journal", "magazine"])
+
 export const updateJournalSchema = z.object({
     journal_uuid: z.string().optional(),
     journal_title: z.string().min(10).optional(),
     editor_name: z.string().min(10).optional(),
     place_of_publication: z.string().optional(),
     issn: z.string().optional(),
+    category: CategoryEnum.optional(),
+    subscription_id: z.string().optional(),
     frequency: z.string().optional(),
     issue_number: z.string().optional(),
     vendor_name: z.string().optional(),

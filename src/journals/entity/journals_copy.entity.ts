@@ -15,12 +15,6 @@ export class JournalCopy {
     @Column({ name: 'item_type', type: 'varchar', length: 255 })
     itemType: "item_type" = "item_type";
 
-
-    // added
-
-    // @Column({ name: 'frequency', type: 'varchar', length: 255 })
-    // frequency: "frequency" = "frequency"
-
     @Column({ name: 'issn', type: 'varchar', length: 255 })
     issn: 'issn' = 'issn';
 
@@ -29,8 +23,6 @@ export class JournalCopy {
 
     @Column({ name: 'editor_name', type: 'varchar', length: 255 })
     editorName: 'editor_name' = 'editor_name';
-
-    // --added
 
     @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
     instituteUUID: "institute_uuid" = "institute_uuid";

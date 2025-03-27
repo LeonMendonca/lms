@@ -3,7 +3,7 @@ const alphabetArr = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
 const numberOfPadding = 5;  //This decides the no. of 0's to be prefixed
 let paddingZero = ''.padStart(numberOfPadding, '0')
 
-export function genJournalId(prevId: string | null, type: 'JC' | 'JT') {
+export function genJournalId(prevId: string | null, type: 'PC' | 'PT') {
     if (!prevId) {
         //if 1st / new record in table, then
         return `A-${paddingZero}-${type}`
