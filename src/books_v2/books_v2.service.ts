@@ -1822,9 +1822,10 @@ async archiveBookCopy(book_copy_uuid: string) {
   async getFullFeeListStudent() {
     try {
       const result = await this.booktitleRepository
-        .query(`SELECT fees_penalties.borrower_uuid,students_table.student_name, students_table.department, fees_penalties.returned_at, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
+        .query(`SELECT students_table.student_id,book_copies.book_copy_id,students_table.student_name, students_table.department,book_titles.subject, fees_penalties.return_date, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
          INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
-        INNER JOIN  book_copies on fees_penalties.book_copy_uuid=book_copies.book_copy_uuid`);
+        INNER JOIN  book_copies ON fees_penalties.book_copy_uuid=book_copies.book_copy_uuid
+        INNER JOIN book_titles ON book_titles.book_uuid= book_copies.book_title_uuid`);
       if (result.length === 0) {
         throw new HttpException(
           { message: 'No data found!!' },
