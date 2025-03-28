@@ -621,7 +621,7 @@ if(books.length===0){
   }) {
     try {
       const offset= (page-1)*limit;
-      let query = `SELECT book_copy_uuid, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
+      let query = `SELECT book_copy_uuid, new_book_copy, new_book_title, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
       FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`;
       const queryValue: string[] = [] ;
 
