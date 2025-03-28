@@ -171,8 +171,10 @@ export class JournalsController {
 
     // GET COPY INFORMATION
     @Get('get-periodical-copy-info')
-    async getCopyInformation(@Body('journal_copy_id') journal_copy_id: string) {
-        return this.journalsService.getCopyInformation(journal_copy_id)
+    async getCopyInformation(
+        @Query('_journal_copy_id') journal_copy_id: string
+    ) {
+        return this.journalsService.getCopyInformation({ journal_copy_id: journal_copy_id ?? '' })
     }
 
     // GET ALL PERIODICAL COPIES

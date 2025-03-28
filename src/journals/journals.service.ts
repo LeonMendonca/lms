@@ -1438,8 +1438,8 @@ export class JournalsService {
         }
     }
 
-    async getCopyInformation(journal_copy_id: string) {
-        if (!journal_copy_id) {
+    async getCopyInformation({ journal_copy_id }: { journal_copy_id: string } = { journal_copy_id: '' }) {
+        if (!journal_copy_id.length) {
             return { message: "Enter journal_copy_id" }
         }
         const copy = await this.journalsCopyRepository.query(
@@ -1449,7 +1449,7 @@ export class JournalsService {
         if (!copy.length) {
             return { message: "No Copy Found" }
         } else {
-            return copy[0]
+            return copy
         }
     }
 
