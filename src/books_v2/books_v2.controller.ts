@@ -724,5 +724,19 @@ export class BooksV2Controller {
     }
   }
 
+  @Get('student-current-borrows')
+  async studentCurrentBooks(@Query('_student_id') student_id:string){
+try {
+
+  return await this.booksService.studentCurrentBooks(student_id);
+
+} catch (error) {
+  if(!(error instanceof HttpException)) {
+    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+  throw error;
+}
+  }
+
 
 }

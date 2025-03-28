@@ -621,7 +621,7 @@ if(books.length===0){
   }) {
     try {
       const offset= (page-1)*limit;
-      let query = `SELECT book_copy_uuid, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
+      let query = `SELECT book_copy_uuid, new_book_copy, new_book_title, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
       FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`;
       const queryValue: string[] = [] ;
 
@@ -2143,5 +2143,19 @@ async archiveBookCopy(book_copy_uuid: string) {
      } catch (error) {
       throw error
         }
+  }
+  
+  async studentCurrentBooks( student_id:string){  
+  try {
+  const result:{student_uuid:string}[] = await this.booktitleRepository.query(`SELECT student_uuid  FROM students_table WHERE student_id= $1`,[student_id]);
+  if(!result.length){
+    throw new HttpException (" Invalid StudentId!! ", HttpStatus.BAD_REQUEST);}
+  const booklog:{book_title_uuid:string}[]= await this.booktitleRepository.query(`SELECT book_title_uuid FROM book_logv2 WHERE borrower_uuid = $1 AND status = 'borrowed' ORDER BY borrowed DESC ;`,[result[0].student_uuid]);
+ const data= await this.booktitleRepository.query(`SELECT * FROM  book_titles INNER JOIN book_copies ON book_titles.book_uuid=book_copies.book_title_uuid WHERE book_copies.book_title_uuid= $1 limit 1`,[booklog[0].book_title_uuid]) 
+ return data;  
+} catch (error) {
+  throw error  
+  }
+
   }
 }
