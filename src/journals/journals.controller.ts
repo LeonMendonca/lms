@@ -169,6 +169,12 @@ export class JournalsController {
 
     // ---------- PERIODICALS COPY ---------------
 
+    // GET COPY INFORMATION
+    @Get('get-periodical-copy-info')
+    async getCopyInformation(@Body('journal_copy_id') journal_copy_id: string) {
+        return this.journalsService.getCopyInformation(journal_copy_id)
+    }
+
     // GET ALL PERIODICAL COPIES
     @Get('get-all-copies')
     async getAllCopies(
@@ -267,43 +273,81 @@ export class JournalsController {
 
     // ------------------- PERIODICAL LOGS ---------------------
 
-    // get journal by journal_title_id
-    @Get('get-journals-by-journalid')
+    // get journal by journal_title_id, journal_copy_uuid, journal_log_uuid, action, description, issn, ip_address, borrower_uuid 
+    // SEARCH PERIODICAL LOGS FROM PERIODICAL COLUMNS 
+    @Get('get-periodical-logs')
     async getJournalsByID(
+        @Query('_journal_title_id') journal_title_id?: string,
+        @Query('_journal_copy_uuid') journal_copy_uuid?: string,
+        @Query('_journal_log_uuid') journal_log_uuid?: string,
+        @Query('_action') action?: string,
+        @Query('_description') description?: string,
+        @Query('_issn') issn?: string,
+        @Query('_ip_address') ip_address?: string,
+        @Query('_borrower_uuid') borrower_uuid?: string,
         @Query('_page') page?: string,
         @Query('_limit') limit?: string,
-        @Query('_search') search?: string,
-        @Query('_journal_title_id') journal_title_id?: string
+        @Query('_search') search?: string
     ) {
         return this.journalsService.getJournalsByID({
+            journal_title_id: journal_title_id ?? '',
+            journal_copy_uuid: journal_copy_uuid ?? '',
+            journal_log_uuid: journal_log_uuid ?? '',
+            action: action ?? '',
+            description: description ?? '',
+            issn: issn ?? '',
+            ip_address: ip_address ?? '',
+            borrower_uuid: borrower_uuid ?? '',
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 10,
             search: search ?? '',
-            journal_title_id: journal_title_id ?? ''
         });
     }
 
 
-
+    // CREATE PERIODICAL LOGS
+    @Post('create-periodical-log')
+    @UsePipes(new bodyValidationPipe(journalLogsSchema))
+    async createPeriodicalLog(
+        @Body() journalLogPayload: TCreateJournalLogDTO,
+        @Req() request: Request,) {
+        try {
+            let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+            let result: Record<string, string | number> = {};
+            if (journalLogPayload.action === 'borrow') {
+                result = await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'borrowed');
+            } else if (journalLogPayload.action === 'return') {
+                result = await this.journalsService.periodicalReturned(journalLogPayload, request, status = 'returned')
+            } else {
+                result = await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
+            }
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
+    }
 
     // get journal logs from journal_log_uuid or issn number
-    @Get('get-journal-logs-by-title')
-    async getJournalLogDetailsByTitle(
-        @Query('journal_log_uuid') journal_log_uuid: string,
-        @Query('_issn') issn: string,
-    ) {
-        return this.journalsService.getJournalLogDetailsByTitle({
-            journal_log_uuid,
-            issn,
-        });
-    }
+    // @Get('get-journal-logs-by-title') --WORKING IN get-periodical-logs
+    // async getJournalLogDetailsByTitle(
+    //     @Query('journal_log_uuid') journal_log_uuid: string,
+    //     @Query('_issn') issn: string,
+    // ) {
+    //     return this.journalsService.getJournalLogDetailsByTitle({
+    //         journal_log_uuid,
+    //         issn,
+    //     });
+    // }
 
-    @Get('get-logs-by-copy')
-    async getJournalLogDetailsByCopy(@Query('_barcode') barcode: string) {
-        return this.journalsService.getJournalLogDetailsByCopy({
-            barcode,
-        });
-    }
+    // @Get('get-logs-by-copy') --NOT NEEDED
+    // async getJournalLogDetailsByCopy(@Query('_barcode') barcode: string) {
+    //     return this.journalsService.getJournalLogDetailsByCopy({
+    //         barcode,
+    //     });
+    // }
 
 
 
@@ -393,7 +437,7 @@ export class JournalsController {
 
 
 
-    @Patch('update_journal_copy')
+    @Patch('update_journal_copy') // maybe redundant code: already made another function
     async updateJournalCopy(
         @Body('journal_uuid') journal_uuid: string,
         @Body() journalPayload: any,
@@ -408,29 +452,7 @@ export class JournalsController {
     }
 
 
-    @Post('create-journal-log')
-    @UsePipes(new bodyValidationPipe(journalLogsSchema))
-    async createJournalLog(
-        @Body() journalLogPayload: TCreateJournalLogDTO,
-        @Req() request: Request,) {
-        try {
-            let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
-            let result: Record<string, string | number> = {};
-            if (journalLogPayload.action === 'borrow') {
-                result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'borrowed');
-            } else if (journalLogPayload.action === 'return') {
-                result = await this.journalsService.journalReturned(journalLogPayload, request, status = 'returned')
-            } else {
-                result = await this.journalsService.journalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
-            }
-            return result;
-        } catch (error) {
-            if (!(error instanceof HttpException)) {
-                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-            throw error;
-        }
-    }
+
 
     @Get('get-journal-logs-by-journal_uuid')
     async getJournalLogsByJournalUUID(

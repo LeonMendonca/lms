@@ -76,14 +76,33 @@ export class JournalsService {
     }
 
     async getJournalsByID({
+        journal_title_id,
+        journal_copy_uuid,
+        journal_log_uuid,
+        action,
+        description,
+        issn,
+        ip_address,
+        borrower_uuid,
         page,
         limit,
-        search,
-        journal_title_id
-    }: { page: number; limit: number; search: string; journal_title_id: string }) {
+        search
+    }: {
+        journal_title_id: string;
+        journal_copy_uuid: string;
+        journal_log_uuid: string;
+        action: string;
+        description: string;
+        issn: string;
+        ip_address: string;
+        borrower_uuid: string;
+        page: number;
+        limit: number;
+        search: string
+    }) {
         try {
-            if (!journal_title_id) {
-                return { message: "Journal Title ID Not Found" }
+            if (!journal_title_id && !journal_copy_uuid && !journal_log_uuid && !action && !description && !issn && !ip_address && !borrower_uuid) {
+                return { message: "Give Parameters For Searching" }
             }
             // check if the journal_id exists in the db or not 
             const journals = await this.journalsTitleRepository.query(
@@ -93,7 +112,7 @@ export class JournalsService {
             if (journals.length) {
                 return { journals: journals }
             } else {
-                return { message: "No Journal With The journal_title_id Found" }
+                return { message: "No Journal Found" }
             }
         } catch (error) {
             return { error }
@@ -495,7 +514,7 @@ export class JournalsService {
     //     }
     // }
 
-    async journalReturned(
+    async periodicalReturned(
         journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
         request: Request,
         status: 'returned'
@@ -722,7 +741,7 @@ export class JournalsService {
     //     }
     // }
 
-    async journalBorrowed(
+    async periodicalBorrowed(
         journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
         request: Request,
         status: 'borrowed' | 'in_library_borrowed'
@@ -747,7 +766,7 @@ export class JournalsService {
             if (!student.length) {
                 return { message: "No Student Found" }
             }
-
+            // --done
             const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query(
                 `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND barcode=$2 AND is_archived=false AND is_available=true`,
                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
@@ -755,9 +774,10 @@ export class JournalsService {
             if (!journalPayloadFromJournalCopies.length) {
                 return { message: "Periodical Does Not Exist in Copies Table" }
             }
+            // --done
             const issn = journalPayloadFromJournalCopies[0].issn
 
-            console.log("journalPayloadFromJournalCopies: ", journalPayloadFromJournalCopies[0])
+            // console.log("journalPayloadFromJournalCopies: ", journalPayloadFromJournalCopies[0])
 
             const journalPayloadFromJournalTitles: TJournalTitle[] = await this.journalsTitleRepository.query(
                 `SELECT * FROM journal_titles WHERE subscription_id=$1 AND journal_uuid=$2 AND is_archived=false`,
@@ -766,7 +786,7 @@ export class JournalsService {
             if (!journalPayloadFromJournalTitles.length) {
                 return { message: "Periodical Does Not Exist in Titles Table" }
             }
-            console.log("journalPayloadFromJournalTitles: ", journalPayloadFromJournalTitles[0])
+            // console.log("journalPayloadFromJournalTitles: ", journalPayloadFromJournalTitles[0])
 
             const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query(
                 `UPDATE journal_copy SET is_available=false WHERE journal_copy_id=$1 AND barcode=$2 AND is_available=true`,
@@ -778,6 +798,8 @@ export class JournalsService {
                     error: HttpStatus.INTERNAL_SERVER_ERROR
                 }
             }
+            console.log("updatedJournalCopiesPayload: ", updatedJournalCopiesPayload)
+
             if (!updatedJournalCopiesPayload[0]) {
                 return {
                     message: "Something Went Wrong",
@@ -786,6 +808,8 @@ export class JournalsService {
             }
             const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid
             const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_id
+
+            console.log(journalTitleUUID, journalCopyUUID)
 
 
             const updatedJournalTitlesPayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
@@ -1414,6 +1438,21 @@ export class JournalsService {
         }
     }
 
+    async getCopyInformation(journal_copy_id: string) {
+        if (!journal_copy_id) {
+            return { message: "Enter journal_copy_id" }
+        }
+        const copy = await this.journalsCopyRepository.query(
+            `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=true AND is_archived=false`,
+            [journal_copy_id]
+        )
+        if (!copy.length) {
+            return { message: "No Copy Found" }
+        } else {
+            return copy[0]
+        }
+    }
+
     async getAllCopies({
         page = 1,
         limit = 10,
@@ -1564,11 +1603,18 @@ export class JournalsService {
 
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
-
             const periodical_copy = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE journal_title_uuid=$1 AND is_archived=false AND is_available=true LIMIT $2 OFFSET $3`,
+                `SELECT jc.*, jt.journal_title_id
+                FROM journal_copy jc
+                JOIN journal_titles jt ON jc.journal_title_uuid = jt.journal_uuid
+                WHERE jc.journal_title_uuid = $1
+                AND jc.is_archived = false
+                AND jc.is_available = true
+                AND jt.is_archived = false
+                AND jt.available_count > 0
+                LIMIT $2 OFFSET $3`,
                 [journal_title_uuid, limit, offset]
-            )
+            );
             if (!periodical_copy.length) {
                 return { message: "Periodical Does Not Exist" }
             }
