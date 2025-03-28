@@ -107,7 +107,7 @@ export class StudentsService {
 
   async findStudentBy(query: UnionStudent) {
     try {
-      console.log({hello: "hello"})
+      console.log({ hello: 'hello' });
       let requiredKey: keyof typeof StudentQueryValidator | undefined =
         undefined;
       let value: string | undefined = undefined;
@@ -146,7 +146,7 @@ export class StudentsService {
       );
       return {
         statusCode: HttpStatus.CREATED,
-        message: "Student created successfully"
+        message: 'Student created successfully',
       };
     } catch (error) {
       console.log(error);
@@ -524,20 +524,22 @@ export class StudentsService {
 
   async studentLogin(studentCredPayload: TStudentCredZodType) {
     try {
-      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] = 
-      await this.studentsRepository.query(
-        `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
-        [studentCredPayload.email_or_student_id, studentCredPayload.password]
-      );
+      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] =
+        await this.studentsRepository.query(
+          `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
+          [studentCredPayload.email_or_student_id, studentCredPayload.password],
+        );
 
-      if(!jwtPayload.length) {
+      if (!jwtPayload.length) {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
       }
 
-      return setTokenFromPayload(jwtPayload[0]);
+      return {
+        token: { accessToken: setTokenFromPayload(jwtPayload[0]) },
+        user: jwtPayload[0],
+      };
     } catch (error) {
       throw error;
     }
   }
-
 }
