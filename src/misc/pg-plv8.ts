@@ -42,15 +42,29 @@ EXECUTE PROCEDURE create_student_id()
 `;
 
 export async function pgPLV8() {
-    try {
-        const createStudentIdPLV8 = await pool.query(createStudentId);
-        const triggerCreateStudentIdPLV8 = await pool.query(triggerCreateStudentId);
-        //This throws an error if executed before
-        const enablePLV8 = await pool.query(createExt);
-        console.log(enablePLV8, createStudentIdPLV8, triggerCreateStudentIdPLV8);
-    } catch (error) {
-        console.log(error.message);
-    } finally {
+  try {
+      const clientEnableExt = await pool.connect();
 
-    }
+      await clientEnableExt.query(createExt)
+      .then(() => console.log("Extension enabled!"))
+      .catch(err => console.error("ERROR", err.message));
+
+      clientEnableExt.on('error', (err) => {
+        console.log(err.message);
+      });
+
+      clientEnableExt.release(true);
+  } catch (error) {
+      console.log("Catch block", error.message);
+  } finally {
+    const clientTriggerAndFunction = await pool.connect();
+    await clientTriggerAndFunction.query(createStudentId);
+    await clientTriggerAndFunction.query(triggerCreateStudentId);
+
+    clientTriggerAndFunction.on('error', (err) => {
+      console.log(err.message);
+    });
+
+    clientTriggerAndFunction.release(true);
+  }
 }
