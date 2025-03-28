@@ -8,6 +8,7 @@ import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create
 
 import type { Request } from 'express';
 import { Subscription } from 'rxjs';
+import { TUpdatePeriodicalDTO, updatePeriodicalSchema } from './zod-validation/update-journacopydto-zod';
 
 @Controller('journals')
 export class JournalsController {
@@ -65,7 +66,7 @@ export class JournalsController {
     }
 
 
-    // DELTE JOURNAL/MAGAZINE
+    // DELETE JPERIODICAL
     @Put('uparchive')
     async archivePeriodical(@Body('journal_uuid') journal_uuid: string) {
         return this.journalsService.archivePeriodical(journal_uuid);
@@ -168,9 +169,24 @@ export class JournalsController {
 
     // ---------- PERIODICALS COPY ---------------
 
-    // FIND JOURNAL/MAGAZINE COPY - working
+    // GET ALL PERIODICAL COPIES
     @Get('get-all-copies')
-    async fetchAllJournalCopyInfo(
+    async getAllCopies(
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+        @Query('search') search?: string,
+    ) {
+        return this.journalsService.getAllCopies({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? undefined,
+        });
+
+    }
+
+    // FIND JOURNAL/MAGAZINE COPY - working
+    @Get('find-all-copies')
+    async findAllJournalCopyInfo(
         @Query('_journal_title') journal_title?: string,
         @Query('_editor_name') editor_name?: string,
         @Query('_issn') issn?: string,
@@ -181,7 +197,7 @@ export class JournalsController {
         @Query('_limit') limit?: string,
         @Query('_search') search?: string
     ) {
-        return this.journalsService.getJournalCopies({
+        return this.journalsService.findAllJournalCopyInfo({
             journal_title: journal_title ?? '',
             editor_name: editor_name ?? '',
             issn: issn ?? '',
@@ -194,12 +210,62 @@ export class JournalsController {
         });
     }
 
+    // FIND JOURNAL FROM COPY BY JOURNAL TITLE UUID
+    @Get('get-periodical-copies')
+    async fetchSingleJournalCopyInfo(
+        @Query('_journal_title_uuid') journal_title_uuid?: string,
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getSingleJournalCopyInfo({
+            journal_title_uuid: journal_title_uuid ?? '',
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        });
+    }
+
+    // EDIT COPIES 
+    @Patch('update-periodical-copies')
+    @UsePipes(new bodyValidationPipe(updatePeriodicalSchema))
+    async editPeriodicalCopies(@Body() updatePeriodicalPayload: TUpdatePeriodicalDTO) {
+        try {
+            const result = await this.journalsService.updatePeriodicalCopy(updatePeriodicalPayload)
+            return result
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            throw error;
+        }
+    }
+
+
+    // ARCHIVE PERIODICAL COPY
+    @Put('archive-periodical-copy')
+    async archivePeriodicalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
+        return this.journalsService.archivePeriodicalCopy(journal_copy_uuid);
+    }
+
+    // RESTORE PERIODICAL COPY
+    @Put('restore-periodical-copy')
+    async restoreJournalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
+        return this.journalsService.restorePeriodicalCopy(journal_copy_uuid);
+    }
+
+
+    // BULK DELETE
+
+
+
+
+
+
 
 
 
     // ------------------- PERIODICAL LOGS ---------------------
-
-
 
     // get journal by journal_title_id
     @Get('get-journals-by-journalid')
@@ -241,48 +307,46 @@ export class JournalsController {
 
 
 
-    @Get('get_available_by_issn')
-    async getAvailableJournalByIssn(
-        @Query('_issn') issn: string,
-    ) {
-        return this.journalsService.getAvailableJournalByIssn(issn);
-    }
+    // @Get('get_available_by_issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
+    // async getAvailableJournalByIssn(
+    //     @Query('_issn') issn: string,
+    // ) {
+    //     return this.journalsService.getAvailableJournalByIssn(issn);
+    // }
 
 
 
-    @Get('get_unavailable_by_issn')
-    async getUnavailableJournalByIssn(
-        @Query('_issn') issn: string,
-    ) {
-        return this.journalsService.getUnavailableJournalByIssn(issn);
-    }
+    // @Get('get_unavailable_by_issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
+    // async getUnavailableJournalByIssn(
+    //     @Query('_issn') issn: string,
+    // ) {
+    //     return this.journalsService.getUnavailableJournalByIssn(issn);
+    // }
 
 
 
-    @Get('issn')
-    async searchJournalIssn(@Query('_issn') issn: string) {
-        try {
-            const result = await this.journalsService.searchJournalIssn(issn);
-            return result[0];
-        } catch (error) {
-            throw new HttpException(error.message, HttpStatus.NOT_FOUND);
-        }
-    }
+    // @Get('issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
+    // async searchJournalIssn(@Query('_issn') issn: string) {
+    //     try {
+    //         const result = await this.journalsService.searchJournalIssn(issn);
+    //         return result[0];
+    //     } catch (error) {
+    //         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    //     }
+    // }
 
-
-
-    @Get('all_archived')
-    async getAllArchivedJournals(
-        @Query('_page') page: string,
-        @Query('_limit') limit: string,
-        @Query('_search') search: string,
-    ) {
-        return this.journalsService.getArchivedJournals({
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 10,
-            search: search ?? undefined,
-        });
-    }
+    // @Get('all_archived') -- WORKING IN GET FUNCTION FOR TITLES TABLE
+    // async getAllArchivedJournals(
+    //     @Query('_page') page: string,
+    //     @Query('_limit') limit: string,
+    //     @Query('_search') search: string,
+    // ) {
+    //     return this.journalsService.getArchivedJournals({
+    //         page: page ? parseInt(page, 10) : 1,
+    //         limit: limit ? parseInt(limit, 10) : 10,
+    //         search: search ?? undefined,
+    //     });
+    // }
 
     @Get('get_all_logs')
     async getJournalLogDetails(
@@ -310,16 +374,10 @@ export class JournalsController {
     }
 
 
-    @Get('get-periodical-copies')
-    async fetchSingleJournalCopyInfo(@Query('_journal_title_uuid') journal_title_uuid: string) {
-        return this.journalsService.getSingleJournalCopyInfo(journal_title_uuid);
-    }
 
 
-    @Put('archive-journal-copy')
-    async archiveJournalCopy(@Body('journal_uuid') journal_uuid: string) {
-        return this.journalsService.archiveJournalCopy(journal_uuid);
-    }
+
+
 
     @Get('get-archived-journal-copy')
     async getArchivedJournalsCopy(
@@ -332,10 +390,7 @@ export class JournalsController {
         });
     }
 
-    @Put('restore-journal-copy')
-    async restoreJournalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
-        return this.journalsService.restoreJournalCopy(journal_copy_uuid);
-    }
+
 
 
     @Patch('update_journal_copy')

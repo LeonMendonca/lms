@@ -16,6 +16,7 @@ import { Request } from 'express';
 import { title } from 'process';
 import { Console } from 'console';
 import { json } from 'stream/consumers';
+import { TUpdatePeriodicalDTO } from './zod-validation/update-journacopydto-zod';
 
 @Injectable()
 export class JournalsService {
@@ -1229,6 +1230,32 @@ export class JournalsService {
         }
     }
 
+
+    async updatePeriodicalCopy(updatePeriodicalPayload: TUpdatePeriodicalDTO) {
+        try {
+            let queryData = updateQueryHelper<TUpdatePeriodicalDTO>(updatePeriodicalPayload, [])
+
+            const periodical = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_archived=false AND is_available=true`,
+                [updatePeriodicalPayload.journal_copy_id]
+            )
+            console.log(periodical)
+            if (periodical.length === 0) {
+                return { message: "Periodical Not Found" }
+            }
+            const result = await this.journalsCopyRepository.query(
+                `UPDATE journal_copy SET ${queryData.queryCol} WHERE journal_copy_id=$${queryData.values.length + 1}  AND is_archived=false AND is_available=true`,
+                [...queryData.values, updatePeriodicalPayload.journal_copy_id]
+            )
+            return {
+                result: result,
+                message: "Periodical Updated Successfully!"
+            }
+        } catch (error) {
+            throw error;
+        }
+    }
+
     // working
     async getArchivedJournals(
         { page, limit, search }: { page: number; limit: number; search: string } = {
@@ -1387,8 +1414,45 @@ export class JournalsService {
         }
     }
 
+    async getAllCopies({
+        page = 1,
+        limit = 10,
+        search = ''
+    }: {
+        page?: number,
+        limit?: number,
+        search?: string,
+    }) {
+        try {
+            const offset = (page - 1) * limit;
+            const searchQuery = search ? `${search}%` : '%';
+
+            const journals = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE is_archived=false AND is_available=true`
+            )
+            const total = await this.journalsTitleRepository.query(
+                `SELECT COUNT(*) AS count FROM journal_copy WHERE is_archived=false AND is_available=true`
+            )
+            return {
+                data: journals,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
+        } catch (error) {
+            console.log(error);
+            throw new HttpException(
+                'Error fetching Journals',
+                HttpStatus.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
     // working
-    async getJournalCopies({
+    async findAllJournalCopyInfo({
         journal_title = '',
         editor_name = '',
         issn = '',
@@ -1482,13 +1546,47 @@ export class JournalsService {
     }
 
     // working
-    async getSingleJournalCopyInfo(journal_title_uuid: string) {
+    async getSingleJournalCopyInfo({
+        journal_title_uuid = '',
+        page = 1,
+        limit = 10,
+        search = '',
+    }: {
+        journal_title_uuid?: string,
+        page?: number;
+        limit?: number;
+        search?: string;
+    }) {
         try {
-            const copy = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE journal_title_uuid=$1`,
+            if (!journal_title_uuid) {
+                return { message: "Enter journal_title_uuid" }
+            }
+
+            const offset = (page - 1) * limit;
+            const searchQuery = search ? `${search}%` : '%';
+
+            const periodical_copy = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE journal_title_uuid=$1 AND is_archived=false AND is_available=true LIMIT $2 OFFSET $3`,
+                [journal_title_uuid, limit, offset]
+            )
+            if (!periodical_copy.length) {
+                return { message: "Periodical Does Not Exist" }
+            }
+
+            const total = await this.journalsCopyRepository.query(
+                `SELECT COUNT(*) AS count FROM journal_copy WHERE is_archived=false AND is_available=true AND journal_title_uuid = $1`,
                 [journal_title_uuid]
             )
-            return copy
+
+            return {
+                data: periodical_copy,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
         } catch (error) {
             throw new HttpException('Error fetching copy', HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -1529,7 +1627,7 @@ export class JournalsService {
 
 
     // working
-    async archiveJournalCopy(journal_copy_uuid: string) {
+    async archivePeriodicalCopy(journal_copy_uuid: string) {
         try {
             // Archive the book copy and get the bookTitleUUID
             const archiveResult = await this.journalsCopyRepository.query(
@@ -1538,7 +1636,7 @@ export class JournalsService {
             );
 
             if (archiveResult.length === 0) {
-                throw new Error('Journal copy not found or already archived');
+                throw new Error('Periodical copy not found or already archived');
             }
 
             const journalTitleUUID = archiveResult[0][0].journal_title_uuid;
@@ -1551,9 +1649,9 @@ export class JournalsService {
                 [journalTitleUUID],
             );
 
-            return { success: true, message: 'Journal copy archived successfully' };
+            return { success: true, message: 'Periodical copy archived successfully' };
         } catch (error) {
-            throw new Error('Failed to archive journal copy');
+            throw new Error('Failed to archive Periodical copy');
         }
     }
 
@@ -1596,7 +1694,7 @@ export class JournalsService {
     }
 
     // working
-    async restoreJournalCopy(journal_copy_uuid: string) {
+    async restorePeriodicalCopy(journal_copy_uuid: string) {
         try {
             const journal = await this.journalsCopyRepository.query(
                 `SELECT * FROM journal_copy WHERE journal_copy_uuid = $1 AND is_archived = true`,
