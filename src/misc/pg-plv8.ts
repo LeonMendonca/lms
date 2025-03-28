@@ -34,6 +34,44 @@ CREATE OR REPLACE FUNCTION create_student_id()
 $$ LANGUAGE plv8;
 `;
 
+const updateStudentId = `
+CREATE OR REPLACE FUNCTION update_student_id() 
+  RETURNS TRIGGER AS $$
+
+  const instituteName = OLD.institute_name;
+  const departmentName = NEW.department;
+
+  const instituteCount = plv8.execute('SELECT COUNT(student_id) FROM students_table WHERE institute_name = $1', [instituteName])[0].count;
+  const instituteCountAsNum = Number(instituteCount) + 1;
+ 
+  const deptCount = plv8.execute(
+    'SELECT COUNT(student_id) FROM students_table WHERE department = $1 AND institute_name = $2',
+    [departmentName, instituteName]
+  )[0].count;
+  const deptCountAsNum = Number(deptCount) + 1;
+  
+
+  const instituteCountPadstart = String(instituteCountAsNum).padStart(3, '0');
+  const deptCountPadstart = String(deptCountAsNum).padStart(3, '0');
+
+  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+  const deptNameAbbr = departmentName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+
+  const studentId = instituteNameAbbr+instituteCountPadstart+'/'+deptNameAbbr+deptCountPadstart;
+
+  plv8.execute('UPDATE students_table SET student_id = $1 WHERE student_uuid = $2', [studentId, OLD.student_uuid]);
+
+$$ LANGUAGE plv8;
+`
+
+const triggerUpdateStudentId = `
+CREATE OR REPLACE TRIGGER trigger_stup
+AFTER UPDATE OF department ON students_table
+FOR EACH ROW
+WHEN (OLD.department IS DISTINCT FROM NEW.department)
+EXECUTE PROCEDURE update_student_id()
+`
+
 const triggerCreateStudentId = `
 CREATE OR REPLACE TRIGGER trigger_stu
 AFTER INSERT ON students_table
@@ -59,7 +97,9 @@ export async function pgPLV8() {
   } finally {
     const clientTriggerAndFunction = await pool.connect();
     await clientTriggerAndFunction.query(createStudentId);
+    await clientTriggerAndFunction.query(updateStudentId);
     await clientTriggerAndFunction.query(triggerCreateStudentId);
+    await clientTriggerAndFunction.query(triggerUpdateStudentId);
 
     clientTriggerAndFunction.on('error', (err) => {
       console.log(err.message);

@@ -13,6 +13,8 @@ import {
   Delete,
   UseFilters,
   Res,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -36,19 +38,24 @@ import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
 import { TVisit_log } from './zod-validation/visitlog';
 import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
+import { StudentAuthGuard } from './student.guard';
+import { Request } from "express";
 
 @Controller('student')
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 
   @Get('all')
+  @UseGuards(StudentAuthGuard)
   async getAllStudents(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
     @Query('_search') search: string,
     @Query('_department') department: string,
     @Query('_year') year: string,
+    @Req() request: Request
   ) {
+    console.log(request['user'])
     return await this.studentsService.findAllStudents({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,

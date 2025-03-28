@@ -1,8 +1,11 @@
 import { sign, verify } from 'jsonwebtoken';
 import { Secret } from 'jsonwebtoken';
 import { TStudents } from 'src/students/students.entity';
+import { config } from "dotenv";
 
-const secret = "LOL" as Secret;
+config({ path: '.env' })
+
+const secret = process.env.SECRET ?? "secret9090" as Secret;
 
 export function setTokenFromPayload(payload: Pick<TStudents, 'email' | 'student_id'>) {
     return sign(payload, secret);

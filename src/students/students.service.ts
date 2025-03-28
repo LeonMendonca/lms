@@ -165,10 +165,7 @@ export class StudentsService {
 
   async editStudent(studentUUID: string, editStudentPayload: TEditStudentDTO) {
     try {
-      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, [
-        'confirm_password',
-        'current_password',
-      ]);
+      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, []);
       const result = await this.studentsRepository.query(
         `
         UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentUUID}' AND is_archived = false
