@@ -13,7 +13,27 @@ let studentCreateObject = createObjectOmitProperties(new Students(), [
 ]);
 
 export const createStudentSchema = z.object({
+  [studentCreateObject.studentName]: z.string(),
+
+  [studentCreateObject.department]: z.string({
+    message: 'Department is required',
+  }),
+
+  [studentCreateObject.rollNo]: z.number(),
+  
   [studentCreateObject.email]: z.string().email(),
+
+  [studentCreateObject.phoneNo]: z.string(),
+  
+  [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
+
+  [studentCreateObject.instituteName]: z.string(),
+
+  [studentCreateObject.instituteUUID]: z.string().uuid(),
+
+  [studentCreateObject.yearOfAdmission]: z.coerce
+    .number()
+    .optional(),
 
   [studentCreateObject.password]: z.string().optional(),
 
@@ -27,7 +47,6 @@ export const createStudentSchema = z.object({
       message: 'Invalid date format',
     }),
 
-  [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
 
   [studentCreateObject.address]: z
     .string()
@@ -35,34 +54,6 @@ export const createStudentSchema = z.object({
     .max(200, 'Address must be less than 200 characters')
     .optional(),
 
-  [studentCreateObject.rollNo]: z.number().refine(
-    (r_num) => {
-      return r_num > 0 && r_num <= 10000;
-    },
-    {
-      message: 'Not a valid RollNo',
-    },
-  ),
-
-  [studentCreateObject.studentName]: z
-    .string()
-    .min(1, 'Full name is required')
-    .max(100, 'Full name must be less than 100 characters'),
-
-  [studentCreateObject.yearOfAdmission]: z.coerce
-    .number()
-    .min(1999)
-    .max(new Date().getFullYear())
-    .optional(),
-
-  [studentCreateObject.phoneNo]: z.string(),
-  [studentCreateObject.department]: z.string({
-    message: 'Department requires it or electrical',
-  }),
-
-  [studentCreateObject.instituteName]: z.string().min(2),
-
-  [studentCreateObject.instituteUUID]: z.string().uuid().optional(),
   [studentCreateObject.imageField]: z.string().optional(),
 });
 
