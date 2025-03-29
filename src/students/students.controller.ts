@@ -12,11 +12,16 @@ import {
   Put,
   Delete,
   UseFilters,
+  Res,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
+const jwt = require('jsonwebtoken');
+
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
 import { studentQuerySchema } from './zod-validation/studentquery-zod';
-import type { UnionUser } from './students.query-validator';
+import type { UnionStudent } from './students.query-validator';
 import { StudentQueryValidator } from './students.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import {
@@ -31,46 +36,56 @@ import {
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
+import { TVisit_log } from './zod-validation/visitlog';
+import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
+import { StudentAuthGuard } from './student.guard';
+import { Request } from "express";
+import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 
 @Controller('student')
 export class StudentsController {
   constructor(private studentsService: StudentsService) { }
+
   @Get('all')
+  @UseGuards(StudentAuthGuard)
   async getAllStudents(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
     @Query('_search') search: string,
+    @Query('_department') department: string,
+    @Query('_year') year: string,
+    @Req() request: Request
   ) {
-    try {
-      return await this.studentsService.findAllStudents({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-        search: search ?? undefined,
-      }); 
-    } catch (error) { 
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-    
+    console.log(request['user'])
+    return await this.studentsService.findAllStudents({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+      search: search ?? undefined,
+      department: department ?? undefined,
+      year: year ?? undefined,
+    });
   }
 
   @Get('detail')
   @UsePipes(new QueryValidationPipe(studentQuerySchema, StudentQueryValidator))
-  async getStudentDetail(@Query() query: UnionUser) {
+  async getStudentDetail(@Query() query: UnionStudent) {
     try {
       const result = await this.studentsService.findStudentBy(query);
       if (result) {
         return result;
       } else {
         throw new HttpException('No user found', HttpStatus.NOT_FOUND);
-      } 
+      }
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
       }
     }
-    
   }
 
   @Get('departments')
@@ -81,15 +96,17 @@ export class StudentsController {
         return result;
       } else {
         throw new HttpException('No department found', HttpStatus.NOT_FOUND);
-      } 
+      }
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
       }
     }
-    
   }
 
   //@Get('search')
@@ -108,39 +125,49 @@ export class StudentsController {
     try {
       return await this.studentsService.createStudent(studentPayload);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }
     }
   }
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<TCreateStudentDTO[]>(
+    new bulkBodyValidationPipe<{
+      validated_array: TCreateStudentDTO[],
+      invalid_data_count: number
+    }>(
       'student/student-zod-body-worker',
     ),
   )
-  async bulkCreateStudent(@Body() arrStudentPayload: TCreateStudentDTO[]) {
+  async bulkCreateStudent(@Body() studentZodValidatedObject: {
+    validated_array: TCreateStudentDTO[];
+    invalid_data_count: number;
+  }) {
     try {
-      return this.studentsService.bulkCreate(arrStudentPayload);
+      console.log('CONTROLLER Moving to service');
+      return await this.studentsService.bulkCreate(studentZodValidatedObject);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }
     }
   }
 
-  @Put('edit/:student_uuid')
+  @Put('edit')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
-    @Param(
-      'student_uuid',
-      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-    )
+    @Query('_student_id')
     studentId: string,
     @Body() studentPayload: TEditStudentDTO,
   ) {
@@ -155,26 +182,32 @@ export class StudentsController {
           message: `User id ${studentId} updated successfully!`,
         };
       } else {
-        throw new HttpException(`User with id ${studentId} not found`, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          `User with id ${studentId} not found`,
+          HttpStatus.NOT_FOUND,
+        );
       }
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }
     }
   }
 
-  @Delete('delete/:student_uuid')
+  @Delete('delete')
   async deleteStudent(
-    @Param('student_uuid', new ParseUUIDPipe()) studentId: string,
+    @Query('_student_id') studentId: string,
   ) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
       if (!result[1]) {
         throw new HttpException(
-          `User with id ${studentId} not found`,
+          `User with id ${studentId} not found or archived`,
           HttpStatus.NOT_FOUND,
         );
       }
@@ -183,38 +216,42 @@ export class StudentsController {
         message: `User id ${studentId} deleted successfully!`,
       };
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }
     }
   }
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<TstudentUUIDZod[]>(
+    new bulkBodyValidationPipe<{
+      validated_array: TstudentUUIDZod[];
+      invalid_data_count: number;
+    }>(
       'student/student-zod-uuid-worker',
     ),
   )
-  async bulkDeleteStudent(@Body() arrStudentUUIDPayload: TstudentUUIDZod[]) {
+  async bulkDeleteStudent(@Body() studentZodValidatedUUIDObject: {
+    validated_array: TstudentUUIDZod[];
+    invalid_data_count: number;
+  }) {
     try {
-      const result = await this.studentsService.bulkDelete(arrStudentUUIDPayload);
+      const result = await this.studentsService.bulkDelete(studentZodValidatedUUIDObject);
       return result;
-      //if(!result) {
-      //  return {
-      //    statusCode: 200,
-      //    message: "All Student uuids archived"
-      //  }
-      //}
-      ////console.log("array", result)
-      //throw new HttpException(result, HttpStatus.MULTI_STATUS);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }   
     }
   }
 
@@ -237,20 +274,29 @@ export class StudentsController {
     @Body('student_id') student_id: string,
   ) {
     try {
-      const result = await this.studentsService.updateStudentArchive(student_uuid, student_id);
-      if(!result) {
+      const result = await this.studentsService.updateStudentArchive(
+        student_uuid,
+        student_id,
+      );
+      if (!result) {
         throw new HttpException(
           'Student not found or already archived',
           HttpStatus.NOT_FOUND,
         );
       }
-      return { statusCode: HttpStatus.OK, message: 'Student archived successfully' };
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Student archived successfully',
+      };
     } catch (error) {
-     if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      }; 
+      }
     }
   }
 
@@ -259,20 +305,27 @@ export class StudentsController {
     @Body('student_uuid') student_uuid: string,
     @Body('student_id') student_id: string,
   ) {
-    const result = await this.studentsService.restoreStudentArchive(student_uuid, student_id);
-      if(!result) {
-        throw new HttpException(
-          'Student not found or already restored',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      return { statusCode: HttpStatus.OK, message: 'Student restored successfully' };
-    } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-      } else {
-        throw error;
-      };
+    const result = await this.studentsService.restoreStudentArchive(
+      student_uuid,
+      student_id,
+    );
+    if (!result) {
+      throw new HttpException(
+        'Student not found or already restored',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Student restored successfully',
+    };
+  }
+  catch(error) {
+    if (!(error instanceof HttpException)) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } else {
+      throw error;
+    }
   }
 
   @Get('export')
@@ -280,11 +333,125 @@ export class StudentsController {
     try {
       return await this.studentsService.exportAllStudents();
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       } else {
         throw error;
-      };
+      }
+    }
+  }
+
+  //Visitlog
+
+  @Get('alllog')
+  async getAllLog(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    try {
+      return await this.studentsService.getVisitAllLog({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      //nsole.log(error);
+    }
+  }
+  //   @Get('visitlog_by_id')
+  // async getVisitlog(
+  //     @Query('_student_id') student_ID: string,
+  //     @Query('_page') page: string,
+  //     @Query('_limit') limit: string,
+  // ) {
+  //   try {
+  //     console.log(student_ID)
+  //     return await this.studentsService.getVisitLogByStudentUUID(student_ID,page,limit);
+  //   } catch (error) {
+  //     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  //   }
+  // }
+
+  @Get('visitlog_by_id')
+  async getVisitlog(
+    @Query('_student_id') student_id: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+
+      return await this.studentsService.getVisitLogByStudentUUID({
+        student_id,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // @Post("vistlog_entry")
+  //   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
+  //     try {
+  //       return await this.studentsService.visitlogentry(createvisitpayload);
+  //     } catch (error) {
+  //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  //     }
+  //   }
+
+  //   @Post("vistlog_exit")
+  //   async createVisitExit(@Body() createvlogpayload:TVisit_log) {
+  //     try {
+  //       return await this.studentsService.visitlogexit(createvlogpayload);
+  //     } catch (error) {
+  //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+  //     }
+  //   }
+  @Post('visitlog')
+  async visitlog(@Body() createvlogpayload: TVisit_log) {
+    try {
+      if (createvlogpayload.action === 'entry') {
+        return await this.studentsService.visitlogentry(createvlogpayload);
+      } else if (createvlogpayload.action === 'exit') {
+        return await this.studentsService.visitlogexit(createvlogpayload);
+      } else {
+        throw new HttpException(
+          "Invalid action. Use 'entry' or 'exit'.",
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('student-profile')
+  async student_profile(
+    @Query('_student_id') student_id: string
+  ) {
+    try {
+      return await this.studentsService.studentProfile(student_id);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
+      }
+      throw error
+    }
+
+  }
+
+  @Post('login')
+  @UsePipes(new bodyValidationPipe(studentCredZodSchema))
+  async studentLogin(@Body() studentCredPayload: TStudentCredZodType) {
+    try {
+      return await this.studentsService.studentLogin(studentCredPayload);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
     }
   }
 }

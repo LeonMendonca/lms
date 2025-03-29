@@ -1,8 +1,9 @@
 import { cpus } from "os";
 
-const noOfCores = cpus().length / 2;
+const noOfCores = 1; //Avoid manual assignment of values more than 1!
 
 export function Chunkify(arr: any[]) {
+    console.log("Batch size", noOfCores);
     let arrlength = arr.length;
     let batchPerCore = arrlength / noOfCores;
     let newArr: any[][] = [];
