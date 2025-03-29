@@ -164,13 +164,10 @@ export class StudentsController {
     }
   }
 
-  @Put('edit/:student_uuid')
+  @Put('edit')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
-    @Param(
-      'student_uuid',
-      new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE }),
-    )
+    @Query('_student_id')
     studentId: string,
     @Body() studentPayload: TEditStudentDTO,
   ) {
@@ -202,15 +199,15 @@ export class StudentsController {
     }
   }
 
-  @Delete('delete/:student_uuid')
+  @Delete('delete')
   async deleteStudent(
-    @Param('student_uuid', new ParseUUIDPipe()) studentId: string,
+    @Query('_student_id') studentId: string,
   ) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
       if (!result[1]) {
         throw new HttpException(
-          `User with id ${studentId} not found`,
+          `User with id ${studentId} not found or archived`,
           HttpStatus.NOT_FOUND,
         );
       }

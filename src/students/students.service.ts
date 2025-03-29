@@ -180,12 +180,12 @@ export class StudentsService {
 
   }
 
-  async editStudent(studentUUID: string, editStudentPayload: TEditStudentDTO) {
+  async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
       let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, []);
       const result = await this.studentsRepository.query(
         `
-        UPDATE students_table SET ${queryData.queryCol} WHERE student_uuid = '${studentUUID}' AND is_archived = false
+        UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false
       `,
         queryData.values,
       );
@@ -199,7 +199,7 @@ export class StudentsService {
   async deleteStudent(studentId: string) {
     try {
       const result = await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = true WHERE student_uuid = '${studentId}' AND is_archived = false`,
+        `UPDATE students_table SET is_archived = TRUE WHERE student_id = '${studentId}' AND is_archived = false`,
       );
       //Asserted a type as UPDATE returns it
       return result as [[], number];

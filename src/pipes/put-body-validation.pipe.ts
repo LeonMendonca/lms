@@ -20,7 +20,7 @@ export class putBodyValidationPipe implements PipeTransform {
           throw new Error('No body provided or Invalid body');
         }
         return parsedObject;
-      } else if (metadata.type === 'param') {
+      } else if (metadata.type === 'query') {
         return value;
       } else {
         throw new Error('Body & Param required');
