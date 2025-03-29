@@ -27,7 +27,6 @@ export class JournalsController {
         @Query('_limit') limit: string,
         @Query('_search') search: string,
     ) {
-        console.log(page, limit, search);
         return this.journalsService.getJournals({
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 10,

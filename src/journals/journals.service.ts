@@ -50,7 +50,6 @@ export class JournalsService {
         },
     ) {
         try {
-            console.log(page, limit, search);
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
@@ -70,7 +69,6 @@ export class JournalsService {
                 },
             };
         } catch (error) {
-            console.log(error);
             throw new HttpException(
                 'Error fetching Journals',
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -227,7 +225,7 @@ export class JournalsService {
             return journal;
         } catch (error) {
             throw new HttpException(
-                'Error fetching Journals',
+                'Error fetching Periodicals',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }
@@ -625,6 +623,9 @@ export class JournalsService {
                     throw new HttpException("Failed to update Journal Copy availability", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
+                const journalTitleUUID = oldTitle[0].journal_uuid;
+                const journalCopyUUID = journalData[0].journal_copy_uuid;
+
                 // 7. Insert Log Entry
                 await transactionalEntityManager.query(
                     `INSERT INTO journal_logs 
@@ -641,8 +642,8 @@ export class JournalsService {
                         journalData[0].issn,
                         request.ip,
                         studentExists[0].student_uuid,
-                        newTitle[0].journal_uuid,
-                        newCopyData[0].journal_copy_uuid
+                        journalTitleUUID,
+                        journalCopyUUID
                     ]
                 );
 
@@ -684,30 +685,16 @@ export class JournalsService {
 
                 console.log("STUDENT : ", studentExists[0]);
 
-                // 2. Check if Journal Copy Exists and is Available
-                // const journalData = await transactionalEntityManager.query(
-                //     `SELECT * FROM journal_copy WHERE barcode = $1 AND is_available = true AND is_archived = false LIMIT 1`,
-                //     [journalLogPayload.barcode]
-                // );
-
                 const journalData = await transactionalEntityManager.query(
                     `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=true AND is_archived=false LIMIT 1`,
                     [journalLogPayload.journal_copy_id]
                 )
-
                 if (journalData.length === 0) {
                     throw new HttpException('Invalid Barcode or Journal Copy is not available', HttpStatus.BAD_REQUEST);
                 }
-
                 console.log("OLD PERIODICAL COPY DATA : ", journalData[0]);
 
                 const journal_title_uuid = journalData[0].journal_title_uuid
-
-                // 3. Check if Periodical is Available in Titles
-                // const oldTitle = await transactionalEntityManager.query(
-                //     `SELECT * FROM journal_titles WHERE subscription_id = $1 AND is_archived = false`,
-                //     [journalLogPayload.subscription_id]
-                // );
                 const oldTitle = await transactionalEntityManager.query(
                     `SELECT * FROM journal_titles WHERE journal_uuid=$1 AND is_archived=false`,
                     [journal_title_uuid]
@@ -723,11 +710,6 @@ export class JournalsService {
 
                 console.log("OLD PERIODICAL TITLE DATA : ", oldTitle[0]);
 
-                // 4. Decrease Available Count in journal_titles (Only if count > 0)
-                // const newTitle = await transactionalEntityManager.query(
-                //     `UPDATE journal_titles SET available_count = available_count - 1 WHERE subscription_id = $1 AND available_count > 0 RETURNING *`,
-                //     [journalLogPayload.subscription_id]
-                // );
                 const newTitle = await transactionalEntityManager.query(
                     `UPDATE journal_titles SET available_count=available_count-1 WHERE journal_uuid=$1 AND available_count>0 RETURNING *`,
                     [journal_title_uuid]
@@ -739,24 +721,13 @@ export class JournalsService {
 
                 console.log("NEW PERIODICAL TITLE DATA : ", newTitle[0]);
 
-                // 5. Update Journal Copy Availability (Only if available_count > 0)
-                // const newCopyData = await transactionalEntityManager.query(
-                //     `UPDATE journal_copy 
-                //  SET is_available = CASE WHEN (SELECT available_count FROM journal_titles WHERE subscription_id = $1) > 0 THEN FALSE ELSE TRUE END 
-                //  WHERE journal_copy_id = $2 AND barcode = $3 RETURNING *`,
-                //     [journalLogPayload.subscription_id, journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-                // );
                 console.log(journal_title_uuid, journalData[0].journal_copy_id)
-                // const newCopyData = await transactionalEntityManager.query(
-                //     `UPDATE journal_copy SET is_available = CASE WHEN (SELECT available_count FROM journal_titles WHERE journal_uuid = $1) > 0 THEN FALSE ELSE TRUE END  WHERE journal_copy_id=$2 AND is_archived=false RETURNING *`,
-                //     [journal_title_uuid, journalData[0].journal_copy_id]
-                // )
                 const newCopyData = await transactionalEntityManager.query(
                     `UPDATE journal_copy
                     SET is_available = CASE
                     WHEN (SELECT COALESCE(available_count, 0) FROM journal_titles WHERE journal_uuid = $1) > 0
-                    THEN TRUE
-                    ELSE FALSE
+                    THEN false
+                    ELSE true
                     END
                     WHERE journal_copy_id = $2
                     AND is_archived = false
@@ -776,7 +747,7 @@ export class JournalsService {
                 const oldJournalTitleData = oldTitle[0];
                 const newJournalTitleData = newTitle[0];
 
-                const journalTitleUUID = newTitle[0].journal_uuid;
+                const journalTitleUUID = oldTitle[0].journal_uuid;
                 const journalCopyUUID = oldJournalCopy.journal_copy_uuid;
                 console.log(oldJournalCopy.journal_copy_uuid, journalTitleUUID)
 
@@ -792,7 +763,7 @@ export class JournalsService {
                         JSON.stringify(oldJournalTitleData),
                         JSON.stringify(newJournalTitleData),
                         status,
-                        'Book has been borrowed',
+                        'Periodical has been borrowed',
                         journalData[0].issn,
                         request.ip,
                         studentExists[0].student_uuid,
@@ -1055,7 +1026,7 @@ export class JournalsService {
             );
             if (journal.length === 0) {
                 throw new HttpException(
-                    'Journal not found or already archived',
+                    'Periodical not found or already archived',
                     HttpStatus.NOT_FOUND,
                 );
             }
@@ -1068,7 +1039,7 @@ export class JournalsService {
                 `UPDATE journal_copy SET is_archived = true WHERE journal_title_uuid = $1`,
                 [journal_uuid],
             );
-            return { message: 'Journal archived successfully' };
+            return { message: 'Periodical archived successfully' };
         } catch (error) {
             throw new HttpException(
                 'Error archiving journal',
@@ -1340,7 +1311,7 @@ export class JournalsService {
 
             if (journal.length === 0) {
                 throw new HttpException(
-                    'Journal not found or already active',
+                    'Periodical not found or already active',
                     HttpStatus.NOT_FOUND,
                 );
             }
@@ -1350,7 +1321,7 @@ export class JournalsService {
                 [journal_uuid],
             );
 
-            return { message: 'Journal restored successfully' };
+            return { message: 'Periodical restored successfully' };
         } catch (error) {
             throw new HttpException(
                 'Error restoring journal',
