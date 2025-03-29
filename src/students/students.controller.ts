@@ -164,10 +164,10 @@ export class StudentsController {
     }
   }
 
-  @Put('edit')
+  @Put('edit/:_student_id')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
-    @Query('_student_id')
+    @Param('_student_id')
     studentId: string,
     @Body() studentPayload: TEditStudentDTO,
   ) {
@@ -199,9 +199,9 @@ export class StudentsController {
     }
   }
 
-  @Delete('delete')
+  @Delete('delete/:_student_id')
   async deleteStudent(
-    @Query('_student_id') studentId: string,
+    @Param('_student_id') studentId: string,
   ) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
