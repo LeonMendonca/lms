@@ -76,14 +76,29 @@ export class JournalsService {
         }
     }
 
-    async getPeriodicalLogs() {
+    async getPeriodicalLogs({ page, limit, search }: { page: number; limit: number; search: string } = {
+        page: 1,
+        limit: 10,
+        search: '',
+    },) {
         const result = await this.journalLogRepository.query(
             `SELECT * FROM journal_logs`
+        )
+        const total = await this.journalsTitleRepository.query(
+            `SELECT COUNT(*) AS count FROM journal_logs`
         )
         if (result.length === 0) {
             return { message: "No Logs Exist" }
         } else {
-            return result
+            return {
+                data: result,
+                pagination: {
+                    total: parseInt(total[0].count, 10),
+                    page,
+                    limit,
+                    totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+                },
+            };
         }
     }
 

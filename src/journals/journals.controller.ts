@@ -280,11 +280,18 @@ export class JournalsController {
 
     //  GET ALL LOGS
     @Get('get-periodical-logs')
-    async getPeriodicalLogs() {
-        return this.journalsService.getPeriodicalLogs()
+    async getPeriodicalLogs(
+        @Query('_page') page?: string,
+        @Query('_limit') limit?: string,
+        @Query('_search') search?: string
+    ) {
+        return this.journalsService.getPeriodicalLogs({
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 10,
+            search: search ?? '',
+        })
     }
 
-    // get journal by journal_title_id, journal_copy_uuid, journal_log_uuid, action, description, issn, ip_address, borrower_uuid
     // SEARCH PERIODICAL LOGS FROM PERIODICAL COLUMNS 
     // Note : Not implemented in frontend
     @Get('search-periodical-logs')
