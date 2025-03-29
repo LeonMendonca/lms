@@ -109,7 +109,6 @@ export class StudentsService {
 
   async findStudentBy(query: UnionStudent) {
     try {
-      console.log({ hello: "hello" })
       let requiredKey: keyof typeof StudentQueryValidator | undefined =
         undefined;
       let value: string | undefined = undefined;
@@ -148,7 +147,7 @@ export class StudentsService {
       );
       return {
         statusCode: HttpStatus.CREATED,
-        message: "Student created successfully"
+        message: 'Student created successfully',
       };
     } catch (error) {
       console.log(error);
@@ -561,10 +560,12 @@ export class StudentsService {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
       }
 
-      return setTokenFromPayload(jwtPayload[0]);
+      return {
+        token: { accessToken: setTokenFromPayload(jwtPayload[0]) },
+        user: jwtPayload[0],
+      };
     } catch (error) {
       throw error;
     }
   }
-
 }
