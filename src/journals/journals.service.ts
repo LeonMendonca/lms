@@ -746,8 +746,21 @@ export class JournalsService {
                 //  WHERE journal_copy_id = $2 AND barcode = $3 RETURNING *`,
                 //     [journalLogPayload.subscription_id, journalLogPayload.journal_copy_id, journalLogPayload.barcode]
                 // );
+                console.log(journal_title_uuid, journalData[0].journal_copy_id)
+                // const newCopyData = await transactionalEntityManager.query(
+                //     `UPDATE journal_copy SET is_available = CASE WHEN (SELECT available_count FROM journal_titles WHERE journal_uuid = $1) > 0 THEN FALSE ELSE TRUE END  WHERE journal_copy_id=$2 AND is_archived=false RETURNING *`,
+                //     [journal_title_uuid, journalData[0].journal_copy_id]
+                // )
                 const newCopyData = await transactionalEntityManager.query(
-                    `UPDATE journal_copy SET is_available = CASE WHEN (SELECT available_count FROM journal_titles WHERE journal_uuid = $1) > 0 THEN FALSE ELSE TRUE END  WHERE journal_copy_id=$2 RETURNING *`,
+                    `UPDATE journal_copy
+                    SET is_available = CASE
+                    WHEN (SELECT COALESCE(available_count, 0) FROM journal_titles WHERE journal_uuid = $1) > 0
+                    THEN TRUE
+                    ELSE FALSE
+                    END
+                    WHERE journal_copy_id = $2
+                    AND is_archived = false
+                    RETURNING *`,
                     [journal_title_uuid, journalData[0].journal_copy_id]
                 )
 
