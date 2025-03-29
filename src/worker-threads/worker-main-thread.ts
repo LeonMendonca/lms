@@ -1,6 +1,13 @@
 import { Worker } from "worker_threads";
 
-export async function CreateWorker<T>(oneDArray: any[], workerScriptName: string): Promise<T[]> {
+export async function CreateWorkerQuery<T>(oneDArray, workerScriptName: string) {
+
+}
+
+export async function CreateWorker<T>
+//Unsure about the type being returned
+(oneDArray: any[], workerScriptName: string): Promise<any> 
+{
   console.log("MAIN Woker thread is called!");
   return new Promise((resolve, reject) => {
     //absolute path to JS file REQUIRED!

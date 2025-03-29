@@ -1,6 +1,6 @@
 import { cpus } from "os";
 
-const noOfCores = 1;
+const noOfCores = 1; //Avoid manual assignment of values more than 1!
 
 export function Chunkify(arr: any[]) {
     console.log("Batch size", noOfCores);

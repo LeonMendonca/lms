@@ -2,6 +2,10 @@ import { parentPort, workerData } from "worker_threads";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
 import { pool } from "../../pg.connect";
 
+export type TUpdateResult = {
+    archived_data: number;
+    failed_archived_data: number;
+}
 
 (async() => {
     let client = await pool.connect();
@@ -11,6 +15,9 @@ import { pool } from "../../pg.connect";
     });
 
     let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
+
+    //Count payload being updated
+    const updatePayloadCount = arrOfUUID.length;
 
     let bulkQuery1 = 'UPDATE students_table SET is_archived = TRUE WHERE student_uuid IN ';
 
@@ -25,15 +32,17 @@ import { pool } from "../../pg.connect";
 
     const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3;
 
-    //console.log("FINAL QUERY", finalQuery)
+    console.log("FINAL QUERY", finalQuery)
     try {
         const result = await client.query(finalQuery);
 
-        if(!result.rows.length) {
-            throw new Error("Failed to archive or already archived");
-        }
+        const updatedDataCount = result.rowCount ?? 0;
+        const nonUpdatedDataCount = updatePayloadCount - updatedDataCount;
 
-        parentPort?.postMessage("Archived Successful") ?? "Parent Port NULL";
+        parentPort?.postMessage({
+            archived_data: updatedDataCount,
+            failed_archived_data: nonUpdatedDataCount,
+        } as TUpdateResult) ?? "Parent Port NULL";
     }
     catch (error) {
         let errorMessage = "Something went wrong while bulk archiving";

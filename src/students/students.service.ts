@@ -19,13 +19,15 @@ import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
 import { TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
+import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
+import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 
 @Injectable()
 export class StudentsService {
   constructor(
     @InjectRepository(Students)
     private studentsRepository: Repository<Students>,
-  ) {}
+  ) { }
 
   async findAllStudents({
     page,
@@ -107,7 +109,7 @@ export class StudentsService {
 
   async findStudentBy(query: UnionStudent) {
     try {
-      console.log({hello: "hello"})
+      console.log({ hello: "hello" })
       let requiredKey: keyof typeof StudentQueryValidator | undefined =
         undefined;
       let value: string | undefined = undefined;
@@ -154,13 +156,28 @@ export class StudentsService {
     }
   }
 
-  async bulkCreate(arrStudentPayload: TCreateStudentDTO[]) {
-    console.log('SERVICE calling main worker thread');
+  async bulkCreate(studentZodValidatedObject: {
+    validated_array: TCreateStudentDTO[];
+    invalid_data_count: number;
+  }) {
+    try {
+      console.log('SERVICE calling main worker thread');
 
-    return await (CreateWorker(
-      arrStudentPayload,
-      'student/student-insert-worker',
-    ) as Promise<TCreateStudentDTO[]>);
+      const { inserted_data, duplicate_data_pl, unique_data, duplicate_date_db }: TInsertResult = await CreateWorker(
+        studentZodValidatedObject.validated_array,
+        'student/student-insert-worker',
+      );
+      return {
+        invalid_data: studentZodValidatedObject.invalid_data_count,
+        inserted_data,
+        duplicate_data_pl,
+        duplicate_date_db,
+        unique_data
+      }
+    } catch (error) {
+      throw error;
+    }
+
   }
 
   async editStudent(studentUUID: string, editStudentPayload: TEditStudentDTO) {
@@ -191,21 +208,34 @@ export class StudentsService {
     }
   }
 
-  async bulkDelete(arrStudentUUIDPayload: TstudentUUIDZod[]) {
+  async bulkDelete(arrStudentUUIDPayload: {
+    validated_array: TstudentUUIDZod[];
+    invalid_data_count: number;
+  }) {
     try {
       const zodValidatedBatchArr: TstudentUUIDZod[][] = Chunkify(
-        arrStudentUUIDPayload,
+        arrStudentUUIDPayload.validated_array,
       );
-      const BatchArr: Promise<TstudentUUIDZod[]>[] = [];
+      const BatchArr: Promise<TUpdateResult>[] = [];
       for (let i = 0; i < zodValidatedBatchArr.length; i++) {
-        let result = CreateWorker<TstudentUUIDZod>(
+        const result = CreateWorker<TstudentUUIDZod>(
           zodValidatedBatchArr[i],
           'student/student-archive-worker',
         );
         BatchArr.push(result);
       }
-      const arrayOfArchived = (await Promise.all(BatchArr)).flat();
-      return arrayOfArchived;
+      const arrOfWorkerRes = await Promise.all(BatchArr);
+      const { archived_data, failed_archived_data } = arrOfWorkerRes.reduce((prevItem, currItem) => {
+        return {
+          archived_data: prevItem.archived_data + currItem.archived_data,
+          failed_archived_data: prevItem.failed_archived_data + currItem.failed_archived_data
+        }
+      });
+      return {
+        invalid_data: arrStudentUUIDPayload.invalid_data_count,
+        archived_data,
+        failed_archived_data
+      };
     } catch (error) {
       throw error;
     }
@@ -521,13 +551,13 @@ export class StudentsService {
 
   async studentLogin(studentCredPayload: TStudentCredZodType) {
     try {
-      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] = 
-      await this.studentsRepository.query(
-        `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
-        [studentCredPayload.email_or_student_id, studentCredPayload.password]
-      );
+      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] =
+        await this.studentsRepository.query(
+          `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
+          [studentCredPayload.email_or_student_id, studentCredPayload.password]
+        );
 
-      if(!jwtPayload.length) {
+      if (!jwtPayload.length) {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
       }
 

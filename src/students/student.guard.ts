@@ -8,7 +8,7 @@ export class StudentAuthGuard implements CanActivate {
 
     private extractTokenFromHeadersOrCookies(request: Request) {
         const reqHeader = request.headers;
-        console.log(reqHeader.authorization);
+        //console.log(reqHeader.authorization);
         if(reqHeader.authorization) {
            const [type, token] = reqHeader.authorization.split(" ");
            return type === 'Bearer' ? token : undefined;
@@ -21,7 +21,7 @@ export class StudentAuthGuard implements CanActivate {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest() as Request;
-        console.log(request);
+        //console.log(request);
         const token = this.extractTokenFromHeadersOrCookies(request)
         if(!token) {
             throw new UnauthorizedException();

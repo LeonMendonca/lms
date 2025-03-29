@@ -1,13 +1,17 @@
 import { TCreateStudentDTO } from "src/students/zod-validation/createstudents-zod";
 import { parentPort, workerData } from "worker_threads";
-import { createStudentId } from "src/students/create-student-id";
 import { pool } from "../../pg.connect";
-import { insertQueryHelper } from "src/misc/custom-query-helper";
-import { QueryResult } from "typeorm";
-import { TStudents } from "src/students/students.entity";
 
 let start = Date.now();
 let uniqueArray: TCreateStudentDTO[] = [];
+
+//Type returned by the worker
+export type TInsertResult ={
+  duplicate_data_pl: number; 
+  duplicate_date_db: number;
+  unique_data: number;
+  inserted_data: number; 
+} 
 
 //Count duplicates in existing array of payload
 let countDuplicatePayload = 0;
@@ -44,10 +48,9 @@ console.log("Unique array done in", Date.now() - start, 'ms');
   bulkQuery2 += ' VALUES '
 
   //Count payload being inserted after filter
-  let countInsertPayload = 0;
+  let countInsertPayload = uniqueArray.length;
 
   for(const stuObj of uniqueArray) {
-    countInsertPayload++;
     bulkQuery3 += '('
     for(key in stuObj) {
       if(typeof stuObj[key] === 'string') {
@@ -67,12 +70,16 @@ console.log("Unique array done in", Date.now() - start, 'ms');
     start = Date.now();
     const result = await client.query(finalQuery);
 
+    const insertedData = result.rowCount ?? 0;
+    const duplicateDataDb = countInsertPayload - insertedData;
+
     parentPort?.postMessage(
       {
-        duplicate_data: countDuplicatePayload, 
-        unique_data: countInsertPayload,
-        inserted_data: result.rowCount ?? 0
-      }
+        duplicate_data_pl: countDuplicatePayload, 
+        duplicate_date_db: duplicateDataDb,
+        inserted_data: insertedData,
+        unique_data: countInsertPayload
+      } as TInsertResult
     ) ?? 'Parent port is null'
     //console.log("Inserted in ", Date.now() - start);
   } catch (error) {

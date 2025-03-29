@@ -43,7 +43,7 @@ import type { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR, TRequestBookZ
 
 @Controller('book_v2')
 export class BooksV2Controller {
-  constructor(private readonly booksService: BooksV2Service) {}
+  constructor(private readonly booksService: BooksV2Service) { }
 
   // Get all books
   @Get('all')
@@ -72,8 +72,8 @@ export class BooksV2Controller {
       book_uuid,
       isbn,
       titlename,
-      page:page ?parseInt(page,10):1,
-      limit:limit ?parseInt(limit,10):10, 
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
     });
   }
 
@@ -138,7 +138,7 @@ export class BooksV2Controller {
         student_id,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
-      }); 
+      });
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -151,9 +151,9 @@ export class BooksV2Controller {
   }
 
   @Get('get_all_available') // working
-  async getAllAvailableBooks( 
+  async getAllAvailableBooks(
     @Query('_page') page: string,
-  @Query('_limit') limit: string) {
+    @Query('_limit') limit: string) {
     return await this.booksService.getAllAvailableBooks(
       {
         page: page ? parseInt(page, 10) : 1,
@@ -167,17 +167,17 @@ export class BooksV2Controller {
     @Query('_isbn') isbn: string,
     @Query('_page') page: string = '1',
     @Query('_limit') limit: string = '10',
-) {
+  ) {
     try {
       return await this.booksService.getavailablebookbyisbn({
         isbn,
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10        
+        limit: limit ? parseInt(limit, 10) : 10
       }
       );
     } catch (error) {
-      if(!(error instanceof HttpException)){
-        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
       throw error
 
@@ -208,10 +208,10 @@ export class BooksV2Controller {
         isbn,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10
-      }  );
+      });
     } catch (error) {
-      if(!(error instanceof HttpException)){
-        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
       throw error
     }
@@ -275,10 +275,20 @@ export class BooksV2Controller {
   //@UsePipes(new bulkBodyValidationPipe())
 
   @Delete('bulk-delete')
-  @UsePipes(new bulkBodyValidationPipe<TbookUUIDZod>('book/book-zod-uuid-worker'))
-  async bulkDelte(@Body() arrBookUUIDPayload: TbookUUIDZod[]) {
+  @UsePipes(
+    new bulkBodyValidationPipe<{
+      validated_array: TbookUUIDZod[];
+      invalid_data_count: number;
+    }>(
+      'book/book-zod-uuid-worker'
+    ),
+  )
+  async bulkDelete(@Body() bookZodValidatedUUIDObject: {
+    validated_array: TbookUUIDZod[];
+    invalid_data_count: number;
+  }) {
     try {
-      return this.booksService.bulkDelete(arrBookUUIDPayload);
+      return this.booksService.bulkDelete(bookZodValidatedUUIDObject);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -287,7 +297,7 @@ export class BooksV2Controller {
         );
       } else {
         throw error;
-      }   
+      }
     }
   }
 
@@ -376,8 +386,8 @@ export class BooksV2Controller {
     try {
       return await this.booksService.archiveBookCopy(book_copy_uuid);
     } catch (error) {
-      if(!(error instanceof HttpException)){
-        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
       throw error
     }
@@ -417,7 +427,7 @@ export class BooksV2Controller {
       isbn,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
-    
+
     });
   }
 
@@ -599,7 +609,7 @@ export class BooksV2Controller {
       return await this.booksService.getFullFeeList({
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10
-      } 
+      }
       );
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -631,15 +641,15 @@ export class BooksV2Controller {
   async generateFeeReport(
     @Query('start') start: Date,
     @Query('end') end: Date,
-     @Query('_page') page: string,
-     @Query('_limit') limit: string,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
   ) {
     try {
       return await this.booksService.generateFeeReport(start,
-         end,
+        end,
         page ? parseInt(page, 10) : 1,
         limit ? parseInt(limit, 10) : 10
-        );
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -654,13 +664,13 @@ export class BooksV2Controller {
   //REQUEST BOOK
 
   @Get('request_booklog')
-  async getRequestBooklog() {}
+  async getRequestBooklog() { }
 
   @Post('request_booklog_issue')
   @UsePipes(new bodyValidationPipe(requestBookZodIssue))
   async createRequestBooklogIssue(@Body() requestBookIssuePayload: TRequestBookZodIssue, @Req() request: Request) {
     try {
-      if(!request.ip) {
+      if (!request.ip) {
         throw new HttpException(
           'Unable to get IP address of the Client',
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -669,7 +679,7 @@ export class BooksV2Controller {
       //Adding IP address, since required for issuing
       return await this.booksService.createRequestBooklogIssue(requestBookIssuePayload, request.ip);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
@@ -683,7 +693,7 @@ export class BooksV2Controller {
     try {
       return await this.booksService.createRequestBooklogIssueAR(requestBookIssueARPayload);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
@@ -703,7 +713,7 @@ export class BooksV2Controller {
       return await this.booksService.createBooklogReissue(requestBookReIssuePayload, request.ip)
 
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
@@ -713,11 +723,11 @@ export class BooksV2Controller {
   //Approve or Reject for ReIssue
   @Put('request_booklog_reissue_ar')
   @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
-  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR   ) {
+  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
     try {
       return await this.booksService.requestBooklogReissuear(requestBookIssueARPayload);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
+      if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
@@ -725,17 +735,17 @@ export class BooksV2Controller {
   }
 
   @Get('student-current-borrows')
-  async studentCurrentBooks(@Query('_student_id') student_id:string){
-try {
+  async studentCurrentBooks(@Query('_student_id') student_id: string) {
+    try {
 
-  return await this.booksService.studentCurrentBooks(student_id);
+      return await this.booksService.studentCurrentBooks(student_id);
 
-} catch (error) {
-  if(!(error instanceof HttpException)) {
-    throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
-  }
-  throw error;
-}
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
   }
 
 

@@ -40,10 +40,11 @@ import { TVisit_log } from './zod-validation/visitlog';
 import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { StudentAuthGuard } from './student.guard';
 import { Request } from "express";
+import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 
 @Controller('student')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(private studentsService: StudentsService) { }
 
   @Get('all')
   @UseGuards(StudentAuthGuard)
@@ -137,14 +138,20 @@ export class StudentsController {
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<TCreateStudentDTO[]>(
+    new bulkBodyValidationPipe<{
+      validated_array: TCreateStudentDTO[],
+      invalid_data_count: number
+    }>(
       'student/student-zod-body-worker',
     ),
   )
-  async bulkCreateStudent(@Body() arrStudentPayload: TCreateStudentDTO[]) {
+  async bulkCreateStudent(@Body() studentZodValidatedObject: {
+    validated_array: TCreateStudentDTO[];
+    invalid_data_count: number;
+  }) {
     try {
       console.log('CONTROLLER Moving to service');
-      return this.studentsService.bulkCreate(arrStudentPayload);
+      return await this.studentsService.bulkCreate(studentZodValidatedObject);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -225,24 +232,20 @@ export class StudentsController {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<TstudentUUIDZod[]>(
+    new bulkBodyValidationPipe<{
+      validated_array: TstudentUUIDZod[];
+      invalid_data_count: number;
+    }>(
       'student/student-zod-uuid-worker',
     ),
   )
-  async bulkDeleteStudent(@Body() arrStudentUUIDPayload: TstudentUUIDZod[]) {
+  async bulkDeleteStudent(@Body() studentZodValidatedUUIDObject: {
+    validated_array: TstudentUUIDZod[];
+    invalid_data_count: number;
+  }) {
     try {
-      const result = await this.studentsService.bulkDelete(
-        arrStudentUUIDPayload,
-      );
+      const result = await this.studentsService.bulkDelete(studentZodValidatedUUIDObject);
       return result;
-      //if(!result) {
-      //  return {
-      //    statusCode: 200,
-      //    message: "All Student uuids archived"
-      //  }
-      //}
-      ////console.log("array", result)
-      //throw new HttpException(result, HttpStatus.MULTI_STATUS);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -251,7 +254,7 @@ export class StudentsController {
         );
       } else {
         throw error;
-      }
+      }   
     }
   }
 
@@ -430,12 +433,12 @@ export class StudentsController {
   @Get('student-profile')
   async student_profile(
     @Query('_student_id') student_id: string
-  ){
+  ) {
     try {
       return await this.studentsService.studentProfile(student_id);
     } catch (error) {
-      if(!(error instanceof HttpException)){
-        throw new HttpException(error.message,HttpStatus.BAD_GATEWAY);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
       throw error
     }
@@ -448,8 +451,8 @@ export class StudentsController {
     try {
       return await this.studentsService.studentLogin(studentCredPayload);
     } catch (error) {
-      if(!(error instanceof HttpException)) {
-        throw new HttpException(error.message,HttpStatus.INTERNAL_SERVER_ERROR);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
       }
       throw error;
     }
