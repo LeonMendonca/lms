@@ -1747,7 +1747,7 @@ async archiveBookCopy(book_copy_uuid: string) {
           );
         }
         const data = await this.booktitleRepository.query(
-          `SELECT s1.* , b1.* , t1.* FROM fees_penalties f1 
+          `SELECT s1.* , b1.* , t1.* , f1.* FROM fees_penalties f1 
           LEFT JOIN students_table s1 ON f1.borrower_uuid = s1.student_uuid
           LEFT JOIN book_copies b1 ON f1.book_copy_uuid = b1.book_copy_uuid
           LEFT JOIN book_titles t1 ON b1.book_title_uuid = t1.book_uuid
