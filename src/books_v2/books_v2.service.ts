@@ -1103,15 +1103,13 @@ export class BooksV2Service {
         [book_copy_uuid]
       );
       if (validid.length == 0) {
-        throw new HttpException("Book is already is archived !!", HttpStatus.BAD_GATEWAY)
+        throw new HttpException("Book is already is archived !!", HttpStatus.BAD_REQUEST);
       }
 
       // Archive the book copy and get the bookTitleUUID
-      const archiveResult = await this.bookcopyRepository.query(
-        `UPDATE book_copies 
-      SET is_archived = true 
-      WHERE book_copy_uuid = $1 
-      RETURNING book_title_uuid`,
+      const archiveResult = await this.bookcopyRepository.query
+      (
+        `UPDATE book_copies SET is_archived = true WHERE book_copy_uuid = $1 AND is_available = TRUE RETURNING book_title_uuid`,
         [book_copy_uuid]
       );
 
@@ -1119,7 +1117,7 @@ export class BooksV2Service {
 
       // Ensure that a book copy was updated
       if (!archiveResult.length) {
-        throw new Error("Book copy not found or already archived");
+        throw new Error("Book copy not found or already archived or is being borrowed");
       }
 
       // Extract bookTitleUUID correctly
@@ -1761,11 +1759,7 @@ export class BooksV2Service {
           );
         }
         const data = await this.booktitleRepository.query(
-          `SELECT s1.* , b1.* , t1.* , f1.* FROM fees_penalties f1 
-          LEFT JOIN students_table s1 ON f1.borrower_uuid = s1.student_uuid
-          LEFT JOIN book_copies b1 ON f1.book_copy_uuid = b1.book_copy_uuid
-          LEFT JOIN book_titles t1 ON b1.book_title_uuid = t1.book_uuid
-          WHERE borrower_uuid=$1 and is_penalised=$2 or is_completed= $3`,
+          `SELECT * FROM fees_penalties WHERE borrower_uuid=$1 and is_penalised=$2 or is_completed= $3`,
           [result[0].student_uuid, isPenalty, isCompleted],
         );
         if (data.length === 0) {
