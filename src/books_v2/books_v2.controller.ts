@@ -262,6 +262,7 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -433,12 +434,12 @@ export class BooksV2Controller {
 
   //logs part
 
-  //@Post('borrowed')
-  //@UsePipes(new bodyValidationPipe(booklogV2Schema))
-  //async createBooklogBorrowed(
+  // @Post('borrowed')
+  // @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  // async createBooklogBorrowed(
   //  @Body() booklogPayload: TCreateBooklogV2DTO,
   //  @Req() request: Request
-  //) {
+  // ) {
   //  try {
   //    return await this.booksService.createBookBorrowed(
   //      booklogPayload, request
@@ -449,7 +450,7 @@ export class BooksV2Controller {
   //    }
   //    throw error;
   //  }
-  //}
+  // }
 
   @Post('library')
   @UsePipes(new bodyValidationPipe(booklogSchema))
@@ -501,6 +502,7 @@ export class BooksV2Controller {
       let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
         result = await this.booksService.bookBorrowed(
           booklogPayload,
           request.ip,
@@ -522,6 +524,7 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,

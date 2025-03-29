@@ -14,21 +14,38 @@ export class Booklog_v2 {
   //student uuid
   @ManyToOne(() => Students, (students) => students.studentUUID)
   @JoinColumn({ name: "borrower_uuid" })
+
+  borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
+
   borrowerUUID: 'borrower_uuid' = 'borrower_uuid'; 
+
 
   @ManyToOne(() => BookTitle, (book_title) => book_title.bookUUID)
   @JoinColumn({ name: "book_title_uuid" })
   bookUUID: 'book_title_uuid' = 'book_title_uuid';
 
   @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
+
+  @JoinColumn({ name: 'book_copy_uuid' })
+  bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
+
   @JoinColumn({ name:'book_copy_uuid' })
   bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';  
 
-  @Column({ name: 'old_book_copy', type: 'jsonb' }) 
+
+  @Column({ name: 'old_book_copy', type: 'jsonb' })
   oldBookCopy: 'old_book_copy' = "old_book_copy";
 
   @Column({ name: 'new_book_copy', type: 'jsonb' })
   newBookCopy: 'new_book_copy' = "new_book_copy";
+
+
+  @Column({ name: 'old_book_title', type: 'jsonb' })
+  oldBookTitle: 'old_book_copy' = "old_book_copy";
+
+  @Column({ name: 'new_book_title', type: 'jsonb' })
+  newBookTitle: 'old_book_copy' = "old_book_copy";
+
   
   @Column({ name: 'old_book_title', type: 'jsonb' }) 
   oldBookTitle: 'old_book_title' = "old_book_title";
@@ -36,8 +53,14 @@ export class Booklog_v2 {
   @Column({ name: 'new_book_title', type: 'jsonb' }) 
   newBookTitle: 'new_book_title' = "new_book_title";
 
-  @Column({ name: 'action', type: 'varchar', length:255 })
+  @Column({ name: 'action', type: 'varchar', length: 255 })
   action: "action" = 'action';
+
+  @Column({ name: 'description', type: 'varchar', length: 255 })
+  description: 'description' = 'description';
+
+  @Column({ name: 'time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  time: 'time' = 'time';
 
   @Column({  name: 'description', type: 'varchar', length:255  })
   description: 'description' = 'description';
@@ -45,12 +68,14 @@ export class Booklog_v2 {
   @Column({  name: 'date', type: 'date', default: () => 'CURRENT_DATE' })
   date: 'date' = 'date';
 
+
   @Column({ name: 'ip_address', type: 'varchar', length: 255, nullable: true })
   ipAddress: 'ip_address' = 'ip_address';
 
   @ManyToOne(() => FeesPenalties, (fees_penalties) => fees_penalties.fpUUID)
   @JoinColumn({ name: 'fp_uuid' })
   fpUUID: 'fp_uuid' = 'fp_uuid';
+
 }
 
 export const booklogV2 = new Booklog_v2();
