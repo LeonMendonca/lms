@@ -8,4 +8,4 @@ export const createObjectSchema = z.object({
   [createBookTitleObject.bookUUID]: z.string().uuid()
 });
 
-export type TupdatearchiveZodDTO = z.infer<typeof createObjectSchema>;
+export type TRestoreZodDTO = z.infer<typeof createObjectSchema>;

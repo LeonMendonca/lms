@@ -1,31 +1,55 @@
 import { parentPort, workerData } from "worker_threads";
-import { dataSource } from "../datasource-typeorm";
-import { Repository } from "typeorm";
-import { Students } from "src/students/students.entity";
 import { TstudentUUIDZod } from "src/students/zod-validation/studentuuid-zod";
+import { pool } from "../../pg.connect";
 
+export type TUpdateResult = {
+    archived_data: number;
+    failed_archived_data: number;
+}
 
 (async() => {
-    let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
-    let arrOfArchivedStatus: string[] = [];
+    let client = await pool.connect();
 
-    const dataSourceInit = await dataSource.initialize();
-    const studentRepo: Repository<Students> = dataSourceInit.getRepository(Students);
+    client.on('error', (err) => {
+        console.error("Pool Client in ARCHIVE worker emitted error", err.message);
+    });
+
+    let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
+
+    //Count payload being updated
+    const updatePayloadCount = arrOfUUID.length;
+
+    let bulkQuery1 = 'UPDATE students_table SET is_archived = TRUE WHERE student_uuid IN ';
+
+    let bulkQuery2 = '(';
+    for(const element of arrOfUUID) {
+        bulkQuery2 += `'${element}',`
+    }
+    bulkQuery2 = bulkQuery2.slice(0, -1);
+    bulkQuery2 += ')';
+
+    let bulkQuery3 = 'AND is_archived = FALSE RETURNING student_uuid'
+
+    const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3;
+
+    console.log("FINAL QUERY", finalQuery)
     try {
-        for (const uuid of arrOfUUID) {
-            let result: [[], number] = await studentRepo.manager.query(`
-                UPDATE students_table SET is_archived = true WHERE student_uuid = '${uuid}' AND is_archived = false`
-            );
-            if(!result[1]) {
-                arrOfArchivedStatus.push(`Unable to archive ${uuid}`);
-            } else {
-                arrOfArchivedStatus.push(`Succesfully archived ${uuid}`);
-            }
-        }
-        (parentPort ? parentPort.postMessage(arrOfArchivedStatus) : "Parent Port NULL" );
+        const result = await client.query(finalQuery);
+
+        const updatedDataCount = result.rowCount ?? 0;
+        const nonUpdatedDataCount = updatePayloadCount - updatedDataCount;
+
+        parentPort?.postMessage({
+            archived_data: updatedDataCount,
+            failed_archived_data: nonUpdatedDataCount,
+        } as TUpdateResult) ?? "Parent Port NULL";
     }
     catch (error) {
-        (parentPort ? parentPort.postMessage(error.message) : "Parent Port NULL" );
+        let errorMessage = "Something went wrong while bulk archiving";
+        if(error instanceof Error) {
+            errorMessage = error.message;
+        }
+        parentPort?.postMessage(errorMessage) ?? "Parent Port NULL";
     }
-
+    client.release(true);
 })()
