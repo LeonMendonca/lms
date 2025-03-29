@@ -1,5 +1,5 @@
 import { UUID } from 'crypto';
-import { Body, Controller, Get, HttpException, HttpStatus, Patch, Post, Put, Query, Req, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Patch, Post, Put, Query, Req, UsePipes } from '@nestjs/common';
 import { JournalsService } from './journals.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createJournalSchema, TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
@@ -9,6 +9,8 @@ import { journalLogsSchema, TCreateJournalLogDTO } from './zod-validation/create
 import type { Request } from 'express';
 import { Subscription } from 'rxjs';
 import { TUpdatePeriodicalDTO, updatePeriodicalSchema } from './zod-validation/update-journacopydto-zod';
+import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
+import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
 
 @Controller('journals')
 export class JournalsController {
@@ -277,10 +279,17 @@ export class JournalsController {
 
     // ------------------- PERIODICAL LOGS ---------------------
 
-    // get journal by journal_title_id, journal_copy_uuid, journal_log_uuid, action, description, issn, ip_address, borrower_uuid 
-    // SEARCH PERIODICAL LOGS FROM PERIODICAL COLUMNS 
+    //  GET ALL LOGS
     @Get('get-periodical-logs')
-    async getJournalsByID(
+    async getPeriodicalLogs() {
+        return this.journalsService.getPeriodicalLogs()
+    }
+
+    // get journal by journal_title_id, journal_copy_uuid, journal_log_uuid, action, description, issn, ip_address, borrower_uuid
+    // SEARCH PERIODICAL LOGS FROM PERIODICAL COLUMNS 
+    // Note : Not implemented in frontend
+    @Get('search-periodical-logs')
+    async searchJournalsByID(
         @Query('_journal_title_id') journal_title_id?: string,
         @Query('_journal_copy_uuid') journal_copy_uuid?: string,
         @Query('_journal_log_uuid') journal_log_uuid?: string,
@@ -293,7 +302,7 @@ export class JournalsController {
         @Query('_limit') limit?: string,
         @Query('_search') search?: string
     ) {
-        return this.journalsService.getJournalsByID({
+        return this.journalsService.searchJournalsByID({
             journal_title_id: journal_title_id ?? '',
             journal_copy_uuid: journal_copy_uuid ?? '',
             journal_log_uuid: journal_log_uuid ?? '',
@@ -319,13 +328,13 @@ export class JournalsController {
             let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
             let result: Record<string, string | number> = {};
             if (journalLogPayload.action === 'borrow') {
-                result = await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'borrowed');
+                return await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'borrowed');
             } else if (journalLogPayload.action === 'return') {
-                result = await this.journalsService.periodicalReturned(journalLogPayload, request, status = 'returned')
+                return await this.journalsService.periodicalReturned(journalLogPayload, request, status = 'returned')
             } else {
-                result = await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
+                return await this.journalsService.periodicalBorrowed(journalLogPayload, request, status = 'in_library_borrowed');
             }
-            return result;
+            // return result;
         } catch (error) {
             if (!(error instanceof HttpException)) {
                 throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -333,6 +342,28 @@ export class JournalsController {
             throw error;
         }
     }
+
+
+    // BULK DELETE
+    @Delete('bulk-delete-for-periodical-copies')
+    @UsePipes(
+        new bulkBodyValidationPipe<TPeriodicalCopyIdDTO[]>(
+            'journals/bulk-delete-for-periodical-copies',
+        ),
+    )
+    async bulkDeletePeriodicalCopies(@Body() arrCopyUUIDPayload: TPeriodicalCopyIdDTO[]) {
+        try {
+            const result = await this.journalsService.bulkDeletePeriodicalCopies(arrCopyUUIDPayload);
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                throw error;
+            };
+        }
+    }
+
 
     // get journal logs from journal_log_uuid or issn number
     // @Get('get-journal-logs-by-title') --WORKING IN get-periodical-logs
