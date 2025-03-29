@@ -34,6 +34,25 @@ CREATE OR REPLACE FUNCTION create_student_id()
 $$ LANGUAGE plv8;
 `;
 
+const createCopiesId = `
+CREATE OR REPLACE FUNCTION get_book_copies_id()
+RETURNS TRIGGER AS $$
+  const instituteName = NEW.institute_name
+  const instituteCount = plv8.execute('SELECT COUNT(*) FROM book_copies WHERE institute_name = $1', [instituteName])[0].count
+  const instituteCountAsNum = Number(instituteCount);
+
+  let bookCopyId = ''
+  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+
+  const instituteCountPadstart = String(instituteCountAsNum).padStart(4, '0');
+  bookCopyId = instituteNameAbbr+instituteCountPadstart
+
+  plv8.execute('UPDATE book_copies SET book_copy_id = $1 WHERE book_copy_uuid = $2', [bookCopyId, NEW.book_copy_uuid])
+
+  return NEW;
+$$ LANGUAGE plv8;
+`
+
 const updateStudentId = `
 CREATE OR REPLACE FUNCTION update_student_id() 
   RETURNS TRIGGER AS $$
@@ -79,6 +98,13 @@ FOR EACH ROW
 EXECUTE PROCEDURE create_student_id()
 `;
 
+const triggerCreateBookCopiesId = `
+CREATE OR REPLACE TRIGGER trigger_bc
+After INSERT ON book_copies
+FOR EACH ROW
+EXECUTE FUNCTION get_book_copies_id();
+`
+
 export async function pgPLV8() {
   try {
       const clientEnableExt = await pool.connect();
@@ -97,8 +123,11 @@ export async function pgPLV8() {
   } finally {
     const clientTriggerAndFunction = await pool.connect();
     await clientTriggerAndFunction.query(createStudentId);
+    await clientTriggerAndFunction.query(createCopiesId)
     await clientTriggerAndFunction.query(updateStudentId);
+
     await clientTriggerAndFunction.query(triggerCreateStudentId);
+    await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
     await clientTriggerAndFunction.query(triggerUpdateStudentId);
 
     clientTriggerAndFunction.on('error', (err) => {
