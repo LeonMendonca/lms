@@ -42,13 +42,13 @@ CREATE OR REPLACE FUNCTION update_student_id()
   const departmentName = NEW.department;
 
   const instituteCount = plv8.execute('SELECT COUNT(student_id) FROM students_table WHERE institute_name = $1', [instituteName])[0].count;
-  const instituteCountAsNum = Number(instituteCount) + 1;
+  const instituteCountAsNum = Number(instituteCount);
  
   const deptCount = plv8.execute(
     'SELECT COUNT(student_id) FROM students_table WHERE department = $1 AND institute_name = $2',
     [departmentName, instituteName]
   )[0].count;
-  const deptCountAsNum = Number(deptCount) + 1;
+  const deptCountAsNum = Number(deptCount);
   
 
   const instituteCountPadstart = String(instituteCountAsNum).padStart(3, '0');

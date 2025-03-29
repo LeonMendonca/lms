@@ -4,12 +4,15 @@ import { createStudentId } from "src/students/create-student-id";
 import { pool } from "../../pg.connect";
 import { insertQueryHelper } from "src/misc/custom-query-helper";
 import { QueryResult } from "typeorm";
+import { TStudents } from "src/students/students.entity";
 
 let start = Date.now();
 let uniqueArray: TCreateStudentDTO[] = [];
 
+//Count duplicates in existing array of payload
+let countDuplicatePayload = 0;
 uniqueArray = (workerData.oneDArray as TCreateStudentDTO[]).filter((value, idx, self) => {
-    return self.findIndex(item => item.email === value.email && item.phone_no === value.phone_no) === idx;
+    return self.findIndex(item => item.email === value.email) === idx ? value : countDuplicatePayload++;
 });
 console.log("Unique array done in", Date.now() - start, 'ms');
 
@@ -40,7 +43,11 @@ console.log("Unique array done in", Date.now() - start, 'ms');
   bulkQuery2 += ')';
   bulkQuery2 += ' VALUES '
 
+  //Count payload being inserted after filter
+  let countInsertPayload = 0;
+
   for(const stuObj of uniqueArray) {
+    countInsertPayload++;
     bulkQuery3 += '('
     for(key in stuObj) {
       if(typeof stuObj[key] === 'string') {
@@ -58,18 +65,15 @@ console.log("Unique array done in", Date.now() - start, 'ms');
 
   try {
     start = Date.now();
-    //const insertedData: any[] = [];
-    //for(let element of (workerData.oneDArray as TCreateStudentDTO[])) {
-    //  const queryData = insertQueryHelper(element, [])
-    //  const result = await client.query(`INSERT INTO students_table(${queryData.queryCol}) VALUES (${queryData.queryArg}) ON CONFLICT (email) DO NOTHING RETURNING email`, queryData.values);
-    //  const rows = result.rows;
-    //  insertedData.push(result.rows[0].email);
-    //}
     const result = await client.query(finalQuery);
-    if(!result.rows.length) {
-      throw new Error("Data already exists, Failed to Insert!");
-    }
-    parentPort?.postMessage(result.rows) ?? 'Parent port is null'
+
+    parentPort?.postMessage(
+      {
+        duplicate_data: countDuplicatePayload, 
+        unique_data: countInsertPayload,
+        inserted_data: result.rowCount ?? 0
+      }
+    ) ?? 'Parent port is null'
     //console.log("Inserted in ", Date.now() - start);
   } catch (error) {
       let errorMessage = "Something went wrong while bulk inserting";
