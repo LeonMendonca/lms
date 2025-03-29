@@ -28,7 +28,7 @@ import { TUpdateResult } from "../student/student-archive-worker";
     bulkQuery2Copies = bulkQuery2Copies.slice(0, -1);
     bulkQuery2Copies += ')';
 
-    let bulkQuery3Copies = 'AND is_archived = FALSE RETURNING book_title_uuid'
+    let bulkQuery3Copies = 'AND is_archived = FALSE AND is_available = TRUE RETURNING book_title_uuid'
 
     /*
     update book_copies set is_archived = true where book_copy_uuid in ('uuid', 'uuid', ....) 
