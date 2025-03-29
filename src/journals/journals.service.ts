@@ -673,7 +673,7 @@ export class JournalsService {
     //         //Insert into old_book_title COLUMN
 
     //         // Note: Here im making changes by replacing journal_uuid by library_name
-    //         const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsCopyRepository.query
+    //         const journalPayloadFromJournalTitle: TJournalTitle[] = await this.journalsTitleRepository.query
     //             (
     //                 `SELECT * FROM journal_titles WHERE subscription_id = $1 AND is_archived=false AND available_count > 0`,
     //                 // [journalPayloadFromJournalCopies[0].journal_title_uuid]
@@ -776,6 +776,8 @@ export class JournalsService {
             }
             // --done
             const issn = journalPayloadFromJournalCopies[0].issn
+            // const journalTitleUUID = journalPayloadFromJournalCopies[0][0].journal_title_uuid
+            // const journalCopyUUID = journalPayloadFromJournalCopies[0][0].journal_copy_uuid
 
             // console.log("journalPayloadFromJournalCopies: ", journalPayloadFromJournalCopies[0])
 
@@ -789,16 +791,16 @@ export class JournalsService {
             // console.log("journalPayloadFromJournalTitles: ", journalPayloadFromJournalTitles[0])
 
             const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query(
-                `UPDATE journal_copy SET is_available=false WHERE journal_copy_id=$1 AND barcode=$2 AND is_available=true`,
+                `UPDATE journal_copy SET is_available=false WHERE journal_copy_id=$1 AND barcode=$2  RETURNING *`,
                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
             )
+
             if (!updatedJournalCopiesPayload[1]) {
                 return {
                     message: "Failed To Update Periodical",
                     error: HttpStatus.INTERNAL_SERVER_ERROR
                 }
             }
-            console.log("updatedJournalCopiesPayload: ", updatedJournalCopiesPayload)
 
             if (!updatedJournalCopiesPayload[0]) {
                 return {
@@ -806,17 +808,14 @@ export class JournalsService {
                     error: HttpStatus.INTERNAL_SERVER_ERROR
                 }
             }
+            // is_available becomes false, so these values cant be set
             const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid
-            const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_id
-
-            console.log(journalTitleUUID, journalCopyUUID)
-
+            const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_uuid
 
             const updatedJournalTitlesPayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query(
-                `UPDATE journal_titles SET available_count = available_count-1 WHERE subscription_id=$1`,
+                `UPDATE journal_titles SET available_count = available_count-1 WHERE subscription_id=$1 RETURNING *`,
                 [journalLogPayload.subscription_id]
             )
-
 
             const oldJournalCopy = JSON.stringify(journalPayloadFromJournalCopies[0])
             const newJournalCopy = JSON.stringify(updatedJournalCopiesPayload[0])
@@ -829,7 +828,6 @@ export class JournalsService {
                 [oldJournalCopy, newJournalCopy, oldJournalTitle, newJournalTitle, status, 'Periodical Has Been Borrowed', issn, request.ip, student[0].student_uuid, journalTitleUUID, journalCopyUUID]
             )
 
-            console.log("Result: ", result)
 
             return { statusCode: HttpStatus.CREATED, message: 'Journal borrowed successfully' };
         } catch (error) {
@@ -1492,6 +1490,7 @@ export class JournalsService {
 
     // working
     async findAllJournalCopyInfo({
+        journal_copy_id = '',
         journal_title = '',
         editor_name = '',
         issn = '',
@@ -1502,6 +1501,7 @@ export class JournalsService {
         limit = 10,
         search = ''
     }: {
+        journal_copy_id?: string;
         journal_title?: string;
         editor_name?: string,
         issn?: string,
@@ -1516,7 +1516,7 @@ export class JournalsService {
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
 
-            if (!journal_title && !editor_name && !issn && !barcode && !item_type && !institute_uuid) {
+            if (!journal_copy_id && !journal_title && !editor_name && !issn && !barcode && !item_type && !institute_uuid) {
                 return { message: "Enter Parameter(s) To Search" }
             }
 

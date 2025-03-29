@@ -195,6 +195,7 @@ export class JournalsController {
     // FIND JOURNAL/MAGAZINE COPY - working
     @Get('find-all-copies')
     async findAllJournalCopyInfo(
+        @Query('_journal_copy_id') journal_copy_id?: string,
         @Query('_journal_title') journal_title?: string,
         @Query('_editor_name') editor_name?: string,
         @Query('_issn') issn?: string,
@@ -206,6 +207,7 @@ export class JournalsController {
         @Query('_search') search?: string
     ) {
         return this.journalsService.findAllJournalCopyInfo({
+            journal_copy_id: journal_copy_id ?? '',
             journal_title: journal_title ?? '',
             editor_name: editor_name ?? '',
             issn: issn ?? '',
