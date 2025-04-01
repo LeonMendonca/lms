@@ -7,7 +7,6 @@ import { JournalCopy, TJournalCopy } from './entity/journals_copy.entity';
 import { JournalTitle, TJournalTitle } from './entity/journals_title.entity';
 import { JournalLogs, TJournalLogs } from './entity/journals_log.entity';
 import { TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
-import { genJournalId } from './id-generation/create-journal-id';
 import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
 import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/updatejournaldto';
 import { Students } from 'src/students/students.entity';
@@ -16,6 +15,8 @@ import { Request } from 'express';
 import { title } from 'process';
 import { Console } from 'console';
 import { json } from 'stream/consumers';
+import { genId } from './id-generation/create-periodical-ids';
+import { create } from 'domain';
 
 @Injectable()
 export class JournalsService {
@@ -1118,44 +1119,59 @@ export class JournalsService {
     }
 
     // working
-    async createJournal(createJournalPayload: TCreateJournalZodDTO) {
-        try {
-            // SET VALUES FROM BACKEND            
 
-            const totalCountQuery = await this.journalsTitleRepository.query(
+
+    async createJournal(createJournalPayload: TCreateJournalZodDTO) {
+        // Create a query runner instance
+        const queryRunner = this.dataSource.createQueryRunner();
+
+        // Start a transaction
+        await queryRunner.startTransaction();
+
+        try {
+
+            // Fetch total count
+            const totalCountQuery = await queryRunner.query(
                 `SELECT COUNT(*)::int AS total_count FROM journal_titles WHERE subscription_id = $1`,
                 [createJournalPayload.subscription_id]
             );
             const total_count = totalCountQuery[0]?.total_count || 0;
 
-
-            const availableCountQuery = await this.journalsTitleRepository.query(
+            // Fetch available count
+            const availableCountQuery = await queryRunner.query(
                 `SELECT COUNT(*)::int AS available_count FROM journal_titles WHERE is_archived = false AND subscription_id = $1`,
                 [createJournalPayload.subscription_id]
             );
             const available_count = availableCountQuery[0]?.available_count || 0;
 
-            //Check if journal exists in JournalTitle Table
-            let journalTitleUUID: [{ journal_uuid: string }] = await this.journalsTitleRepository.query(
+            // Check if journal exists in JournalTitle Table
+            let journalTitleUUID = await queryRunner.query(
                 `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
                 [createJournalPayload.subscription_id]
             );
 
-
-            //Book Title Table logic
-            if (!journalTitleUUID.length) {
-                // Create custom Journal Title ID
-                const maxTitleIdQuery = await this.journalsTitleRepository.query(
-                    `SELECT MAX(journal_title_id) FROM journal_titles`
+            // Generate journal_title_id if not exists
+            let journal_title_id: string;
+            if (journalTitleUUID.length === 0) {
+                // Create custom Journal Title ID (Ensure max value exists)
+                const maxInstituteCountQuery = await queryRunner.query(
+                    `SELECT MAX(journal_title_id) AS max_id FROM journal_titles`
                 );
-                const journalId = genJournalId(maxTitleIdQuery[0]?.max, 'PT');
+
+                console.log("Journal Title maxCount", maxInstituteCountQuery[0].max_id)
+
+                const maxInstituteCount = maxInstituteCountQuery[0]?.max_id || "000";
+                const instituteName = "Thakur Institute of Aviation";
+                journal_title_id = genId(maxInstituteCount, instituteName);
+
+                // journal_title_id = genId("001", instituteName);
 
                 const journalTitlePayloadWithId = {
                     ...createJournalPayload,
-                    journal_title_id: journalId,
+                    journal_title_id: journal_title_id,
                     subscription_id: createJournalPayload.subscription_id,
-                    total_count: total_count + 1, // Increment for the new journal
-                    available_count: available_count + 1, // New journal is available
+                    total_count: total_count + 1,
+                    available_count: available_count + 1
                 };
 
                 // Generate INSERT query for journal_titles
@@ -1173,32 +1189,37 @@ export class JournalsService {
                 });
 
                 // Insert journal title into DB and get the new UUID
-                journalTitleUUID = await this.journalsTitleRepository.query(
-                    `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
+                const result = await queryRunner.query(
+                    `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING *`,
                     journalTitleQueryData.values
                 );
+                journalTitleUUID = result;
             } else {
                 // If journal title already exists, update total_count and available_count
-                await this.journalsTitleRepository.query(
+                await queryRunner.query(
                     `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
                     [createJournalPayload.subscription_id]
                 );
+                journal_title_id = journalTitleUUID[0]?.journal_uuid; // use the existing journal UUID
             }
 
-            //Book Copy Table logic
-            //Create custom Book Id
-            const maxCopyIdQuery = await this.journalsTitleRepository.query(
-                `SELECT MAX(journal_copy_id) FROM journal_copy`
+            // Generate journal_copy_id
+            const maxCopyIdQuery = await queryRunner.query(
+                `SELECT MAX(journal_copy_id) AS max_id FROM journal_copy`
             );
-            const journalCopyId = genJournalId(maxCopyIdQuery[0]?.max, 'PC');
+            const maxCopyId = maxCopyIdQuery[0]?.max_id || "000";
+            console.log("Journal Copy maxCount", maxCopyId)
+            const journalCopyId = genId(maxCopyId, "Thakur Institute of Aviation");
+
+            // const journalCopyId = genId("001", "Thakur Institute of Aviation");
 
             const journalCopyPayloadWithId = {
                 ...createJournalPayload,
                 journal_copy_id: journalCopyId,
-                journal_title_uuid: journalTitleUUID[0].journal_uuid,
+                journal_title_uuid: journalTitleUUID[0].journal_uuid, // use the correct journal title uuid
                 subscription_id: createJournalPayload.subscription_id,
-                total_count: total_count + 1, // Ensure consistency
-                available_count: available_count + 1,
+                total_count: total_count + 1,
+                available_count: available_count + 1
             };
 
             // Generate INSERT query for journal_copy
@@ -1209,7 +1230,7 @@ export class JournalsService {
                 'title_additional_fields', 'title_description', 'total_count', 'available_count', 'subscription_id'
             ]);
 
-            // Convert arrays/objects to strings
+            // Convert arrays/objects to strings for storage
             journalCopyQueryData.values.forEach((element, idx) => {
                 if (Array.isArray(element) || typeof element === 'object') {
                     journalCopyQueryData.values[idx] = JSON.stringify(element);
@@ -1217,17 +1238,34 @@ export class JournalsService {
             });
 
             // Insert journal copy into DB
-            await this.journalsCopyRepository.query(
+            await queryRunner.query(
                 `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
                 journalCopyQueryData.values
             );
 
-            return { statusCode: HttpStatus.CREATED, message: "Periodical Created!" };
+            // Commit the transaction if everything is successful
+            await queryRunner.commitTransaction();
 
+            // Return success response
+            return { statusCode: HttpStatus.CREATED, message: "Periodical Created!" };
         } catch (error) {
-            throw error;
+            // If anything fails, rollback the transaction
+            await queryRunner.rollbackTransaction();
+
+            // Log error details
+            console.error("Error during journal creation:", error.message);
+            console.error("Stack Trace:", error.stack);
+
+            return { error: error.message || "An error occurred while creating the journal." };
+        } finally {
+            // Release the query runner after the transaction is complete (either commit or rollback)
+            await queryRunner.release();
         }
     }
+
+
+
+
 
     // working
     async getArchivedJournals(
@@ -1693,5 +1731,6 @@ export class JournalsService {
             );
         }
     }
+
 
 }

@@ -38,7 +38,7 @@ export const createJournalSchema = z.object({
     // [createJournalTitleObject.availableCount]: z.number(),
     [createJournalTitleObject.titleImages]: z.array(z.string()).optional(),
     [createJournalTitleObject.titleAdditionalFields]: z.record(z.any()).optional(),
-    [createJournalTitleObject.titleDescription]: z.string().optional(),
+    [createJournalTitleObject.titleDescription]: z.record(z.any()).optional(),
 
     // Journal Copy fields,
 
@@ -55,7 +55,7 @@ export const createJournalSchema = z.object({
     [createJournalCopyObject.remarks]: z.string().optional(),
     [createJournalCopyObject.copyImages]: z.array(z.string()).optional(),
     [createJournalCopyObject.copyAdditionalFields]: z.record(z.any()).optional(),
-    [createJournalCopyObject.copyDescription]: z.string().optional(),
+    [createJournalCopyObject.copyDescription]: z.record(z.any()).optional(),
 });
 
 export type TCreateJournalZodDTO = z.infer<typeof createJournalSchema>;

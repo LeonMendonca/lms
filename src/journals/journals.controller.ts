@@ -79,7 +79,7 @@ export class JournalsController {
 
 
     // FIND JOURNAL/MAGAZINE - working
-    // search periodicals from copies and titles table both 
+    // search periodicals from copies table 
     // Note: You can pass all the required search parameters and get the data from titles AND/OR copy tables
     // Edit: trim() to be added at each field
     @Get('search-periodicals')
