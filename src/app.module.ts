@@ -18,6 +18,8 @@ import { VisitLog } from './students/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
 import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
 import { RequestBook } from './books_v2/entity/request-book.entity';
+import { StudentsVisitKey } from './students/entities/student-visit-key';
+import { CsvModule } from './csv/csv.module';
 
 config({ path: '.env' });
 @Module({
@@ -32,7 +34,8 @@ config({ path: '.env' });
         Booklog_v2,
         VisitLog,
         FeesPenalties,
-        RequestBook
+        RequestBook,
+        StudentsVisitKey
       ],
       ssl: true,
       synchronize: true,
@@ -40,6 +43,7 @@ config({ path: '.env' });
     StudentsModule,
     BooksV2Module,
     FeesPenaltiesModule,
+    CsvModule
   ],
 })
 export class AppModule {

@@ -47,6 +47,7 @@ import { StudentAuthGuard } from './student.guard';
 // import { Request } from 'express';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { Students } from './students.entity';
+import { StudentsVisitKey } from './entities/student-visit-key';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -477,13 +478,12 @@ export class StudentsController {
       throw error;
     }
   }
-  
 
   @Get('student-dashboard')
   @UseGuards(StudentAuthGuard)
   async studentDashboard(@Request() req: AuthenticatedRequest) {
     try {
-      const user = req.user; 
+      const user = req.user;
       return await this.studentsService.studentDashboard(user);
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -497,9 +497,60 @@ export class StudentsController {
   }
 
   @Get('admin-dashboard')
-  async adminDashboard(@Query('_institute_uuid') institute_uuid: string) {
+  async adminDashboard(@Query('_institute_uuid') institute_uuid: string | null) {
     try {
       return await this.studentsService.adminDashboard(institute_uuid);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Post('student-visit-key')
+  @UseGuards(StudentAuthGuard)
+  async studentVisitKey(
+    @Request() req: AuthenticatedRequest,
+    @Body('longitude') longitude: number,
+    @Body('latitude') latitude: number,
+    @Body('action') action: string,
+  ): Promise<ApiResponse<StudentsVisitKey>> {
+    try {
+      const user = req.user;
+      const createKey = await this.studentsService.createStudentVisitKey(
+        user,
+        latitude,
+        longitude,
+        action,
+      );
+      return {
+        success: true,
+        data: createKey,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('verify-student-visit-key/:student_key_uuid')
+  async getStudentVisitKey(
+    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
+  ) {
+    try {
+      const visitKey =
+        await this.studentsService.verifyStudentVisitKey(student_key_uuid);
+      return visitKey;
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

@@ -21,6 +21,8 @@ import { TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
+import { isWithin30Meters } from './utilities/location-calculation';
+import { StudentsVisitKey } from './entities/student-visit-key';
 
 interface DataWithPagination<T> {
   data: T[];
@@ -638,29 +640,55 @@ export class StudentsService {
     }
   }
 
-  async adminDashboard(instituteUUID: string) {
+  async adminDashboard(instituteUUID: string | null) {
     try {
-      // const instituteUUID = '1b4e28ba-2fa1-11d2-883f-0016d3cca427';
+      // Adjust the query for totalBooks
+      const totalBooksQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false
+        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+      `;
       const totalBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND institute_uuid = $1`,
-        [instituteUUID],
+        totalBooksQuery,
+        instituteUUID ? [instituteUUID] : [],
       );
 
+      // Adjust the query for totalBorrowedBooks
+      const totalBorrowedBooksQuery = `
+        SELECT COUNT(*) 
+        FROM book_logv2 
+        LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
+        WHERE book_copies.is_archived = false
+        ${instituteUUID ? 'AND book_copies.institute_uuid = $1' : ''}
+      `;
       const totalBorrowedBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid WHERE book_copies.institute_uuid = $1`,
-        [instituteUUID],
+        totalBorrowedBooksQuery,
+        instituteUUID ? [instituteUUID] : [],
       );
 
+      // Adjust the query for totalMembers
+      const totalMembersQuery = `
+        SELECT COUNT(*) 
+        FROM students_table 
+        WHERE is_archived = false
+        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+      `;
       const totalMembers = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM students_table WHERE is_archived = false AND institute_uuid = $1`,
-        [instituteUUID],
+        totalMembersQuery,
+        instituteUUID ? [instituteUUID] : [],
       );
 
-      const newBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true AND created_at >= NOW() - INTERVAL '1 month'`,
-      );
+      // Adjust the query for newBooks (not filtered by instituteUUID as there's no filter for it)
+      const newBooksQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const newBooks = await this.studentsRepository.query(newBooksQuery);
 
-      //Asserted a type as UPDATE returns it
       return {
         totalBooks: totalBooks[0].count,
         totalBorrowedBooks: totalBorrowedBooks[0].count,
@@ -669,6 +697,148 @@ export class StudentsService {
       };
     } catch (error) {
       throw error;
+    }
+  }
+
+  async adminDashboardCsvDownload(instituteUUID: string | null, type: string) {
+    try {
+      switch (type) {
+        case 'totalBooks':
+          const totalBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+            FROM book_copies bc LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false
+            ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+          `;
+          const totalBooks = await this.studentsRepository.query(
+            totalBooksQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalBooks;
+        case 'borrowedBooks':
+          const totalBorrowedBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available, ip_address, action, description
+            FROM book_logv2 bl
+            LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false
+            ${instituteUUID ? 'AND bc.institute_uuid = $1' : ''}
+          `;
+          const totalBorrowedBooks = await this.studentsRepository.query(
+            totalBorrowedBooksQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalBorrowedBooks;
+        case 'totalmembers':
+          const totalMembersQuery = `
+          SELECT student_id, email, student_name, date_of_birth, gender, roll_no, institute_name, phone_no, address, department, year_of_admission, image_field, created_at
+          FROM students_table 
+          WHERE is_archived = false
+          ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+        `;
+          const totalMembers = await this.studentsRepository.query(
+            totalMembersQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalMembers;
+        case 'newBooks':
+          const newBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available, ip_address, action, description 
+            FROM book_copies bc
+            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false 
+              AND is_available = true 
+              AND bc.created_at >= NOW() - INTERVAL '1 month'
+          `;
+          return await this.studentsRepository.query(newBooksQuery);
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createStudentVisitKey(
+    user: any,
+    latitude: number,
+    longitude: number,
+    action: string,
+  ): Promise<StudentsVisitKey> {
+    try {
+      const studentKey: StudentsVisitKey[] =
+        await this.studentsRepository.query(
+          `INSERT INTO student_visit_key (student_id, longitude, latitude, action) VALUES ($1, $2,  $3, $4) RETURNING *`,
+          [user.student_id, longitude, latitude, action],
+        );
+      if (!studentKey.length) {
+        throw new HttpException(
+          'Failed to create student visit key',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return studentKey[0];
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async verifyStudentVisitKey(studentKeyUUID: string) {
+    try {
+      const lib_longitude = -122.41942;
+      const lib_latitude = 37.77491;
+      const studentKey = await this.studentsRepository.query(
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '5 minutes' AND is_used = false`,
+        [studentKeyUUID],
+      );
+
+      if (!studentKey.length) {
+        throw new HttpException(
+          'Invalid or expired student visit key',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const { latitude, longitude, student_id, action } = studentKey[0];
+
+      if (
+        isWithin30Meters(
+          lib_latitude,
+          lib_longitude,
+          parseFloat(latitude),
+          parseFloat(longitude),
+        )
+      ) {
+        await this.studentsRepository.query(
+          `UPDATE student_visit_key SET is_used = true WHERE student_key_uuid = $1`,
+          [studentKeyUUID],
+        );
+
+        if (action === 'entry') {
+          return await this.visitlogentry({ action, student_id });
+        } else if (action === 'exit') {
+          return await this.visitlogexit({ action, student_id });
+        } else {
+          throw new HttpException(
+            'Invalid action type',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        // run the entry or exit function based on the action
+      } else {
+        throw new HttpException(
+          'Student visit key is not within the library premises',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }
