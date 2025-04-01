@@ -37,19 +37,31 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get('all')
-  //@UseGuards(StudentAuthGuard)
+  // @UseGuards(TokenAuthGuard)
   async getAllUsers(
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ): Promise<ApiResponse<TUser[]>> {
-    const { data, pagination } = await this.userService.findAllUsers(query);
-    return {
-      success: true,
-      data,
-      pagination,
-    };
+    try {
+      const { data, pagination } = await this.userService.findAllUsers(query);
+      return {
+        success: true,
+        data,
+        pagination,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      } 
+    }
   }
 
   @Post('create')
+  // @UseGuards(TokenAuthGuard)
   @UsePipes(new bodyValidationPipe(createUserSchemaZod))
   async createStudent(
     @Body() userPayload: TCreateUserDTO,
@@ -96,7 +108,7 @@ export class UserController {
     @Body() userPayload: TEditUserDTO,
   ): Promise<ApiResponse<TUser>> {
     try {
-      // const data = await this.userService.editUser();
+      const data = await this.userService.editUser(userId, userPayload);
       return {
         success: true,
         // data,

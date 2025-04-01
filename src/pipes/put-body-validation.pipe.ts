@@ -28,7 +28,11 @@ export class putBodyValidationPipe implements PipeTransform {
     } catch (error) {
       if (error instanceof ZodError) {
         const modifiedZodError = error.errors.map((errorItem) => {
-          return { field: errorItem.path[0], message: errorItem.message };
+          return {
+            field: errorItem.path[0],
+            message: errorItem.message,
+            inner_field: errorItem.path[2] ?? null,
+          };
         });
         throw new HttpException(modifiedZodError, HttpStatus.NOT_ACCEPTABLE);
       } else {
