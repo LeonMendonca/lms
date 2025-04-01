@@ -495,4 +495,20 @@ export class StudentsController {
       throw error;
     }
   }
+
+  @Get('admin-dashboard')
+  async adminDashboard(@Request() req: AuthenticatedRequest) {
+    try {
+      const user = req.user; 
+      return await this.studentsService.adminDashboard();
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
 }
