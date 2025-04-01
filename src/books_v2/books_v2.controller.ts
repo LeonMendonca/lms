@@ -38,12 +38,20 @@ import {
 } from './zod/update-fp-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { bookUUIDZod, TbookUUIDZod } from './zod/bookuuid-zod';
-import { requestBookZodIssue, requestBookZodIssueReIssueAR, requestBookZodReIssue } from './zod/requestbook-zod';
-import type { TRequestBookZodIssue, TRequestBookZodIssueReIssueAR, TRequestBookZodReIssue } from './zod/requestbook-zod'
+import {
+  requestBookZodIssue,
+  requestBookZodIssueReIssueAR,
+  requestBookZodReIssue,
+} from './zod/requestbook-zod';
+import type {
+  TRequestBookZodIssue,
+  TRequestBookZodIssueReIssueAR,
+  TRequestBookZodReIssue,
+} from './zod/requestbook-zod';
 
 @Controller('book_v2')
 export class BooksV2Controller {
-  constructor(private readonly booksService: BooksV2Service) { }
+  constructor(private readonly booksService: BooksV2Service) {}
 
   // Get all books
   @Get('all')
@@ -83,7 +91,6 @@ export class BooksV2Controller {
     @Query('_isbn') isbn: string,
     @Query('_page') page: string,
     @Query('_limit') limit: string,
-
   ) {
     try {
       return await this.booksService.getLogDetailsByTitle({
@@ -107,8 +114,7 @@ export class BooksV2Controller {
   async getLogDetailsByCopy(
     @Query('_barcode') barcode: string,
     @Query('_page') page: string,
-    @Query('_limit') limit: string
-
+    @Query('_limit') limit: string,
   ) {
     try {
       return await this.booksService.getLogDetailsByCopy({
@@ -153,13 +159,12 @@ export class BooksV2Controller {
   @Get('get_all_available') // working
   async getAllAvailableBooks(
     @Query('_page') page: string,
-    @Query('_limit') limit: string) {
-    return await this.booksService.getAllAvailableBooks(
-      {
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      }
-    );
+    @Query('_limit') limit: string,
+  ) {
+    return await this.booksService.getAllAvailableBooks({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+    });
   }
 
   @Get('get_available_by_isbn') // working// pagination
@@ -172,48 +177,44 @@ export class BooksV2Controller {
       return await this.booksService.getavailablebookbyisbn({
         isbn,
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10
-      }
-      );
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
-      throw error
-
+      throw error;
     }
   }
 
   @Get('get_all_unavailable') // working
   async getAllUnavailableBooks(
     @Query('_page') page: string,
-    @Query('_limit') limit: string
+    @Query('_limit') limit: string,
   ) {
-    return await this.booksService.getAllUnavailableBooks(
-      {
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      }
-    );
+    return await this.booksService.getAllUnavailableBooks({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 10,
+    });
   }
 
   @Get('get_unavailable_by_isbn') // working // pagination
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
     @Query('_page') page: string,
-    @Query('_limit') limit: string
+    @Query('_limit') limit: string,
   ) {
     try {
       return await this.booksService.getunavailablebookbyisbn({
         isbn,
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10
+        limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
-      throw error
+      throw error;
     }
   }
 
@@ -279,14 +280,15 @@ export class BooksV2Controller {
     new bulkBodyValidationPipe<{
       validated_array: TbookUUIDZod[];
       invalid_data_count: number;
-    }>(
-      'book/book-zod-uuid-worker'
-    ),
+    }>('book/book-zod-uuid-worker'),
   )
-  async bulkDelete(@Body() bookZodValidatedUUIDObject: {
-    validated_array: TbookUUIDZod[];
-    invalid_data_count: number;
-  }) {
+  async bulkDelete(
+    @Body()
+    bookZodValidatedUUIDObject: {
+      validated_array: TbookUUIDZod[];
+      invalid_data_count: number;
+    },
+  ) {
     try {
       return this.booksService.bulkDelete(bookZodValidatedUUIDObject);
     } catch (error) {
@@ -389,7 +391,7 @@ export class BooksV2Controller {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
-      throw error
+      throw error;
     }
   }
 
@@ -427,7 +429,6 @@ export class BooksV2Controller {
       isbn,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
-
     });
   }
 
@@ -498,7 +499,8 @@ export class BooksV2Controller {
         );
       }
 
-      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
+        undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(
@@ -608,9 +610,8 @@ export class BooksV2Controller {
     try {
       return await this.booksService.getFullFeeList({
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10
-      }
-      );
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -645,10 +646,11 @@ export class BooksV2Controller {
     @Query('_limit') limit: string,
   ) {
     try {
-      return await this.booksService.generateFeeReport(start,
+      return await this.booksService.generateFeeReport(
+        start,
         end,
         page ? parseInt(page, 10) : 1,
-        limit ? parseInt(limit, 10) : 10
+        limit ? parseInt(limit, 10) : 10,
       );
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -664,11 +666,14 @@ export class BooksV2Controller {
   //REQUEST BOOK
 
   @Get('request_booklog')
-  async getRequestBooklog() { }
+  async getRequestBooklog() {}
 
   @Post('request_booklog_issue')
   @UsePipes(new bodyValidationPipe(requestBookZodIssue))
-  async createRequestBooklogIssue(@Body() requestBookIssuePayload: TRequestBookZodIssue, @Req() request: Request) {
+  async createRequestBooklogIssue(
+    @Body() requestBookIssuePayload: TRequestBookZodIssue,
+    @Req() request: Request,
+  ) {
     try {
       if (!request.ip) {
         throw new HttpException(
@@ -677,10 +682,16 @@ export class BooksV2Controller {
         );
       }
       //Adding IP address, since required for issuing
-      return await this.booksService.createRequestBooklogIssue(requestBookIssuePayload, request.ip);
+      return await this.booksService.createRequestBooklogIssue(
+        requestBookIssuePayload,
+        request.ip,
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -689,12 +700,19 @@ export class BooksV2Controller {
   //Approve or Reject for Issue
   @Post('request_booklog_issue_ar')
   @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
-  async createRequestBooklogIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+  async createRequestBooklogIssueAR(
+    @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
+  ) {
     try {
-      return await this.booksService.createRequestBooklogIssueAR(requestBookIssueARPayload);
+      return await this.booksService.createRequestBooklogIssueAR(
+        requestBookIssueARPayload,
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -702,7 +720,10 @@ export class BooksV2Controller {
 
   @Post('request_booklog_reissue')
   @UsePipes(new bodyValidationPipe(requestBookZodReIssue))
-  async createRequestBooklogReIssue(@Body() requestBookReIssuePayload: TRequestBookZodReIssue, @Req() request: Request) {
+  async createRequestBooklogReIssue(
+    @Body() requestBookReIssuePayload: TRequestBookZodReIssue,
+    @Req() request: Request,
+  ) {
     try {
       if (!request.ip) {
         throw new HttpException(
@@ -710,11 +731,16 @@ export class BooksV2Controller {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      return await this.booksService.createBooklogReissue(requestBookReIssuePayload, request.ip)
-
+      return await this.booksService.createBooklogReissue(
+        requestBookReIssuePayload,
+        request.ip,
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -723,12 +749,19 @@ export class BooksV2Controller {
   //Approve or Reject for ReIssue
   @Put('request_booklog_reissue_ar')
   @UsePipes(new bodyValidationPipe(requestBookZodIssueReIssueAR))
-  async createRequestBooklogReIssueAR(@Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
+  async createRequestBooklogReIssueAR(
+    @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
+  ) {
     try {
-      return await this.booksService.requestBooklogReissuear(requestBookIssueARPayload);
+      return await this.booksService.requestBooklogReissuear(
+        requestBookIssueARPayload,
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -737,16 +770,15 @@ export class BooksV2Controller {
   @Get('student-current-borrows')
   async studentCurrentBooks(@Query('_student_id') student_id: string) {
     try {
-
       return await this.booksService.studentCurrentBooks(student_id);
-
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
   }
-
-
 }

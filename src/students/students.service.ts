@@ -187,20 +187,26 @@ export class StudentsService {
     }
   }
 
-  async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
+  async editStudent(
+    studentId: string,
+    editStudentPayload: TEditStudentDTO,
+  ): Promise<Students> {
     try {
       let queryData = updateQueryHelper<TEditStudentDTO>(
         editStudentPayload,
         [],
       );
       const result = await this.studentsRepository.query(
-        `
-        UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false
-      `,
+        `UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false RETURNING *`,
         queryData.values,
       );
-      //Asserted a type as UPDATE returns it
-      return result as [[], number];
+      if (!result.length) {
+        throw new HttpException(
+          'Student not found after update',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return result[0];
     } catch (error) {
       throw error;
     }
@@ -576,7 +582,7 @@ export class StudentsService {
       const jwtPayloadSelective = {
         student_id: jwtPayload[0].student_id,
         email: jwtPayload[0].email,
-      }
+      };
 
       delete jwtPayload[0].password;
 
@@ -587,6 +593,45 @@ export class StudentsService {
           institute_image:
             'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
         },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async studentDashboard(user: any) {
+    try {
+      console.log(user);
+      const student = await this.studentsRepository.query(
+        `SELECT student_uuid FROM students_table WHERE student_id= $1`,
+        [user.student_id],
+      );
+      const totalBooks = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false`,
+      );
+      const availableBooks = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true`,
+      );
+      const newBooks = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true AND created_at >= NOW() - INTERVAL '1 month'`,
+      );
+      const yearlyBorrow = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
+   AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
+        [student[0].student_uuid],
+      );
+      const totalBorrowedBooks = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 `,
+        [student[0].student_uuid],
+      );
+
+      //Asserted a type as UPDATE returns it
+      return {
+        totalBooks: totalBooks[0].count,
+        availableBooks: availableBooks[0].count,
+        newBooks: newBooks[0].count,
+        yearlyBorrow: yearlyBorrow[0].count,
+        totalBorrowedBooks: totalBorrowedBooks[0].count,
       };
     } catch (error) {
       throw error;

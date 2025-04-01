@@ -16,6 +16,7 @@ import {
   UseGuards,
   Req,
   HttpCode,
+  Request,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -43,7 +44,7 @@ import {
   TStudentCredZodType,
 } from './zod-validation/studentcred-zod';
 import { StudentAuthGuard } from './student.guard';
-import { Request } from 'express';
+// import { Request } from 'express';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { Students } from './students.entity';
 
@@ -52,6 +53,10 @@ interface ApiResponse<T> {
   data?: T;
   pagination: {} | null;
   error?: string;
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: any; // Ideally, replace `any` with your `User` type
 }
 
 @Controller('student')
@@ -192,26 +197,19 @@ export class StudentsController {
   @Put('edit/:_student_id')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
-    @Param('_student_id')
-    studentId: string,
+    @Param('_student_id') studentId: string,
     @Body() studentPayload: TEditStudentDTO,
-  ) {
+  ): Promise<ApiResponse<Students>> {
     try {
-      const result = await this.studentsService.editStudent(
+      const data = await this.studentsService.editStudent(
         studentId,
         studentPayload,
       );
-      if (result[1]) {
-        return {
-          statusCode: HttpStatus.OK,
-          message: `User id ${studentId} updated successfully!`,
-        };
-      } else {
-        throw new HttpException(
-          `User with id ${studentId} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -469,6 +467,24 @@ export class StudentsController {
   async studentLogin(@Body() studentCredPayload: TStudentCredZodType) {
     try {
       return await this.studentsService.studentLogin(studentCredPayload);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+  
+
+  @Get('student-dashboard')
+  @UseGuards(StudentAuthGuard)
+  async studentDashboard(@Request() req: AuthenticatedRequest) {
+    try {
+      const user = req.user; 
+      return await this.studentsService.studentDashboard(user);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
