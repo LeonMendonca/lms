@@ -28,7 +28,7 @@ import {
   fees_penalties,
   FeesPenalties,
   TFeesPenalties,
-} from 'src/fees-penalties/fees-penalties.entity';
+} from 'src/fees-penalties/entity/fees-penalties.entity';
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';

@@ -2,7 +2,7 @@ import { Students } from 'src/students/students.entity';
 import { PrimaryGeneratedColumn, Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
 import { BookCopy } from './books_v2.copies.entity';
-import { FeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 
 
 

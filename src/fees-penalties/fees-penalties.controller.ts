@@ -1,14 +1,16 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { updateFeesPenaltiesZod, TUpdateFeesPenaltiesZod } from 'src/books_v2/zod/update-fp-zod';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { FeesPenaltiesService } from './fees-penalties.service';
+import { createPenaltyZod, TCreatePenaltyZod } from './zod/create-penalty-zod';
+import { student } from 'src/students/students.entity';
 
 @Controller('fees-penalties')
 export class FeesPenaltiesController {
 
     constructor(private feesPenaltiesService: FeesPenaltiesService) { }
 
-    @Put('pay_student_fee')
+    @Put('pay-student-fee')
     @UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
     async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod) {
         try {
@@ -24,41 +26,65 @@ export class FeesPenaltiesController {
         }
     }
 
-    @Get('get_student_fee')
+
+    @Post('pay-student-fee-periodicals')
+    @UsePipes(new bodyValidationPipe(createPenaltyZod))
+    async payStudentFeeForPeriodicals(@Body() feesPayload: TCreatePenaltyZod) {
+        try {
+            return await this.feesPenaltiesService.payStudentFeeForPeriodicals(feesPayload);
+        } catch (error) {
+            return { error: error }
+        }
+    }
+
+    @Get('get-student-fee')  // done
     async getStudentFeeHistory(
         @Query('_student_id') studentId: string,
         @Query('_ispenalised') isPenalty: boolean,
         @Query('_iscompleted') isCompleted: boolean,
     ) {
-        try {
-            if (studentId) {
-                return await this.feesPenaltiesService.getStudentFee(
-                    studentId,
-                    isPenalty,
-                    isCompleted,
-                );
-            } else if (isPenalty) {
-                return await this.feesPenaltiesService.getStudentFee(
-                    studentId,
-                    isPenalty,
-                    isCompleted,
-                );
-            } else if (isCompleted) {
-                return await this.feesPenaltiesService.getStudentFee(
-                    studentId,
-                    isPenalty,
-                    isCompleted,
-                );
-            }
-        } catch (error) {
-            if (!(error instanceof HttpException)) {
-                throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-            }
-            throw error;
-        }
+        return this.feesPenaltiesService.getStudentFee({
+            studentId: studentId ?? '',
+            isPenalty: isPenalty,
+            isCompleted: isCompleted
+        })
     }
 
-    @Get('get_full_feelist')
+
+    // async getStudentFeeHistory(
+    //     @Query('_student_id') studentId: string,
+    //     @Query('_ispenalised') isPenalty: boolean,
+    //     @Query('_iscompleted') isCompleted: boolean,
+    // ) {
+    //     try {
+    //         if (studentId) {
+    //             return await this.feesPenaltiesService.getStudentFee(
+    //                 studentId,
+    //                 isPenalty,
+    //                 isCompleted,
+    //             );
+    //         } else if (isPenalty) {
+    //             return await this.feesPenaltiesService.getStudentFee(
+    //                 studentId,
+    //                 isPenalty,
+    //                 isCompleted,
+    //             );
+    //         } else if (isCompleted) {
+    //             return await this.feesPenaltiesService.getStudentFee(
+    //                 studentId,
+    //                 isPenalty,
+    //                 isCompleted,
+    //             );
+    //         }
+    //     } catch (error) {
+    //         if (!(error instanceof HttpException)) {
+    //             throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    //         }
+    //         throw error;
+    //     }
+    // }
+
+    @Get('get-full-feelist') // done
     async getFullFeeList(
         @Query('_page') page: string,
         @Query('_limit') limit: string,
@@ -80,10 +106,12 @@ export class FeesPenaltiesController {
         }
     }
 
-    @Get('get_full_feelist_student')
-    async getFullFeeListStudent() {
+    @Get('get-full-feelist-student') // done
+    async getFullFeeListStudent(
+        @Query('student_id') student_id: string
+    ) {
         try {
-            return await this.feesPenaltiesService.getFullFeeListStudent();
+            return await this.feesPenaltiesService.getFullFeeListStudent(student_id);
         } catch (error) {
             if (!(error instanceof HttpException)) {
                 throw new HttpException(
@@ -95,7 +123,7 @@ export class FeesPenaltiesController {
         }
     }
 
-    @Get('generate_fee_report')
+    @Get('generate-fee-report')
     async generateFeeReport(
         @Query('start') start: Date,
         @Query('end') end: Date,

@@ -6,7 +6,7 @@ import { JournalCopy } from './entity/journals_copy.entity';
 import { JournalLogs } from './entity/journals_log.entity';
 import { JournalTitle } from './entity/journals_title.entity';
 import { Students } from 'src/students/students.entity';
-import { FeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([JournalLogs, JournalCopy, JournalTitle, Students, FeesPenalties])],

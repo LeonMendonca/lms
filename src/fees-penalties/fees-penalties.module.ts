@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { FeesPenaltiesController } from './fees-penalties.controller';
 import { FeesPenaltiesService } from './fees-penalties.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FeesPenalties } from './fees-penalties.entity';
+import { FeesPenalties } from './entity/fees-penalties.entity';
 import { JournalCopy } from 'src/journals/entity/journals_copy.entity';
 import { JournalTitle } from 'src/journals/entity/journals_title.entity';
 import { JournalLogs } from 'src/journals/entity/journals_log.entity';

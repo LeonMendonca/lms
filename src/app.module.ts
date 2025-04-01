@@ -15,9 +15,6 @@ import { BookLogModule } from './book_log/book_log.module';
 import { JournalsModule } from './journals/journals.module';
 import { JournalCopy } from './journals/entity/journals_copy.entity';
 import { NotificationsModule } from './notifications/notifications.module';
-import { TrialModule } from './trial/trial.module';
-import { TrialTable } from './trial/entity/trial_table.entity';
-import { TrialCopy } from './trial/entity/trial_copy.entity';
 import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { JournalTitle } from './journals/entity/journals_title.entity';
@@ -26,7 +23,7 @@ import { CalendarModule } from './calendar/calendar.module';
 import { Calendar } from './calendar/entity/calendar.entity';
 import { VisitLog } from './students/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
-import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
+import { FeesPenalties } from './fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './books_v2/entity/request-book.entity';
 
 config({ path: '.env' });
@@ -35,7 +32,7 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, VisitLog, FeesPenalties, RequestBook, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy, Calendar],
+      entities: [Students, VisitLog, FeesPenalties, RequestBook, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, Calendar],
       ssl: true,
       synchronize: true,
     }),
@@ -44,7 +41,6 @@ config({ path: '.env' });
     BookLogModule,
     JournalsModule,
     NotificationsModule,
-    TrialModule,
     CalendarModule,
     FeesPenaltiesModule,
     FeesPenalties

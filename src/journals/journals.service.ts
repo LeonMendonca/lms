@@ -1,6 +1,6 @@
 import { Subscription } from 'rxjs';
 // import { journalCopyQueryValidator } from './validators/journalcopy.query-validator';
-import { HttpException, HttpStatus, Injectable, } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { JournalCopy, TJournalCopy } from './entity/journals_copy.entity';
@@ -9,7 +9,7 @@ import { JournalLogs, TJournalLogs } from './entity/journals_log.entity';
 import { TCreateJournalZodDTO } from './zod-validation/createjournaldto-zod';
 import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
 import { TUpdateJournalTitleDTO, updateJournalSchema } from './zod-validation/updatejournaldto';
-import { Students } from 'src/students/students.entity';
+import { student, Students } from 'src/students/students.entity';
 import { TCreateJournalLogDTO } from './zod-validation/create-journallog-zod';
 import { Request } from 'express';
 import { title } from 'process';
@@ -21,6 +21,8 @@ import { Chunkify } from 'src/worker-threads/chunk-array';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
 import { genId } from './id-generation/create-periodical-ids';
 import { create } from 'domain';
+import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
+import { ReplOptions } from 'repl';
 
 @Injectable()
 export class JournalsService {
@@ -36,6 +38,9 @@ export class JournalsService {
 
         @InjectRepository(Students)
         private studentsRepository: Repository<Students>,
+
+        @InjectRepository(FeesPenalties)
+        private feesPenaltiesRepository: Repository<FeesPenalties>,
 
         private readonly dataSource: DataSource
     ) { }
@@ -699,6 +704,11 @@ export class JournalsService {
                     throw new HttpException('Invalid Student ID', HttpStatus.BAD_REQUEST);
                 }
 
+                // store the student_uuid for using in fees_n_penalties
+                const student_uuid = studentExists[0].student_uuid
+                const student_id = studentExists[0].student_id
+
+
                 console.log("STUDENT : ", studentExists[0]);
 
                 const journalData = await transactionalEntityManager.query(
@@ -708,9 +718,16 @@ export class JournalsService {
                 if (journalData.length === 0) {
                     throw new HttpException('Invalid Barcode or Journal Copy is not available', HttpStatus.BAD_REQUEST);
                 }
+
+                // store the journal_copy data for using in fees_n_penalties
+                const journal_copy_uuid = journalData[0].journal_copy_uuid
+                const journal_copy_id = journalData[0].journal_copy_id
+
+
                 console.log("OLD PERIODICAL COPY DATA : ", journalData[0]);
 
                 const journal_title_uuid = journalData[0].journal_title_uuid
+
                 const oldTitle = await transactionalEntityManager.query(
                     `SELECT * FROM journal_titles WHERE journal_uuid=$1 AND is_archived=false`,
                     [journal_title_uuid]
@@ -723,6 +740,9 @@ export class JournalsService {
                 if (oldTitle[0].available_count <= 0) {
                     throw new HttpException("No available periodicals for borrowing", HttpStatus.BAD_REQUEST);
                 }
+
+                // store data for fees_n_penalties
+                const return_date = oldTitle[0].subscription_end_date
 
                 console.log("OLD PERIODICAL TITLE DATA : ", oldTitle[0]);
 
@@ -787,6 +807,12 @@ export class JournalsService {
                         journalCopyUUID
                     ]
                 );
+
+                // 8. Insert Periodical Information into the Fees n Penalties Table
+                const penalty = await this.feesPenaltiesRepository.query(
+                    `INSERT INTO fees_penalties (category, borrower_uuid, book_copy_uuid, return_date) VALUES ($1, $2, $3, $4)`,
+                    ["periodical", student_uuid, journal_copy_uuid, return_date]
+                )
 
                 return { message: 'Periodical Borrowed Successfully', statusCode: HttpStatus.CREATED };
 
