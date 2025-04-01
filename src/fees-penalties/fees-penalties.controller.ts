@@ -174,4 +174,19 @@ export class FeesPenaltiesController {
       throw error;
     }
   }
+
+  // -------- FILTER ROUTES -----------
+
+
+  // Get penalties which are yet to be paid
+  @Get('get-pending-penalties')
+  async getPenaltiesToBePaid(){
+    return await this.feesPenaltiesService.getPenaltiesToBePaid()
+  }
+  
+  // Get penalties which are paid
+  @Get('get-completed-penalties')
+  async getCompletedPenalties(){
+    return await this.feesPenaltiesService.getCompletedPenalties()
+  }
 }
