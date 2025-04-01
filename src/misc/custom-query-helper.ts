@@ -32,7 +32,8 @@ export function updateQueryHelper<T extends object>(
   let queryParamNum = 0;
   const values: string[] = [];
   for (let key in payloadObject) {
-    if (ignoreField.includes(key)) {
+    // undefined institue uuid solution
+    if (ignoreField.includes(key) || payloadObject[key] === null) {
       continue;
     }
     queryParamNum++;

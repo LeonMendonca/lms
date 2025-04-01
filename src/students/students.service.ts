@@ -638,14 +638,9 @@ export class StudentsService {
     }
   }
 
-  async adminDashboard() {
+  async adminDashboard(instituteUUID: string) {
     try {
-      const instituteUUID = '828f0d33-258f-4a92-a235-9c1b30d8882b';
-
-      // const student = await this.studentsRepository.query(
-      //   `SELECT student_uuid FROM students_table WHERE student_id= $1`,
-      //   [user.student_id],
-      // );
+      // const instituteUUID = '1b4e28ba-2fa1-11d2-883f-0016d3cca427';
       const totalBooks = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND institute_uuid = $1`,
         [instituteUUID],
@@ -656,29 +651,21 @@ export class StudentsService {
         [instituteUUID],
       );
 
-      const availableBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = 'false' AND is_available = true`,
+      const totalMembers = await this.studentsRepository.query(
+        `SELECT COUNT(*) FROM students_table WHERE is_archived = false AND institute_uuid = $1`,
+        [instituteUUID],
       );
+
       const newBooks = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true AND created_at >= NOW() - INTERVAL '1 month'`,
       );
-      //     const yearlyBorrow = await this.studentsRepository.query(
-      //       `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
-      //  AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
-      //       [student[0].student_uuid],
-      //     );
-      //     const totalBorrowedBooks = await this.studentsRepository.query(
-      //       `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 `,
-      //       [student[0].student_uuid],
-      //     );
 
       //Asserted a type as UPDATE returns it
       return {
         totalBooks: totalBooks[0].count,
         totalBorrowedBooks: totalBorrowedBooks[0].count,
-        // availableBooks: availableBooks[0].count,
-        // newBooks: newBooks[0].count,
-        // yearlyBorrow: yearlyBorrow[0].count,
+        totalMembers: totalMembers[0].count,
+        newBooks: newBooks[0].count,
       };
     } catch (error) {
       throw error;

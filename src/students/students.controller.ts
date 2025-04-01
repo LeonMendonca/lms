@@ -497,10 +497,9 @@ export class StudentsController {
   }
 
   @Get('admin-dashboard')
-  async adminDashboard(@Request() req: AuthenticatedRequest) {
+  async adminDashboard(@Query('_institute_uuid') institute_uuid: string) {
     try {
-      const user = req.user; 
-      return await this.studentsService.adminDashboard();
+      return await this.studentsService.adminDashboard(institute_uuid);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
