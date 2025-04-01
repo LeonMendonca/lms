@@ -353,22 +353,23 @@ export class JournalsController {
     // BULK DELETE
     @Delete('bulk-delete-for-periodical-copies')
     @UsePipes(
-        new bulkBodyValidationPipe<TPeriodicalCopyIdDTO[]>(
+        new bulkBodyValidationPipe<{ validated_array: TPeriodicalCopyIdDTO[]; invalid_data_count: number }>(
             'journals/bulk-delete-for-periodical-copies',
         ),
     )
-    async bulkDeletePeriodicalCopies(@Body() arrCopyUUIDPayload: TPeriodicalCopyIdDTO[]) {
+    async bulkDeletePeriodicalCopies(@Body() arrCopyUUIDPayload: { validated_array: TPeriodicalCopyIdDTO[]; invalid_data_count: number }) {
         try {
-            const result = await this.journalsService.bulkDeletePeriodicalCopies(arrCopyUUIDPayload);
+            const result = await this.journalsService.bulkDeletePeriodicalCopies(arrCopyUUIDPayload.validated_array);
             return result;
         } catch (error) {
             if (!(error instanceof HttpException)) {
                 throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
                 throw error;
-            };
+            }
         }
     }
+
 
 
     // get journal logs from journal_log_uuid or issn number
