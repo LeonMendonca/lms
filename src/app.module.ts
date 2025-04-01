@@ -35,16 +35,7 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy, Calendar],
-      entities: [
-        Students,
-        BookCopy,
-        BookTitle,
-        Booklog_v2,
-        VisitLog,
-        FeesPenalties,
-        RequestBook
-      ],
+      entities: [Students, VisitLog, FeesPenalties, RequestBook, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy, Calendar],
       ssl: true,
       synchronize: true,
     }),
@@ -56,6 +47,7 @@ config({ path: '.env' });
     TrialModule,
     CalendarModule,
     FeesPenaltiesModule,
+    FeesPenalties
   ],
 })
 export class AppModule {

@@ -2,10 +2,19 @@ import { BookCopy } from "src/books_v2/entity/books_v2.copies.entity";
 import { Students } from "src/students/students.entity";
 import { Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, Entity, JoinColumn } from "typeorm";
 
+
+export const CATEGORY = {
+    BOOK: "book",
+    PERIODICAL: "periodical"
+} as const
+
 @Entity('fees_penalties')
 export class FeesPenalties {
     @PrimaryGeneratedColumn('uuid', { name: 'fp_uuid' })
     fpUUID: 'fp_uuid' = 'fp_uuid';
+
+    @Column({ name: "category", type: "enum", enum: CATEGORY })
+    category: 'category' = 'category';
 
     @ManyToOne(() => Students, (student) => student.studentUUID)
     @JoinColumn({ name: 'borrower_uuid' })

@@ -14,11 +14,7 @@ export class Booklog_v2 {
   //student uuid
   @ManyToOne(() => Students, (students) => students.studentUUID)
   @JoinColumn({ name: "borrower_uuid" })
-
   borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
-
-  borrowerUUID: 'borrower_uuid' = 'borrower_uuid'; 
-
 
   @ManyToOne(() => BookTitle, (book_title) => book_title.bookUUID)
   @JoinColumn({ name: "book_title_uuid" })
@@ -28,10 +24,6 @@ export class Booklog_v2 {
 
   @JoinColumn({ name: 'book_copy_uuid' })
   bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
-
-  @JoinColumn({ name:'book_copy_uuid' })
-  bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';  
-
 
   @Column({ name: 'old_book_copy', type: 'jsonb' })
   oldBookCopy: 'old_book_copy' = "old_book_copy";
@@ -46,13 +38,6 @@ export class Booklog_v2 {
   @Column({ name: 'new_book_title', type: 'jsonb' })
   newBookTitle: 'old_book_copy' = "old_book_copy";
 
-  
-  @Column({ name: 'old_book_title', type: 'jsonb' }) 
-  oldBookTitle: 'old_book_title' = "old_book_title";
-
-  @Column({ name: 'new_book_title', type: 'jsonb' }) 
-  newBookTitle: 'new_book_title' = "new_book_title";
-
   @Column({ name: 'action', type: 'varchar', length: 255 })
   action: "action" = 'action';
 
@@ -62,10 +47,7 @@ export class Booklog_v2 {
   @Column({ name: 'time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   time: 'time' = 'time';
 
-  @Column({  name: 'description', type: 'varchar', length:255  })
-  description: 'description' = 'description';
-
-  @Column({  name: 'date', type: 'date', default: () => 'CURRENT_DATE' })
+  @Column({ name: 'date', type: 'date', default: () => 'CURRENT_DATE' })
   date: 'date' = 'date';
 
 

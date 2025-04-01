@@ -74,14 +74,6 @@ export class BooksV2Service {
       const offset = (page - 1) * limit;
       const searchQuery = search ? `${search}%` : '%';
 
-      const books = await this.booktitleRepository.query
-        (
-          `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false LIMIT $2 OFFSET $3;`,
-          [searchQuery, limit, offset]
-        );
-      const total = await this.booktitleRepository.query(
-        `SELECT COUNT(*) as count FROM book_titles 
-        WHERE is_archived = false AND book_title ILIKE $1`,
       const books = await this.booktitleRepository.query(
         `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false AND available_count >0 AND total_count >0  LIMIT $2 OFFSET $3;`,
         [searchQuery, limit, offset],
@@ -241,9 +233,6 @@ export class BooksV2Service {
 
 
       const books = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies 
-        WHERE is_archived = false AND book_title_uuid = $1`,
-        [book[0].book_uuid],
         `   SELECT 
     book_titles.book_title, 
     book_titles.book_uuid,
@@ -601,10 +590,6 @@ export class BooksV2Service {
         `SELECT book_logv2.action,book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2`,
         [limit, offset]
       );
-      const total = await this.booklogRepository.query
-        (
-          `SELECT COUNT(*) as count FROM book_logv2`,
-        );
       const total = await this.booklogRepository.query(
         `SELECT COUNT(*) as count FROM book_logv2`,
       );
@@ -639,10 +624,6 @@ export class BooksV2Service {
     limit: number
   }) {
     try {
-      const logs = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 
-        WHERE book_uuid = $1`,
-        [book_uuid],
       const offset = (page - 1) * limit;
       let query = `SELECT book_copy_uuid, new_book_copy, new_book_title, action, date, book_uuid, book_title, book_author, isbn, department, author_mark, available_count, total_count
       FROM book_logv2 INNER JOIN book_titles ON book_titles.book_uuid = book_logv2.book_title_uuid`;
@@ -682,6 +663,7 @@ export class BooksV2Service {
       throw error
     }
   }
+
   async getLogDetailsByCopy({ barcode,
     page,
     limit }: {
@@ -702,8 +684,6 @@ export class BooksV2Service {
 
       const logs = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 
-        WHERE book_copy_uuid = $1`,
-        [book[0].book_copy_uuid],
         WHERE book_copy_uuid = $1  LIMIT $2 OFFSET $3`,
         [book[0].book_copy_uuid, limit, offset],
       );
@@ -787,23 +767,7 @@ export class BooksV2Service {
 
       await this.booktitleRepository.query(
         `UPDATE book_titles 
-        SET
-        book_title = COALESCE($2, book_title),
-          book_author = COALESCE($3, book_author),
-          name_of_publisher = COALESCE($4, name_of_publisher),
-          place_of_publication = COALESCE($5, place_of_publication),
-          year_of_publication = COALESCE($6, year_of_publication),
-          edition = COALESCE($7, edition),
-          isbn = COALESCE($8, isbn),
-          subject = COALESCE($9, subject),
-          department = COALESCE($10, department),
-          total_count = COALESCE($11, total_count),
-          available_count = COALESCE($12, available_count),
-          images = COALESCE($13, images),
-          additional_fields = COALESCE($14, additional_fields),
-          description = COALESCE($15, description),
-          updated_at = NOW()
-        WHERE book_uuid = $1`,
+        SET 
           book_title = COALESCE($2, book_title),
         title_description = COALESCE($3, title_description),
         author_mark = COALESCE($4, author_mark),
@@ -841,7 +805,6 @@ export class BooksV2Service {
           updateBookPayload.year_of_publication,
         ],
       );
-
       return { message: 'Book updated successfully' };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
@@ -852,10 +815,6 @@ export class BooksV2Service {
   async createBook(createBookpayload: TCreateBookZodDTO) {
     try {
       //Check if book exists in BookTitle Table
-      let bookTitleUUID: [{ book_uuid: string }] = await this.booktitleRepository.query(
-        `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
-        [createBookpayload.isbn],
-      );
       let bookTitleUUID: Pick<TBookTitle, 'book_uuid'>[] =
         await this.booktitleRepository.query(
           `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
@@ -901,19 +860,6 @@ export class BooksV2Service {
             bookTitleQueryData.values[idx] = JSON.stringify(element);
           }
         });
-
-        bookTitleUUID = await this.booktitleRepository.query
-          (
-            `INSERT INTO book_titles (${bookTitleQueryData.queryCol}) VALUES (${bookTitleQueryData.queryArg}) RETURNING book_uuid`,
-            bookTitleQueryData.values
-          );
-      } else {
-        await this.booktitleRepository.query
-          (
-            `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE isbn = $1`,
-            [createBookpayload.isbn],
-          );
-
         bookTitleUUID = await this.booktitleRepository.query(
           `INSERT INTO book_titles (${bookTitleQueryData.queryCol}) VALUES (${bookTitleQueryData.queryArg}) RETURNING book_uuid`,
           bookTitleQueryData.values,
@@ -923,7 +869,6 @@ export class BooksV2Service {
           `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE isbn = $1`,
           [createBookpayload.isbn],
         );
-
       }
       //Book Copy Table logic
 
@@ -972,13 +917,6 @@ export class BooksV2Service {
         }
       });
 
-      await this.bookcopyRepository.query
-        (
-          `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
-          bookCopyQueryData.values
-        );
-      return { statusCode: HttpStatus.CREATED, message: "Book created" }
-
       await this.bookcopyRepository.query(
         `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
         bookCopyQueryData.values,
@@ -989,6 +927,7 @@ export class BooksV2Service {
     }
   }
 
+
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {
     try {
       //console.log(creatbookpayload.book_uuid);
@@ -997,7 +936,6 @@ export class BooksV2Service {
         `SELECT * FROM book_titles WHERE book_uuid =$1 AND is_archived = false`,
         [creatbookpayload.book_uuid],
       );
-      console.log({ book });
       //console.log({ book });
 
       if (book.length === 0) {
@@ -1010,21 +948,11 @@ export class BooksV2Service {
       // Update is_archived to true
       await this.booktitleRepository.query(
         `UPDATE book_titles SET is_archived = true WHERE book_uuid = $1`,
-        [book_uuid],
         [creatbookpayload.book_uuid],
       );
 
       await this.bookcopyRepository.query(
         `UPDATE book_copies SET is_archived = true WHERE book_title_uuid = $1`,
-        [book_uuid],
-      );
-
-      return { message: 'Book archived successfully' };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        'Error archiving book',
-        HttpStatus.INTERNAL_SERVER_ERROR,
         [creatbookpayload.book_uuid],
       );
 
@@ -1079,21 +1007,21 @@ export class BooksV2Service {
       }
 
       await this.bookcopyRepository.query(
-        `UPDATE book_copies 
-        SET 
-        source_of_acquisition = COALESCE($2, source_of_acquisition),
-          date_of_acquisition = COALESCE($3, date_of_acquisition),
-          bill_no = COALESCE($4, bill_no),
-          language = COALESCE($5, language),
-          inventory_number = COALESCE($6, inventory_number),
-          accession_number = COALESCE($7, accession_number),
-          barcode = COALESCE($8, barcode),
-          item_type = COALESCE($9, item_type),
-          remarks = COALESCE($10, remarks),
-          copy_images = COALESCE($11, copy_images),
-          copy_additional_fields = COALESCE($12, copy_additional_fields),
-          copy_description = COALESCE($13, copy_description),
-          updated_at = NOW()
+        `UPDATE book_copies
+      SET
+      source_of_acquisition = COALESCE($2, source_of_acquisition),
+        date_of_acquisition = COALESCE($3, date_of_acquisition),
+        bill_no = COALESCE($4, bill_no),
+        language = COALESCE($5, language),
+        inventory_number = COALESCE($6, inventory_number),
+        accession_number = COALESCE($7, accession_number),
+        barcode = COALESCE($8, barcode),
+        item_type = COALESCE($9, item_type),
+        remarks = COALESCE($10, remarks),
+        copy_images = COALESCE($11, copy_images),
+        copy_additional_fields = COALESCE($12, copy_additional_fields),
+        copy_description = COALESCE($13, copy_description),
+        updated_at = NOW()
         WHERE book_copy_uuid = $1`,
         [
           id,
@@ -1126,7 +1054,7 @@ export class BooksV2Service {
   //     try {
   //       // Archive the book copy and get the bookTitleUUID
   //       const archiveResult = await this.bookcopyRepository.query(
-  //         `UPDATE book_copies 
+  //         `UPDATE book_copies
   //         SET is_archived = true 
   //         WHERE book_copy_uuid = $1 
   //         RETURNING book_title_uuid`,
@@ -1167,6 +1095,7 @@ export class BooksV2Service {
   //     }
   //   }
 
+
   async archiveBookCopy(book_copy_uuid: string) {
     try {
       //console.log("Archiving book copy...");
@@ -1181,10 +1110,10 @@ export class BooksV2Service {
 
       // Archive the book copy and get the bookTitleUUID
       const archiveResult = await this.bookcopyRepository.query
-      (
-        `UPDATE book_copies SET is_archived = true WHERE book_copy_uuid = $1 AND is_available = TRUE RETURNING book_title_uuid`,
-        [book_copy_uuid]
-      );
+        (
+          `UPDATE book_copies SET is_archived = true WHERE book_copy_uuid = $1 AND is_available = TRUE RETURNING book_title_uuid`,
+          [book_copy_uuid]
+        );
 
       //console.log("Archive result:", archiveResult);
 
@@ -1209,11 +1138,6 @@ export class BooksV2Service {
       // Update total_count and available_count in book_titles
       await this.booktitleRepository.query(
         `UPDATE book_titles 
-        SET 
-        total_count = GREATEST(total_count - 1, 0), 
-          available_count = GREATEST(available_count - 1, 0)
-        WHERE book_uuid = $1`,
-        [bookTitleUUID],
       SET 
         total_count = $1, 
         available_count = $1
@@ -1230,11 +1154,11 @@ export class BooksV2Service {
 
 
 
+
   async restoreBookCopy(book_copy_uuid: string) {
     try {
       const book = await this.bookcopyRepository.query(
         `SELECT * FROM book_copies WHERE book_copy_uuid = $1 AND is_archived = true`,
-        [book_uuid],
         [book_copy_uuid],
       );
 
@@ -1247,7 +1171,6 @@ export class BooksV2Service {
 
       await this.booktitleRepository.query(
         `UPDATE book_copies SET is_archived = false WHERE book_copy_uuid = $1 RETURNING book_title_uuid`,
-        [book_uuid],
         [book_copy_uuid],
       );
 
@@ -1272,9 +1195,23 @@ export class BooksV2Service {
     }
   }
 
-  async isbnBook(isbn: string) {
-    const result = await this.booktitleRepository.query
-      (`SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.images,book_titles.additional_fields,book_titles.description,book_titles.no_of_pages,book_titles.no_of_preliminary,book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn='${isbn}' LIMIT 1`);
+  async isbnBook(
+    isbn: string,
+  ) {
+    const result = await this.booktitleRepository.query(`
+      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.
+      language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,
+      book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,
+      book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.title_images,
+      book_titles.title_additional_fields,book_titles.title_description,book_titles.no_of_pages,book_titles.no_of_preliminary,
+      book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn= $1 LIMIT 1
+   `, [isbn]);
+    if (result.length === 0) {
+      throw new Error('No data found');
+    }
+    return result;
+  }
+
 
   async bulkDelete(arrBookUUIDPayload: { validated_array: TbookUUIDZod[], invalid_data_count: number }) {
     try {
@@ -1303,23 +1240,6 @@ export class BooksV2Service {
     }
   }
 
-  async isbnBook(
-    isbn: string,
-  ) {
-    const result = await this.booktitleRepository.query(`
-      SELECT book_copies.source_of_acquisition, book_copies.date_of_acquisition, book_copies.bill_no,book_copies.
-      language,book_copies.inventory_number, book_copies.accession_number,book_copies.barcode,book_copies.item_type,book_copies.remarks,
-      book_titles.book_title,book_titles.book_author,book_titles.name_of_publisher,book_titles.place_of_publication,book_titles.year_of_publication,
-      book_titles.edition,book_titles.subject,book_titles.department,book_titles.call_number,book_titles.author_mark,book_titles.title_images,
-      book_titles.title_additional_fields,book_titles.title_description,book_titles.no_of_pages,book_titles.no_of_preliminary,
-      book_titles.isbn FROM book_titles INNER JOIN book_copies on book_titles.book_uuid = book_copies.book_title_uuid where book_titles.isbn= $1 LIMIT 1
-   `, [isbn]);
-
-    if (result.length === 0) {
-      throw new Error('No data found');
-    }
-    return result;
-  }
 
   async bookReturned(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
@@ -1328,21 +1248,11 @@ export class BooksV2Service {
   ) {
     try {
 
-      if (!request.ip) {
-        throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-      const studentExists: { student_uuid: string }[] = await this.sudentRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-        [booklogPayload.student_id],
-      );
-
-
       const studentExists: { student_uuid: string }[] =
         await this.studentRepository.query(
           `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
-
 
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
@@ -1350,16 +1260,6 @@ export class BooksV2Service {
 
       //Check if Book exists in Book Copies as not available
       //Insert into old_book_copy COLUMN
-
-      const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
-        (
-          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = FALSE`,
-          [booklogPayload.book_copy_id, booklogPayload.barcode]
-        );
-
-      if (!bookPayloadFromBookCopies.length) {
-        throw new HttpException("Cannot find Borrowed Book", HttpStatus.NOT_FOUND);
-
       const bookPayloadFromBookCopies: TBookCopy[] =
         await this.bookcopyRepository.query(
           `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = FALSE AND is_archived = FALSE`,
@@ -1371,7 +1271,6 @@ export class BooksV2Service {
           'Cannot find Borrowed Book',
           HttpStatus.NOT_FOUND,
         );
-
       }
 
       const bookBorrowedPayload: TBooklog_v2[] =
@@ -1386,28 +1285,14 @@ export class BooksV2Service {
 
       //if student doesn't exist in Booklog table (it hasn't borrowed), or it isn't the book that it borrowed, but attempting to return it
       if (!bookBorrowedPayload.length) {
-
-        throw new HttpException('Student hasn\'t borrowed at all, or Invalid Book is being returned', HttpStatus.NOT_FOUND);
-
         throw new HttpException(
           "Student hasn't borrowed at all, or Invalid Book is being returned",
           HttpStatus.NOT_FOUND,
         );
-
       }
 
       //Check if Book hasn't reached its total count in Book Titles through book_title_uuid received from Book Copies via SELECT query
       //Insert into old_book_title COLUMN
-
-      const bookPayloadFromBookTitle: TBookTitle[] = await this.bookcopyRepository.query
-        (
-          `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count != total_count`,
-          [bookPayloadFromBookCopies[0].book_title_uuid]
-        )
-
-      if (!bookPayloadFromBookTitle.length) {
-        throw new HttpException("Seems like Book is fully returned in Book Titles, but exists in Book Log as not returned", HttpStatus.INTERNAL_SERVER_ERROR);
-
       const bookPayloadFromBookTitle: TBookTitle[] =
         await this.bookcopyRepository.query(
           `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count != total_count AND is_archived = FALSE`,
@@ -1419,18 +1304,10 @@ export class BooksV2Service {
           'Seems like Book is fully returned in Book Titles, but exists in Book Log as not returned',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-
       }
 
       //UPDATING now is safe
       //Insert into new_book_copy
-
-      const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] = await this.bookcopyRepository.query
-        (
-          `UPDATE book_copies SET is_available = TRUE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = FALSE
-        RETURNING *`,
-          [bookPayloadFromBookCopies[0].book_copy_uuid, bookPayloadFromBookCopies[0].barcode],
-
       const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] =
         await this.bookcopyRepository.query(
           `UPDATE book_copies SET is_available = TRUE WHERE book_copy_uuid = $1 AND barcode = $2 
@@ -1439,21 +1316,15 @@ export class BooksV2Service {
             bookPayloadFromBookCopies[0].book_copy_uuid,
             bookPayloadFromBookCopies[0].barcode,
           ],
-
         );
 
       const updateStatus = updatedBookCopiesPayload[1];
       if (!updateStatus) {
-
-        //if somehow the update fails, even after getting the data through SELECT query 
-        throw new HttpException("Failed to update Book", HttpStatus.INTERNAL_SERVER_ERROR);
-
         //if somehow the update fails, even after getting the data through SELECT query
         throw new HttpException(
           'Failed to update Book',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-
       }
 
       if (!updatedBookCopiesPayload[0].length) {
@@ -1468,17 +1339,10 @@ export class BooksV2Service {
       const bookCopyUUID = updatedBookCopiesPayload[0][0].book_copy_uuid;
 
       //Insert into new_book_copy COLUMN
-
-      const updatedBookTitlePayload: [TBookTitle[], 0 | 1] = await this.booktitleRepository.query
-        (
-          `UPDATE book_titles SET available_count = available_count + 1 WHERE book_uuid = $1 RETURNING *`,
-          [bookTitleUUID]
-
       const updatedBookTitlePayload: [TBookTitle[], 0 | 1] =
         await this.booktitleRepository.query(
           `UPDATE book_titles SET available_count = available_count + 1 WHERE book_uuid = $1 AND is_archived = FALSE RETURNING *`,
           [bookTitleUUID],
-
         );
 
       const oldBookCopy = JSON.stringify(bookPayloadFromBookCopies[0]);
@@ -1486,19 +1350,6 @@ export class BooksV2Service {
 
       const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
       const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
-
-
-      await this.booklogRepository.query
-        (
-          `INSERT INTO book_logv2 (
-          borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-          [
-            studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been returned', bookTitleUUID,
-            oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
-          ]
-        );
 
       const feesPenaltiesPayload: TFeesPenalties[] =
         await this.fpRepository.query(
@@ -1599,56 +1450,22 @@ export class BooksV2Service {
 
   async bookBorrowed(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
-    ipAddress: string,
+    ipAddress: Request,
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {
-
-      if (!request.ip) {
-        throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-      const studentExists: { student_uuid: string }[] = await this.sudentRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-        [booklogPayload.student_id],
-      );
-
 
       const studentExists: { student_uuid: string }[] =
         await this.studentRepository.query(
           `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
-
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
 
       //Check if Book exists in Book Copies
       //Insert into old_book_copy COLUMN
-
-      const bookPayloadFromBookCopies: TBookCopy[] = await this.bookcopyRepository.query
-        (
-          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND barcode = $2 AND is_available = TRUE`,
-          [booklogPayload.book_copy_id, booklogPayload.barcode]
-        );
-
-      if (!bookPayloadFromBookCopies.length) {
-        throw new HttpException("Cannot find Book", HttpStatus.NOT_FOUND);
-      }
-
-
-      //Check if Book exists in Book Titles through book_title_uuid received from Book Copies via SELECT query
-      //Also make sure it's available
-      //Insert into old_book_title COLUMN
-      const bookPayloadFromBookTitle: TBookTitle[] = await this.bookcopyRepository.query
-        (
-          `SELECT * FROM book_titles WHERE book_uuid = $1 AND available_count > 0`,
-          [bookPayloadFromBookCopies[0].book_title_uuid]
-        )
-
-      if (!bookPayloadFromBookTitle.length) {
-        throw new HttpException("Book doesn't seems to be available in Book Titles, but exists in Book Copies", HttpStatus.INTERNAL_SERVER_ERROR);
-
       const bookPayloadFromBookCopies: TBookCopy[] =
         await this.bookcopyRepository.query(
           `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = TRUE AND is_archived = FALSE`,
@@ -1690,18 +1507,10 @@ export class BooksV2Service {
           'Cannot borrow this book, complete the penalty first',
           HttpStatus.BAD_REQUEST,
         );
-
       }
 
       //UPDATING now is safe
       //Insert into new_book_copy
-
-      const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] = await this.bookcopyRepository.query
-        (
-          `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE 
-        RETURNING *`,
-          [bookPayloadFromBookCopies[0].book_copy_uuid, bookPayloadFromBookCopies[0].barcode],
-
       const updatedBookCopiesPayload: [TBookCopy[], 0 | 1] =
         await this.bookcopyRepository.query(
           `UPDATE book_copies SET is_available = FALSE WHERE book_copy_uuid = $1 AND barcode = $2 AND is_available = TRUE AND is_archived = FALSE
@@ -1710,21 +1519,15 @@ export class BooksV2Service {
             bookPayloadFromBookCopies[0].book_copy_uuid,
             bookPayloadFromBookCopies[0].barcode,
           ],
-
         );
 
       const updateStatus = updatedBookCopiesPayload[1];
       if (!updateStatus) {
-
-        //if somehow the update fails, even after getting the data through SELECT query 
-        throw new HttpException("Failed to update Book", HttpStatus.INTERNAL_SERVER_ERROR);
-
         //if somehow the update fails, even after getting the data through SELECT query
         throw new HttpException(
           'Failed to update Book',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-
       }
 
       if (!updatedBookCopiesPayload[0].length) {
@@ -1739,17 +1542,10 @@ export class BooksV2Service {
       const bookCopyUUID = updatedBookCopiesPayload[0][0].book_copy_uuid;
 
       //Insert into new_book_copy COLUMN
-
-      const updatedBookTitlePayload: [TBookTitle[], 0 | 1] = await this.booktitleRepository.query
-        (
-          `UPDATE book_titles SET available_count = available_count - 1 WHERE book_uuid = $1 RETURNING *`,
-          [bookTitleUUID]
-
       const updatedBookTitlePayload: [TBookTitle[], 0 | 1] =
         await this.booktitleRepository.query(
           `UPDATE book_titles SET available_count = available_count - 1 WHERE book_uuid = $1 AND is_archived = FALSE RETURNING *`,
           [bookTitleUUID],
-
         );
 
       const oldBookCopy = JSON.stringify(bookPayloadFromBookCopies[0]);
@@ -1757,19 +1553,6 @@ export class BooksV2Service {
 
       const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
       const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
-
-
-      await this.booklogRepository.query
-        (
-          `INSERT INTO book_logv2 (
-          borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-          [
-            studentExists[0].student_uuid, bookCopyUUID, status, 'Book has been borrowed', bookTitleUUID,
-            oldBookCopy, newBookCopy, oldBookTitle, newBookTitle, request.ip
-          ]
-        );
 
       let returnDays = 0;
       //if borrowed in library then return day 0, else incremented date
@@ -1810,7 +1593,6 @@ export class BooksV2Service {
         ],
       );
 
-
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Book borrowed successfully',
@@ -1820,16 +1602,12 @@ export class BooksV2Service {
     }
   }
 
+
   async setbooklibrary(booklogpayload: TCreateBooklogV2DTO, ipAddress: string) {
     try {
       // Validate student existence
-
-      const studentExists = await this.sudentRepository.query(
-        `SELECT * FROM students_table WHERE student_uuid = $1`,
-
       const studentExists = await this.studentRepository.query(
         `SELECT * FROM students_table WHERE student_uuid = $1 AND is_archived = FALSE`,
-
         [booklogpayload.student_id],
       );
 
@@ -1839,13 +1617,8 @@ export class BooksV2Service {
       }
 
       const bookData = await this.bookcopyRepository.query(
-
-        `SELECT * FROM book_copies WHERE (barcode=$1 AND is_available=true)`,
-        [booklogpayload.barcode],
-
         `SELECT * FROM book_copies WHERE (book_copy_id=$1 AND is_available=true)`,
         [booklogpayload.book_copy_id],
-
       );
 
       if (bookData.length === 0) {
@@ -1906,7 +1679,7 @@ export class BooksV2Service {
       //console.log('working');
 
       const result = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE book_copy_uuid=$1`,
+        `SELECT * FROM book_copies WHERE book_copy_uuid = $1`,
         [createinstitutepayload.book_copy_uuid],
       );
 
@@ -1920,7 +1693,7 @@ export class BooksV2Service {
       }
 
       await this.bookcopyRepository.query(
-        `UPDATE book_copies SET institute_uuid=$1 WHERE book_copy_uuid=$2`,
+        `UPDATE book_copies SET institute_uuid = $1 WHERE book_copy_uuid = $2`,
         [
           createinstitutepayload.institute_uuid,
           createinstitutepayload.book_copy_uuid,
@@ -1944,7 +1717,7 @@ export class BooksV2Service {
 
   //   async visitlogexit(student_uuid: string) {
   //     try {
-  //      const data=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+  //      const data=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID = $1`,[student_uuid])
   //      if (data.length === 0) {
   //       throw new HttpException(
   //         { message: "Invalid student ID" },
@@ -1952,13 +1725,13 @@ export class BooksV2Service {
   //       );
   //     }
   //     const validation=await this.booktitleRepository.query(
-  //       `SELECT * FROM visit_log WHERE student_uuid=$1 AND action='entry' ORDER BY timestamp DESC LIMIT 1`,
+  //       `SELECT * FROM visit_log WHERE student_uuid = $1 AND action = 'entry' ORDER BY timestamp DESC LIMIT 1`,
   //       [student_uuid]    )
-  //     // console.log(`validation${validation}`);
+  //     // console.log(`validation${ validation }`);
   //     // console.log("Validation result:", JSON.stringify(validation, null, 2));
   //  if(validation===0) console.log('invalid');
   //     await this.booktitleRepository.query(
-  //         `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
+  //         `INSERT INTO visit_log(student_uuid, action) VALUES($1, 'exit')`,
   //         [student_uuid]
   //       );
   //       return {
@@ -1968,7 +1741,7 @@ export class BooksV2Service {
   //       };
   //     } catch (error) {
   //       throw new HttpException(
-  //         `Error ${error} setting book in library`,
+  //         `Error ${ error } setting book in library`,
   //         HttpStatus.INTERNAL_SERVER_ERROR,);
   //     }
   //   }
@@ -1982,7 +1755,7 @@ export class BooksV2Service {
       if (student_id) {
         const result: { student_uuid: string }[] =
           await this.booktitleRepository.query(
-            `SELECT student_uuid FROM students_table WHERE student_id=$1`,
+            `SELECT student_uuid FROM students_table WHERE student_id = $1`,
             [student_id],
           );
         if (result.length === 0) {
@@ -1992,7 +1765,7 @@ export class BooksV2Service {
           );
         }
         const data = await this.booktitleRepository.query(
-          `SELECT * FROM fees_penalties WHERE borrower_uuid=$1 and is_penalised=$2 or is_completed= $3`,
+          `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 and is_penalised = $2 or is_completed = $3`,
           [result[0].student_uuid, isPenalty, isCompleted],
         );
         if (data.length === 0) {
@@ -2006,7 +1779,7 @@ export class BooksV2Service {
       //00008-Tech University-2025
       else if (isPenalty) {
         const data = await this.bookcopyRepository.query(
-          `SELECT * FROM fees_penalties WHERE is_penalised=$1`,
+          `SELECT * FROM fees_penalties WHERE is_penalised = $1`,
           [isPenalty],
         );
         if (data.length === 0) {
@@ -2018,7 +1791,7 @@ export class BooksV2Service {
         return data;
       } else if (isCompleted) {
         const data = await this.bookcopyRepository.query(
-          `SELECT * FROM fees_penalties WHERE is_completed=$1`,
+          `SELECT * FROM fees_penalties WHERE is_completed = $1`,
           [isCompleted],
         );
         if (data.length === 0) {
@@ -2033,11 +1806,13 @@ export class BooksV2Service {
       throw error;
     }
   }
-  async getFullFeeList({ page,
-    limit }: {
-      page: number,
-      limit: number,
-    }) {
+  async getFullFeeList({
+    page,
+    limit
+  }: {
+    page: number,
+    limit: number,
+  }) {
     try {
       const offset = (page - 1) * limit;
 
@@ -2069,10 +1844,10 @@ export class BooksV2Service {
   async getFullFeeListStudent() {
     try {
       const result = await this.booktitleRepository
-        .query(`SELECT students_table.student_id,book_copies.book_copy_id,students_table.student_name, students_table.department,book_titles.subject, fees_penalties.return_date, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
-         INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
-        INNER JOIN  book_copies ON fees_penalties.book_copy_uuid=book_copies.book_copy_uuid
-        INNER JOIN book_titles ON book_titles.book_uuid= book_copies.book_title_uuid`);
+        .query(`SELECT students_table.student_id, book_copies.book_copy_id, students_table.student_name, students_table.department, book_titles.subject, fees_penalties.return_date, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
+         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
+        INNER JOIN  book_copies ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+        INNER JOIN book_titles ON book_titles.book_uuid = book_copies.book_title_uuid`);
       if (result.length === 0) {
         throw new HttpException(
           { message: 'No data found!!' },
@@ -2089,11 +1864,11 @@ export class BooksV2Service {
       const offset = (page - 1) * limit;
 
       const result = await this.booktitleRepository.query(
-        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ;`,
+        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ; `,
         [start, end, limit, offset],
       );
       const total = await this.booktitleRepository.query(
-        `SELECT count (*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 ;`,
+        `SELECT count(*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2; `,
         [start, end],
       );
       if (result.length === 0) {
@@ -2240,7 +2015,7 @@ export class BooksV2Service {
       const queryData = insertQueryHelper(insertObject, []);
       const result: Pick<TRequestBook, 'request_id'>[] = await this.requestBooklogRepository.query
         (`
-        INSERT INTO request_book_log (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING request_id`,
+        INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
           queryData.values
         );
       return {
@@ -2259,7 +2034,7 @@ export class BooksV2Service {
         requestBookIssueARPayload.reject_reason = undefined;
         const result: Pick<TRequestBook, 'student_id' | 'barcode' | 'book_copy_id' | 'ip_address'>[] = await this.requestBooklogRepository.query
           (`
-          SELECT * FROM request_book_log WHERE request_id = $1 AND is_archived = FALSE AND is_completed = FALSE`,
+      SELECT * FROM request_book_log WHERE request_id = $1 AND is_archived = FALSE AND is_completed = FALSE`,
             [requestBookIssueARPayload.request_id]
           );
 
@@ -2288,15 +2063,15 @@ export class BooksV2Service {
   }
   async createBooklogReissue(requestBookReIssuePayload: TRequestBookZodReIssue, ip_address: string) {
     try {
-      const student: { student_id: string, student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid, student_id FROM students_table WHERE student_id= $1`, [requestBookReIssuePayload.student_id])
+      const student: { student_id: string, student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid, student_id FROM students_table WHERE student_id = $1`, [requestBookReIssuePayload.student_id])
       if (!student.length) {
         throw new HttpException(" Invalid StudentId !!", HttpStatus.BAD_REQUEST);
       }
-      const barcode: { book_copy_id: string; book_copy_uuid: string }[] = await this.booktitleRepository.query(`SELECT book_copy_id, book_copy_uuid FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`, [requestBookReIssuePayload.barcode])
+      const barcode: { book_copy_id: string; book_copy_uuid: string }[] = await this.booktitleRepository.query(`SELECT book_copy_id, book_copy_uuid FROM book_copies WHERE barcode = $1 AND is_archived = false AND is_available = false`, [requestBookReIssuePayload.barcode])
       if (!barcode.length) {
         throw new HttpException(" Invalid barcode !!", HttpStatus.BAD_REQUEST);
       } console.log(barcode[0].book_copy_uuid);
-      const log = await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1 AND action='borrowed' AND borrower_uuid= $2`, [barcode[0].book_copy_uuid, student[0].student_uuid]);
+      const log = await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid = $1 AND action = 'borrowed' AND borrower_uuid = $2`, [barcode[0].book_copy_uuid, student[0].student_uuid]);
       if (!log.length) {
         throw new HttpException(" The book has not been borrowed!!", HttpStatus.BAD_REQUEST);
 
@@ -2323,7 +2098,7 @@ export class BooksV2Service {
       const queryData = insertQueryHelper(insertObject, []);
 
       const insert = await this.booklogRepository.query(
-        `INSERT INTO request_book_log(${queryData.queryCol}) VALUES (${queryData.queryArg}) RETURNING request_id`,
+        `INSERT INTO request_book_log(${queryData.queryCol}) VALUES(${queryData.queryArg}) RETURNING request_id`,
         queryData.values
       );
 
@@ -2335,23 +2110,23 @@ export class BooksV2Service {
   }
   async requestBooklogReissuear(requestBookIssueARPayload: TRequestBookZodIssueReIssueAR) {
     try {
-      const result: { book_copy_id: string, student_id: string, extended_period }[] = await this.booktitleRepository.query(`SELECT book_copy_id, student_id, extended_period FROM request_book_log WHERE request_id= $1`, [requestBookIssueARPayload.request_id]);
+      const result: { book_copy_id: string, student_id: string, extended_period }[] = await this.booktitleRepository.query(`SELECT book_copy_id, student_id, extended_period FROM request_book_log WHERE request_id = $1`, [requestBookIssueARPayload.request_id]);
       if (!result.length) {
         throw new HttpException("Request not Found !!", HttpStatus.BAD_REQUEST);
       }
       console.log("part 1");
-      //  const book:{book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_uuid FROM  book_copies WHERE book_copy_id= $1`,[result[0].book_copy_id])
-      //  const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`,[result[0].student_id])
-      //  const borrow= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid= $1  AND borrower_uuid= $2`,[book[0].book_copy_uuid, student[0].student_uuid]);
+      //  const book:{book_copy_uuid:string}[]=await this.booktitleRepository.query(`SELECT book_copy_uuid FROM  book_copies WHERE book_copy_id = $1`,[result[0].book_copy_id])
+      //  const student:{student_uuid:string}[]= await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id = $1`,[result[0].student_id])
+      //  const borrow= await this.booktitleRepository.query(`SELECT * FROM book_logv2 WHERE book_copy_uuid = $1  AND borrower_uuid = $2`,[book[0].book_copy_uuid, student[0].student_uuid]);
       if (requestBookIssueARPayload.status === "approved") {
         console.log("approved part in work");
         const isCompleted = true;
-        const update = await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`, [requestBookIssueARPayload.status, isCompleted, requestBookIssueARPayload.reject_reason, requestBookIssueARPayload.request_id]);
+        const update = await this.booktitleRepository.query(`UPDATE request_book_log set status = $1, is_archived = true, is_completed = $2, reject_reason = $3 WHERE request_id = $4`, [requestBookIssueARPayload.status, isCompleted, requestBookIssueARPayload.reject_reason, requestBookIssueARPayload.request_id]);
         console.log("update log part ");
 
-        const student: { student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id= $1`, [result[0].student_id])
+        const student: { student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid FROM students_table WHERE student_id = $1`, [result[0].student_id])
         // date is not getting updated
-        const date: { return_date: string }[] = await this.booktitleRepository.query(`SELECT return_date FROM fees_penalties WHERE borrower_uuid= $1`, [student[0].student_uuid])
+        const date: { return_date: string }[] = await this.booktitleRepository.query(`SELECT return_date FROM fees_penalties WHERE borrower_uuid = $1`, [student[0].student_uuid])
 
         let returnDate = new Date(date[0].return_date); // Convert to Date object
 
@@ -2364,22 +2139,17 @@ export class BooksV2Service {
           console.log("final_date:", final_date, "returnDate:", returnDate);
 
           const penalupdate = await this.booktitleRepository.query(`UPDATE fees_penalties 
-        SET return_date=  $1 
-        WHERE borrower_uuid = $2  `, [final_date, student[0].student_uuid])
+        SET return_date = $1 
+        WHERE borrower_uuid = $2`, [final_date, student[0].student_uuid])
           console.log("update penal part ");
         } else {
           console.error("Invalid date format:", date[0].return_date);
         }
-
-
-
-
         throw new HttpException("Status updated Sucessfully!!", HttpStatus.ACCEPTED)
-
       }
       else if (requestBookIssueARPayload.status === "rejected") {
         const isCompleted = false;
-        const update = await this.booktitleRepository.query(`UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4 AND status='pending' `, [requestBookIssueARPayload.status, isCompleted, requestBookIssueARPayload.reject_reason, requestBookIssueARPayload.request_id]);
+        const update = await this.booktitleRepository.query(`UPDATE request_book_log set status = $1, is_archived = true, is_completed = $2, reject_reason = $3 WHERE request_id = $4 AND status = 'pending' `, [requestBookIssueARPayload.status, isCompleted, requestBookIssueARPayload.reject_reason, requestBookIssueARPayload.request_id]);
         throw new HttpException("Status updated Sucessfully!!", HttpStatus.ACCEPTED)
 
       }
@@ -2392,12 +2162,12 @@ export class BooksV2Service {
 
   async studentCurrentBooks(student_id: string) {
     try {
-      const result: { student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid  FROM students_table WHERE student_id= $1`, [student_id]);
+      const result: { student_uuid: string }[] = await this.booktitleRepository.query(`SELECT student_uuid  FROM students_table WHERE student_id = $1`, [student_id]);
       if (!result.length) {
         throw new HttpException(" Invalid StudentId!! ", HttpStatus.BAD_REQUEST);
       }
-      const booklog: { book_title_uuid: string }[] = await this.booktitleRepository.query(`SELECT book_title_uuid FROM book_logv2 WHERE borrower_uuid = $1 AND status = 'borrowed' ORDER BY borrowed DESC ;`, [result[0].student_uuid]);
-      const data = await this.booktitleRepository.query(`SELECT * FROM  book_titles INNER JOIN book_copies ON book_titles.book_uuid=book_copies.book_title_uuid WHERE book_copies.book_title_uuid= $1 limit 1`, [booklog[0].book_title_uuid])
+      const booklog: { book_title_uuid: string }[] = await this.booktitleRepository.query(`SELECT book_title_uuid FROM book_logv2 WHERE borrower_uuid = $1 AND status = 'borrowed' ORDER BY borrowed DESC; `, [result[0].student_uuid]);
+      const data = await this.booktitleRepository.query(`SELECT * FROM  book_titles INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid WHERE book_copies.book_title_uuid = $1 limit 1`, [booklog[0].book_title_uuid])
       return data;
     } catch (error) {
       throw error
