@@ -42,6 +42,12 @@ import { StudentAuthGuard } from './student.guard';
 import { Request } from "express";
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 @Controller('student')
 export class StudentsController {
   constructor(private studentsService: StudentsService) { }
@@ -123,7 +129,7 @@ export class StudentsController {
   @UsePipes(new bodyValidationPipe(createStudentSchema))
   async createStudent(@Body() studentPayload: TCreateStudentDTO) {
     try {
-      return await this.studentsService.createStudent(studentPayload);
+      const data = await this.studentsService.createStudent(studentPayload);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

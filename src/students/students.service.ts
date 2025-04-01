@@ -27,7 +27,7 @@ export class StudentsService {
   constructor(
     @InjectRepository(Students)
     private studentsRepository: Repository<Students>,
-  ) { }
+  ) {}
 
   async findAllStudents({
     page,
@@ -138,20 +138,41 @@ export class StudentsService {
     }
   }
 
-  async createStudent(studentPayload: TCreateStudentDTO) {
+  async createStudent(studentPayload: TCreateStudentDTO): Promise<Students> {
     try {
       let queryData = insertQueryHelper(studentPayload, []);
-      await this.studentsRepository.query(
-        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING student_id`,
+      const result = await this.studentsRepository.query(
+        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING student_uuid`,
         queryData.values,
       );
-      return {
-        statusCode: HttpStatus.CREATED,
-        message: 'Student created successfully',
-      };
+
+      const studentUuid = result[0]?.student_uuid;
+      if (!studentUuid) {
+        throw new HttpException(
+          'Failed to fetch created student',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const student = await this.studentsRepository.query(
+        `SELECT * FROM students_table WHERE student_uuid = $1`,
+        [studentUuid],
+      );
+
+      if (!student.length) {
+        throw new HttpException(
+          'Student not found after creation',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return student[0];
     } catch (error) {
       console.log(error);
-      throw error;
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -162,7 +183,12 @@ export class StudentsService {
     try {
       console.log('SERVICE calling main worker thread');
 
-      const { inserted_data, duplicate_data_pl, unique_data, duplicate_date_db }: TInsertResult = await CreateWorker(
+      const {
+        inserted_data,
+        duplicate_data_pl,
+        unique_data,
+        duplicate_date_db,
+      }: TInsertResult = await CreateWorker(
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
@@ -171,17 +197,19 @@ export class StudentsService {
         inserted_data,
         duplicate_data_pl,
         duplicate_date_db,
-        unique_data
-      }
+        unique_data,
+      };
     } catch (error) {
       throw error;
     }
-
   }
 
   async editStudent(studentId: string, editStudentPayload: TEditStudentDTO) {
     try {
-      let queryData = updateQueryHelper<TEditStudentDTO>(editStudentPayload, []);
+      let queryData = updateQueryHelper<TEditStudentDTO>(
+        editStudentPayload,
+        [],
+      );
       const result = await this.studentsRepository.query(
         `
         UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false
@@ -224,16 +252,19 @@ export class StudentsService {
         BatchArr.push(result);
       }
       const arrOfWorkerRes = await Promise.all(BatchArr);
-      const { archived_data, failed_archived_data } = arrOfWorkerRes.reduce((prevItem, currItem) => {
-        return {
-          archived_data: prevItem.archived_data + currItem.archived_data,
-          failed_archived_data: prevItem.failed_archived_data + currItem.failed_archived_data
-        }
-      });
+      const { archived_data, failed_archived_data } = arrOfWorkerRes.reduce(
+        (prevItem, currItem) => {
+          return {
+            archived_data: prevItem.archived_data + currItem.archived_data,
+            failed_archived_data:
+              prevItem.failed_archived_data + currItem.failed_archived_data,
+          };
+        },
+      );
       return {
         invalid_data: arrStudentUUIDPayload.invalid_data_count,
         archived_data,
-        failed_archived_data
+        failed_archived_data,
       };
     } catch (error) {
       throw error;
@@ -550,11 +581,19 @@ export class StudentsService {
 
   async studentLogin(studentCredPayload: TStudentCredZodType) {
     try {
-      const jwtPayload: [Pick<TStudents, 'student_id' | 'email'>] =
-        await this.studentsRepository.query(
-          `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
-          [studentCredPayload.email_or_student_id, studentCredPayload.password]
-        );
+      const jwtPayload: [
+        Pick<
+          TStudents,
+          | 'student_id'
+          | 'email'
+          | 'student_name'
+          | 'institute_name'
+          | 'institute_uuid'
+        >,
+      ] = await this.studentsRepository.query(
+        `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
+        [studentCredPayload.email_or_student_id, studentCredPayload.password],
+      );
 
       if (!jwtPayload.length) {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
@@ -562,7 +601,7 @@ export class StudentsService {
 
       return {
         token: { accessToken: setTokenFromPayload(jwtPayload[0]) },
-        user: jwtPayload[0],
+        user: {...jwtPayload[0], institute_image: "https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png"},
       };
     } catch (error) {
       throw error;
