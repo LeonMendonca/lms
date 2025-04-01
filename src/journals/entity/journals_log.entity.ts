@@ -12,7 +12,7 @@ export class JournalLogs {
     @JoinColumn({ name: "borrower_uuid" })
     borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
 
-    @ManyToOne(() => JournalCopy, (book_title) => book_title.journalCopyUUID)
+    @ManyToOne(() => JournalTitle, (book_title) => book_title.journalUUID)
     @JoinColumn({ name: "journal_title_uuid" })
     journalUUID: 'journal_title_uuid' = 'journal_title_uuid';
 

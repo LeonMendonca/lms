@@ -1,5 +1,6 @@
 import { CreateDateColumn, UpdateDateColumn, Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
+import { VisitLog } from 'src/students/visitlog.entity';
 
 @Entity('book_copies')
 export class BookCopy {
@@ -21,16 +22,16 @@ export class BookCopy {
   @Column({ name: 'date_of_acquisition', type: 'date' })
   dateOfAcquisition: "date_of_acquisition" = "date_of_acquisition";
 
-  @Column({ name: 'bill_no', type: 'varchar' })
+  @Column({ name: 'bill_no', type: 'varchar', nullable: true  })
   billNo: "bill_no" = "bill_no";
 
-  @Column({ name: 'language', type: 'varchar', length: 255 })
+  @Column({ name: 'language', type: 'varchar', length: 255  })
   language: "language" = "language";
 
   @Column({ name: 'inventory_number', type: 'varchar', nullable: true })
   inventoryNumber: "inventory_number" = "inventory_number";
 
-  @Column({ name: 'accession_number', type: 'varchar' })
+  @Column({ name: 'accession_number', type: 'varchar' , nullable: true })
   accessionNumber: "accession_number" = "accession_number";
 
   @Column({ name: 'barcode', type: 'varchar', length: 255 })
@@ -38,6 +39,9 @@ export class BookCopy {
 
   @Column({ name: 'item_type', type: 'varchar', length: 255 })
   itemType: "item_type" = "item_type";
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: "institute_name" = "institute_name";
 
   @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
   instituteUUID: "institute_uuid" = "institute_uuid";
@@ -77,6 +81,10 @@ export class BookCopy {
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopies)
   @JoinColumn({ name: "book_title_uuid" })
   bookTitleUUID: "book_title_uuid" = "book_title_uuid";
+
+  //@ManyToOne(() => VisitLog, (visitlog) => visitlog.visitlogId)
+  //@JoinColumn({ name:"book_copy_visitlog_id" })
+  //visitlogId:'visitlogid' = 'visitlogid';
 }
 
 const book_copy = new BookCopy();

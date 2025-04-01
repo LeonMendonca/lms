@@ -5,7 +5,7 @@ export const StudentQueryValidator = {
   [createStudentQuery.studentUUID]: ''
 };
 
-export type UnionUser = {
+export type UnionStudent = {
   [key in keyof typeof StudentQueryValidator]: Pick<
     typeof StudentQueryValidator,
     key

@@ -4,15 +4,22 @@ import { createStudentSchema, TCreateStudentDTO } from "src/students/zod-validat
 const newArr: TCreateStudentDTO[] = [];
 const newErrArr: any[] = [];
 
-workerData.oneDArray.filter((item: any)=> {
+//console.log("Worker Date is", workerData)
+
+//console.log("First element", workerData.oneDArray[0]);
+
+let countOfInvalidDataFormat = 0;
+
+workerData.oneDArray.forEach((item: any)=> {
     let result = createStudentSchema.safeParse(item);
     if(result.success) {
         newArr.push(result.data)
     }
     if(result.error) {
-        let modifiedZodError = result.error.issues[0];
-        newErrArr.push({ field: modifiedZodError.path[0], messsage: modifiedZodError.message });
+        countOfInvalidDataFormat++
+        //let modifiedZodError = result.error.issues[0];
+        //newErrArr.push({ field: modifiedZodError.path[0], messsage: modifiedZodError.message });
     }
 })
 
-(parentPort ? parentPort.postMessage(newArr) : "Parent Port NULL" );
+parentPort?.postMessage({ validated_array: newArr, invalid_data_count: countOfInvalidDataFormat })

@@ -24,6 +24,10 @@ import { JournalTitle } from './journals/entity/journals_title.entity';
 import { JournalLogs } from './journals/entity/journals_log.entity';
 import { CalendarModule } from './calendar/calendar.module';
 import { Calendar } from './calendar/entity/calendar.entity';
+import { VisitLog } from './students/visitlog.entity';
+import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
+import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
+import { RequestBook } from './books_v2/entity/request-book.entity';
 
 config({ path: '.env' });
 @Module({
@@ -32,19 +36,26 @@ config({ path: '.env' });
       type: 'postgres',
       url: process.env.DB_URL,
       entities: [Students, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, TrialTable, TrialCopy, Calendar],
+      entities: [
+        Students,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
+        VisitLog,
+        FeesPenalties,
+        RequestBook
+      ],
       ssl: true,
       synchronize: true,
     }),
     StudentsModule,
-    BooksModule,
-    BooklogModule,
-    BookcountModule,
     BooksV2Module,
     BookLogModule,
     JournalsModule,
     NotificationsModule,
     TrialModule,
     CalendarModule,
+    FeesPenaltiesModule,
   ],
 })
 export class AppModule {
