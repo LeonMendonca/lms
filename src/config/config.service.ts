@@ -37,6 +37,22 @@ export class ConfigService {
         return result
     }
 
+    // Get Institute By Id
+    async getInstituteById(institute_id: string){
+        if(!institute_id.length){
+            return {message:"Enter The Institute Id"}
+        }
+        const result =  await this.instituteConfigRepository.query(
+            `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=false`,
+            [institute_id]
+        )
+        if (!result.length){
+            return {message: "No Institute With The Id Found"}
+        }else{
+            return result
+        }
+    }
+
     //  Get Institute Detail For user (admin)
     async getInstituteName(){
         const insts = await this.instituteConfigRepository.query(
