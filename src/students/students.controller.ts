@@ -15,6 +15,7 @@ import {
   Res,
   UseGuards,
   Req,
+  HttpCode,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -37,20 +38,25 @@ import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
 import { TVisit_log } from './zod-validation/visitlog';
-import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
+import {
+  studentCredZodSchema,
+  TStudentCredZodType,
+} from './zod-validation/studentcred-zod';
 import { StudentAuthGuard } from './student.guard';
-import { Request } from "express";
+import { Request } from 'express';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
+import { Students } from './students.entity';
 
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  pagination: {} | null;
   error?: string;
 }
 
 @Controller('student')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) { }
+  constructor(private studentsService: StudentsService) {}
 
   @Get('all')
   @UseGuards(StudentAuthGuard)
@@ -60,16 +66,19 @@ export class StudentsController {
     @Query('_search') search: string,
     @Query('_department') department: string,
     @Query('_year') year: string,
-    @Req() request: Request
-  ) {
-    console.log(request['user'])
-    return await this.studentsService.findAllStudents({
+  ): Promise<ApiResponse<Students[]>> {
+    const { data, pagination } = await this.studentsService.findAllStudents({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
       department: department ?? undefined,
       year: year ?? undefined,
     });
+    return {
+      success: true,
+      data,
+      pagination,
+    };
   }
 
   @Get('detail')
@@ -127,9 +136,18 @@ export class StudentsController {
 
   @Post('create')
   @UsePipes(new bodyValidationPipe(createStudentSchema))
-  async createStudent(@Body() studentPayload: TCreateStudentDTO) {
+  @HttpCode(HttpStatus.CREATED)
+  async createStudent(
+    @Body() studentPayload: TCreateStudentDTO,
+  ): Promise<ApiResponse<Students>> {
     try {
-      const data = await this.studentsService.createStudent(studentPayload);
+      const data: Students =
+        await this.studentsService.createStudent(studentPayload);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -145,16 +163,17 @@ export class StudentsController {
   @Post('bulk-create')
   @UsePipes(
     new bulkBodyValidationPipe<{
-      validated_array: TCreateStudentDTO[],
-      invalid_data_count: number
-    }>(
-      'student/student-zod-body-worker',
-    ),
+      validated_array: TCreateStudentDTO[];
+      invalid_data_count: number;
+    }>('student/student-zod-body-worker'),
   )
-  async bulkCreateStudent(@Body() studentZodValidatedObject: {
-    validated_array: TCreateStudentDTO[];
-    invalid_data_count: number;
-  }) {
+  async bulkCreateStudent(
+    @Body()
+    studentZodValidatedObject: {
+      validated_array: TCreateStudentDTO[];
+      invalid_data_count: number;
+    },
+  ) {
     try {
       console.log('CONTROLLER Moving to service');
       return await this.studentsService.bulkCreate(studentZodValidatedObject);
@@ -206,9 +225,7 @@ export class StudentsController {
   }
 
   @Delete('delete/:_student_id')
-  async deleteStudent(
-    @Param('_student_id') studentId: string,
-  ) {
+  async deleteStudent(@Param('_student_id') studentId: string) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
       if (!result[1]) {
@@ -238,16 +255,19 @@ export class StudentsController {
     new bulkBodyValidationPipe<{
       validated_array: TstudentUUIDZod[];
       invalid_data_count: number;
-    }>(
-      'student/student-zod-uuid-worker',
-    ),
+    }>('student/student-zod-uuid-worker'),
   )
-  async bulkDeleteStudent(@Body() studentZodValidatedUUIDObject: {
-    validated_array: TstudentUUIDZod[];
-    invalid_data_count: number;
-  }) {
+  async bulkDeleteStudent(
+    @Body()
+    studentZodValidatedUUIDObject: {
+      validated_array: TstudentUUIDZod[];
+      invalid_data_count: number;
+    },
+  ) {
     try {
-      const result = await this.studentsService.bulkDelete(studentZodValidatedUUIDObject);
+      const result = await this.studentsService.bulkDelete(
+        studentZodValidatedUUIDObject,
+      );
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -257,7 +277,7 @@ export class StudentsController {
         );
       } else {
         throw error;
-      }   
+      }
     }
   }
 
@@ -387,7 +407,6 @@ export class StudentsController {
     @Query('_limit') limit: string = '10',
   ) {
     try {
-
       return await this.studentsService.getVisitLogByStudentUUID({
         student_id,
         page: page ? parseInt(page, 10) : 1,
@@ -434,18 +453,15 @@ export class StudentsController {
   }
 
   @Get('student-profile')
-  async student_profile(
-    @Query('_student_id') student_id: string
-  ) {
+  async student_profile(@Query('_student_id') student_id: string) {
     try {
       return await this.studentsService.studentProfile(student_id);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
-      throw error
+      throw error;
     }
-
   }
 
   @Post('login')
@@ -455,7 +471,10 @@ export class StudentsController {
       return await this.studentsService.studentLogin(studentCredPayload);
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }

@@ -22,6 +22,16 @@ import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 
+interface DataWithPagination<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 @Injectable()
 export class StudentsService {
   constructor(
@@ -33,15 +43,13 @@ export class StudentsService {
     page,
     limit,
     search,
-    department,
-    year,
   }: {
     page: number;
     limit: number;
     search?: string;
     department?: string;
     year?: string;
-  }) {
+  }): Promise<DataWithPagination<Students>> {
     const offset = (page - 1) * limit;
     const searchQuery = search ? `%${search}%` : '%';
 
@@ -54,31 +62,6 @@ export class StudentsService {
       `SELECT COUNT(*) from students_table WHERE is_archived = false AND student_name ILIKE $1`,
       [searchQuery],
     );
-
-    // const queryParams: any[] = [];
-    // let query = `SELECT * FROM students_table WHERE is_archived = false`;
-
-    // if (search) {
-    //   query += ` AND student_name ILIKE $${queryParams.length + 1}`;
-    //   queryParams.push(`%${search}%`);
-    // }
-
-    // if (department) {
-    //   query += ` AND department = $${queryParams.length + 1}`;
-    //   queryParams.push(department);
-    // }
-
-    // if (year) {
-    //   query += ` AND year_of_admission = $${queryParams.length + 1}`;
-    //   queryParams.push(year);
-    // }
-
-    // query += ` ORDER BY year_of_admission DESC, department DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
-    // queryParams.push(limit, offset);
-
-    // const students = await this.studentsRepository.query(query, queryParams);
-
-    // const totalQuery = `SELECT COUNT(*) FROM students_tab
 
     return {
       data: students,
@@ -581,17 +564,8 @@ export class StudentsService {
 
   async studentLogin(studentCredPayload: TStudentCredZodType) {
     try {
-      const jwtPayload: [
-        Pick<
-          TStudents,
-          | 'student_id'
-          | 'email'
-          | 'student_name'
-          | 'institute_name'
-          | 'institute_uuid'
-        >,
-      ] = await this.studentsRepository.query(
-        `SELECT student_id, email FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
+      const jwtPayload = await this.studentsRepository.query(
+        `SELECT * FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
         [studentCredPayload.email_or_student_id, studentCredPayload.password],
       );
 
@@ -599,9 +573,20 @@ export class StudentsService {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
       }
 
+      const jwtPayloadSelective = {
+        student_id: jwtPayload[0].student_id,
+        email: jwtPayload[0].email,
+      }
+
+      delete jwtPayload[0].password;
+
       return {
-        token: { accessToken: setTokenFromPayload(jwtPayload[0]) },
-        user: {...jwtPayload[0], institute_image: "https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png"},
+        token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
+        user: {
+          ...jwtPayload[0],
+          institute_image:
+            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+        },
       };
     } catch (error) {
       throw error;
