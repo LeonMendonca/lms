@@ -828,7 +828,7 @@ export class BooksV2Service {
           await this.booktitleRepository.query(
             `SELECT MAX(book_title_id) FROM book_titles`,
           );
-        const bookId = genBookId(max[0].max, 'BT');
+        const bookId = genBookId(max[0].max);
         const bookTitlePayloadWithId = {
           ...createBookpayload,
           book_title_id: bookId,
@@ -926,6 +926,8 @@ export class BooksV2Service {
       throw error;
     }
   }
+
+  async bulkCreate() {}
 
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {
     try {
@@ -1199,7 +1201,7 @@ export class BooksV2Service {
       );
       const BatchArr: Promise<TUpdateResult>[] = [];
       for (let i = 0; i < zodValidatedBatchArr.length; i++) {
-        const result = CreateWorker<TbookUUIDZod>(zodValidatedBatchArr[i], 'book/book-archive-worker');
+        const result = CreateWorker<TUpdateResult>(zodValidatedBatchArr[i], 'book/book-archive-worker');
         BatchArr.push(result);
       }
       const arrOfWorkerRes = (await Promise.all(BatchArr)).flat();

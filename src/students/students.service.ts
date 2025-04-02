@@ -19,10 +19,10 @@ import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
 import { TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
-import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { isWithin30Meters } from './utilities/location-calculation';
 import { StudentsVisitKey } from './entities/student-visit-key';
+import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 
 interface DataWithPagination<T> {
   data: T[];

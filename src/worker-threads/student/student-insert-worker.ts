@@ -1,17 +1,10 @@
 import { TCreateStudentDTO } from "src/students/zod-validation/createstudents-zod";
 import { parentPort, workerData } from "worker_threads";
 import { pool } from "../../pg.connect";
+import { TInsertResult } from "../worker-types/student-insert.type";
 
 let start = Date.now();
-let uniqueArray: TCreateStudentDTO[] = [];
-
-//Type returned by the worker
-export type TInsertResult ={
-  duplicate_data_pl: number; 
-  duplicate_date_db: number;
-  unique_data: number;
-  inserted_data: number; 
-} 
+let uniqueArray: TCreateStudentDTO[] = []; 
 
 //Count duplicates in existing array of payload
 let countDuplicatePayload = 0;

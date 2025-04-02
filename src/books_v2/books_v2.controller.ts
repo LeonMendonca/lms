@@ -272,8 +272,18 @@ export class BooksV2Controller {
     }
   }
 
-  //@Post('bulk-create')
-  //@UsePipes(new bulkBodyValidationPipe())
+  @Post('bulk-create')
+  @UsePipes(new bulkBodyValidationPipe<TCreateBookZodDTO, {
+      validated_array: TCreateBookZodDTO[];
+      invalid_data_count: number;
+    }>('book/book-zod-body-worker')
+  )
+  async bulkCreate(@Body() bookZodValidatedObject: {
+    validated_array: TCreateBookZodDTO[],
+    invalid_data_count: number
+  }) {
+    return bookZodValidatedObject;
+  }
 
   @Delete('bulk-delete')
   @UsePipes(
