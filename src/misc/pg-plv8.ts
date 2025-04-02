@@ -53,6 +53,44 @@ RETURNS TRIGGER AS $$
 $$ LANGUAGE plv8;
 `
 
+const createTitleId = `
+CREATE OR REPLACE FUNCTION create_book_titles_id()
+RETURNS TRIGGER AS $$
+  const alphabetArr = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' 
+  ];
+
+  const numberOfPadding = 5;
+  let paddingZero = ''.padStart(numberOfPadding, '0')
+
+  let maxBookId = plv8.execute('SELECT MAX(book_title_id) FROM book_titles')[0].max
+  
+  let numFromId = '';
+  let alphaFromId = '';
+  let incByOne = 0;
+  
+  if(!maxBookId) {
+    maxBookId = 'A-00000';
+  } else {
+    alphaFromId = maxBookId.split('-')[0];
+    numFromId = maxBookId.split('-')[1];
+    incByOne = Number(numFromId) + 1;
+  }
+  
+  if(String(incByOne).length > String(numFromId).length) {
+    let indexOfNextAlphabet = alphabetArr.indexOf(alphaFromId) + 1
+    maxBookId = alphabetArr[indexOfNextAlphabet]+'-'+paddingZero
+  } else {
+    maxBookId = alphaFromId+'-'+(Number(numFromId)+1).toString().padStart(numberOfPadding, '0')
+  }
+  
+  plv8.execute('UPDATE book_titles SET book_title_id = $1 WHERE book_uuid = $2', maxBookId, NEW.book_uuid);
+
+  return NEW;
+$$ LANGUAGE plv8;
+`
+
 const updateStudentId = `
 CREATE OR REPLACE FUNCTION update_student_id() 
   RETURNS TRIGGER AS $$
@@ -83,50 +121,6 @@ CREATE OR REPLACE FUNCTION update_student_id()
 $$ LANGUAGE plv8;
 `
 
-/*
-'
-CREATE OR REPLACE FUNCTION get_book_titles_id()
-RETURNS TRIGGER AS $$
-  const alphabetArr = [
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
-    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' 
-  ];
-
-  const numberOfPadding = 5;
-  let paddingZero = ''.padStart(numberOfPadding, '0')
-
-  let maxBookId = plv8.execute('SELECT MAX(book_title_id) FROM book_titles')[0].max
-  
-  let numFromId = '';
-  let alphaFromId = '';
-  let incByOne = 0;
-  
-  if(!maxBookId) {
-    maxBookId = 'A-00000';
-  } else {
-    alphaFromId = maxBookId.split('-')[0];
-    numFromId = maxBookId.split('-')[1];
-    incByOne = Number(numFromId) + 1;
-  }
-  
-  if(String(incByOne).length > String(numFromId).length) {
-    let indexOfNextAlphabet = alphabetArr.indexOf(alphaFromId) + 1
-    maxBookId = `${alphabetArr[indexOfNextAlphabet]}-${paddingZero}`
-  } else {
-    maxBookId = `${alphaFromId}-${(Number(numFromId)+1).toString().padStart(numberOfPadding, '0')}`
-  }
-  
-  plv8.execute('UPDATE book_titles SET book_title_id = $1 WHERE book_uuid = $2', maxBookId, NEW.book_uuid);
-
-  return NEW;
-$$ LANGUAGE plv8;
-
-CREATE OR REPLACE TRIGGER trigger_bt
-AFTER INSERT ON book_titles
-FOR EACH ROW
-EXECUTE PROCEDURE create_book_titles_id()
-*/
-
 const triggerUpdateStudentId = `
 CREATE OR REPLACE TRIGGER trigger_stup
 AFTER UPDATE OF department ON students_table
@@ -149,6 +143,13 @@ FOR EACH ROW
 EXECUTE FUNCTION get_book_copies_id();
 `
 
+const triggerCreateBookTitleId = `
+CREATE OR REPLACE TRIGGER trigger_bt
+AFTER INSERT ON book_titles
+FOR EACH ROW
+EXECUTE PROCEDURE create_book_titles_id()
+`
+
 export async function pgPLV8() {
   try {
       const clientEnableExt = await pool.connect();
@@ -167,10 +168,12 @@ export async function pgPLV8() {
   } finally {
     const clientTriggerAndFunction = await pool.connect();
     await clientTriggerAndFunction.query(createStudentId);
-    await clientTriggerAndFunction.query(createCopiesId)
+    await clientTriggerAndFunction.query(createTitleId);
+    await clientTriggerAndFunction.query(createCopiesId);
     await clientTriggerAndFunction.query(updateStudentId);
 
     await clientTriggerAndFunction.query(triggerCreateStudentId);
+    await clientTriggerAndFunction.query(triggerCreateBookTitleId);
     await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
     await clientTriggerAndFunction.query(triggerUpdateStudentId);
 
