@@ -22,7 +22,7 @@ import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { isWithin30Meters } from './utilities/location-calculation';
-import { StudentsVisitKey } from './entities/student-visit-key';
+import { StudentsVisitKey, TStudentsVisitkey } from './entities/student-visit-key';
 
 interface DataWithPagination<T> {
   data: T[];
@@ -32,6 +32,11 @@ interface DataWithPagination<T> {
     limit: number;
     totalPages: number;
   };
+}
+
+interface Data<T> {
+  data: T;
+  pagination: null;
 }
 
 @Injectable()
@@ -833,6 +838,38 @@ export class StudentsService {
           HttpStatus.BAD_REQUEST,
         );
       }
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async checkVisitKeyStatus(
+    studentKeyUUID: string,
+  ): Promise<Data<{ status: any }>> {
+    try {
+      const trial = await this.studentsRepository.query(
+        `SELECT * FROM student_visit_key `
+      );
+      console.log(trial);
+      const status: TStudentsVisitkey[] = await this.studentsRepository.query(
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '5 minutes'`,
+        [studentKeyUUID],
+      );
+      if (status.length === 0) {
+        throw new HttpException(
+          'Invalid or expired student visit key',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      console.log(status)
+      return {
+        data: { status: !status[0].is_used },
+        pagination: null,
+      };
     } catch (error) {
       console.log(error);
       throw new HttpException(

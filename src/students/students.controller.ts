@@ -497,7 +497,9 @@ export class StudentsController {
   }
 
   @Get('admin-dashboard')
-  async adminDashboard(@Query('_institute_uuid') institute_uuid: string | null) {
+  async adminDashboard(
+    @Query('_institute_uuid') institute_uuid: string | null,
+  ) {
     try {
       return await this.studentsService.adminDashboard(institute_uuid);
     } catch (error) {
@@ -551,6 +553,29 @@ export class StudentsController {
       const visitKey =
         await this.studentsService.verifyStudentVisitKey(student_key_uuid);
       return visitKey;
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('check-status-of-key/:student_key_uuid')
+  async checkStatusofKey(
+    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
+  ): Promise<ApiResponse<{ status: any }>> {
+    try {
+      const { data } =
+        await this.studentsService.checkVisitKeyStatus(student_key_uuid);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
