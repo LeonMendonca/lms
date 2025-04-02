@@ -694,11 +694,51 @@ export class StudentsService {
       `;
       const newBooks = await this.studentsRepository.query(newBooksQuery);
 
+      const todayIssuesQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const todayIssues = await this.studentsRepository.query(newBooksQuery);
+
+      const todayReturnedQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const todayReturned = await this.studentsRepository.query(newBooksQuery);
+
+      const overdueQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const overdues = await this.studentsRepository.query(newBooksQuery);
+
+      const trendingQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const trending = await this.studentsRepository.query(newBooksQuery);
+
       return {
         totalBooks: totalBooks[0].count,
         totalBorrowedBooks: totalBorrowedBooks[0].count,
         totalMembers: totalMembers[0].count,
         newBooks: newBooks[0].count,
+        todayIssues: todayIssues[0].count,
+        todayReturned: todayReturned[0].count,
+        overdue: overdues[0].count,
+        trending: trending[0].count,
       };
     } catch (error) {
       throw error;
