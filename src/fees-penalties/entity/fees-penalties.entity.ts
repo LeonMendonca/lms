@@ -27,6 +27,10 @@ export class FeesPenalties {
     @Column({ name: 'book_copy_uuid', type: 'uuid' })
     bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
 
+
+    @Column({ name: 'journal_copy_uuid', type: 'uuid' })
+    journalCopyUUID: 'journal_copy_uuid' = 'journal_copy_uuid'
+
     @Column({ name: 'payment_method', type: 'varchar', nullable: true })
     paymentMethod: 'payment_method' = 'payment_method';
 

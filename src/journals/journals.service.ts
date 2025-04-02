@@ -22,7 +22,8 @@ import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-co
 import { genId } from './id-generation/create-periodical-ids';
 import { create } from 'domain';
 import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
-import { ReplOptions } from 'repl';
+import { ReplOptions, start } from 'repl';
+import { differenceInDays, startOfDay } from 'date-fns';
 
 @Injectable()
 export class JournalsService {
@@ -577,10 +578,6 @@ export class JournalsService {
                 }
 
                 // 2. Check if Journal Copy Exists and is Issued (is_available = false)
-                // const journalData = await transactionalEntityManager.query(
-                //     `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = FALSE`,
-                //     [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-                // );
                 const journalData = await transactionalEntityManager.query(
                     `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=false`,
                     [journalLogPayload.journal_copy_id]
@@ -590,12 +587,10 @@ export class JournalsService {
                     throw new HttpException('Periodical is not issued or does not exist', HttpStatus.BAD_REQUEST);
                 }
                 const journal_title_uuid = journalData[0].journal_title_uuid
+                const journal_copy_uuid = journalData[0].journal_copy_uuid
+
 
                 // 3. Check if Periodical Exists in Titles
-                // const oldTitle = await transactionalEntityManager.query(
-                //     `SELECT * FROM journal_titles WHERE subscription_id = $1 AND is_archived = FALSE`,
-                //     [journalLogPayload.subscription_id]
-                // );
                 const oldTitle = await transactionalEntityManager.query(
                     `SELECT * FROM journal_titles WHERE journal_uuid=$1 AND is_archived=false`,
                     [journal_title_uuid]
@@ -611,13 +606,6 @@ export class JournalsService {
                 }
 
                 // 5. Update Available Count in journal_titles
-                // const newTitle = await transactionalEntityManager.query(
-                //     `UPDATE journal_titles 
-                //  SET available_count = available_count + 1 
-                //  WHERE subscription_id = $1 AND available_count < total_count 
-                //  RETURNING *`,
-                //     [journalLogPayload.subscription_id]
-                // );
                 const newTitle = await transactionalEntityManager.query(
                     `UPDATE journal_titles SET available_count = available_count + 1 WHERE journal_uuid=$1 AND available_count<=total_count RETURNING *`,
                     [journal_title_uuid]
@@ -627,14 +615,7 @@ export class JournalsService {
                     throw new HttpException("Failed to update available count", HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                // 6. Mark Journal Copy as Available
-                // const newCopyData = await transactionalEntityManager.query(
-                //     `UPDATE journal_copy 
-                //  SET is_available = TRUE 
-                //  WHERE journal_copy_id = $1 
-                //  RETURNING *`,
-                //     [journalLogPayload.journal_copy_id]
-                // );
+                // 6. Mark Journal Copy as 
                 const newCopyData = await transactionalEntityManager.query(
                     `UPDATE journal_copy SET is_available=true WHERE journal_copy_id=$1 RETURNING *`,
                     [journalLogPayload.journal_copy_id]
@@ -668,8 +649,31 @@ export class JournalsService {
                     ]
                 );
 
-                return { message: 'Periodical Returned Successfully', statusCode: HttpStatus.OK };
+                // 8. Insert Into The Fees-n-Penalties Table
+                // calculate delayed_days
+                let return_date = await this.journalLogRepository.query(
+                    `SELECT time FROM journal_logs WHERE journal_copy_uuid=$1 AND action='borrowed'`,
+                    [journal_copy_uuid]
+                )
+                return_date = return_date[0].time
+                return_date.setDate(return_date.getDate() + 7);
+                const returned_date = new Date() // today
+                const delayed_days = differenceInDays(startOfDay(return_date), startOfDay(returned_date))
+                console.log(return_date, returned_date)
+
+                let penalty_amount = 0
+                if (delayed_days < 0) {
+                    const penalty = 50
+                    penalty_amount = Math.abs(delayed_days) * penalty
+                }
+
+                const penalty = await this.feesPenaltiesRepository.query(
+                    `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2 WHERE journal_copy_uuid=$3 RETURNING *`,
+                    [delayed_days, penalty_amount, journal_copy_uuid]
+                )
+
             });
+            return { message: 'Periodical Returned Successfully', statusCode: HttpStatus.OK };
 
         } catch (error) {
             console.error('Error returning Periodical:', error);
@@ -810,8 +814,8 @@ export class JournalsService {
 
                 // 8. Insert Periodical Information into the Fees n Penalties Table
                 const penalty = await this.feesPenaltiesRepository.query(
-                    `INSERT INTO fees_penalties (category, borrower_uuid, book_copy_uuid, return_date) VALUES ($1, $2, $3, $4)`,
-                    ["periodical", student_uuid, journal_copy_uuid, return_date]
+                    `INSERT INTO fees_penalties (category, borrower_uuid, book_copy_uuid, return_date, journal_copy_uuid) VALUES ($1, $2, $3, $4, $5)`,
+                    ["periodical", student_uuid, journal_copy_uuid, return_date, journal_copy_uuid]
                 )
 
                 return { message: 'Periodical Borrowed Successfully', statusCode: HttpStatus.CREATED };

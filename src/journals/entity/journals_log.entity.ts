@@ -2,6 +2,7 @@ import { Students } from "src/students/students.entity";
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { JournalTitle } from "./journals_title.entity";
 import { JournalCopy } from "./journals_copy.entity";
+import { FeesPenalties } from "src/fees-penalties/entity/fees-penalties.entity";
 
 @Entity('journal_logs')
 export class JournalLogs {
@@ -38,13 +39,6 @@ export class JournalLogs {
     @Column({ name: 'description', type: 'varchar', length: 255 })
     description: 'description' = 'description';
 
-    // added
-
-    // @Column({ name: 'frequency', type: 'varchar', length: 255 })
-    // frequency: "frequency" = "frequency"
-
-    // --added
-
     @Column({ name: 'issn', type: 'varchar', length: 255 })
     issn: 'issn' = 'issn';
 
@@ -53,6 +47,10 @@ export class JournalLogs {
 
     @Column({ name: 'ip_address', type: 'varchar', length: 255, nullable: true })
     ipAddress: 'ip_address' = 'ip_address';
+
+    @ManyToOne(() => FeesPenalties, (fees_penalties) => fees_penalties.fpUUID)
+    @JoinColumn({ name: 'fp_uuid' })
+    fpUUID: 'fp_uuid' = 'fp_uuid';
 }
 
 export const journallog = new JournalLogs()
