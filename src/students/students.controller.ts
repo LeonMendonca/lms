@@ -48,6 +48,10 @@ import { StudentAuthGuard } from './student.guard';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { Students } from './students.entity';
 import { StudentsVisitKey } from './entities/student-visit-key';
+import {
+  PaginationParserType,
+  ParsePaginationPipe,
+} from 'src/pipes/pagination-parser.pipe';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -67,29 +71,10 @@ export class StudentsController {
   @Get('all')
   @UseGuards(StudentAuthGuard)
   async getAllStudents(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
-    @Query()
-    {
-      asc=[],
-      dec=[],
-      filter=[],
-      search=[],
-    }: {
-      asc: string[];
-      dec: string[];
-      filter: { field: string; value: (string | number)[]; operator: string }[];
-      search: { field: string; value: string }[];
-    },
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ): Promise<ApiResponse<Students[]>> {
-    const { data, pagination } = await this.studentsService.findAllStudents({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      asc,
-      dec,
-      filter,
-      search,
-    });
+    const { data, pagination } =
+      await this.studentsService.findAllStudents(query);
     return {
       success: true,
       data,

@@ -26,6 +26,7 @@ import {
   StudentsVisitKey,
   TStudentsVisitkey,
 } from './entities/student-visit-key';
+import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 
 interface DataWithPagination<T> {
   data: T[];
@@ -47,6 +48,8 @@ export class StudentsService {
   constructor(
     @InjectRepository(Students)
     private studentsRepository: Repository<Students>,
+
+    private readonly queryBuilderService: QueryBuilderService
   ) {}
 
   async findAllStudents({
@@ -66,81 +69,98 @@ export class StudentsService {
   }): Promise<DataWithPagination<Students>> {
     const offset = (page - 1) * limit;
 
-    let whereClauses: string[] = ['is_archived = false'];
-    console.log(asc)
+    const params: (string | number)[] = [];
 
-    if (search && search.length > 0) {
-      search.forEach((s) => {
-        whereClauses.push(`${s.field} ILIKE $${whereClauses.length + 1}`);
-      });
-    }
+    const whereClauses = this.queryBuilderService.buildWhereClauses(filter, search, params);
+    const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
 
-    if (filter && filter.length > 0) {
-      filter.forEach((f) => {
-        // Default operator is '=' if no operator is specified
-        const operator = f.operator || '=';
+    console.log({params})
 
-        // Handle 'IN' operator for array values in filter
-        if (operator === 'IN') {
-          // Ensure the value is an array
-          if (Array.isArray(f.value) && f.value.length > 0) {
-            const placeholders = f.value
-              .map((_, idx) => `$${whereClauses.length + idx + 1}`)
-              .join(', ');
-            whereClauses.push(`${f.field} IN (${placeholders})`);
-          }
-        }
-        // Handle 'ILIKE' operator (e.g., case-insensitive search)
-        else if (operator === 'ILIKE') {
-          whereClauses.push(`${f.field} ILIKE $${whereClauses.length + 1}`);
-        }
-        // Handle other operators (>, <, >=, <=, <>, etc.)
-        else if (operator === '>') {
-          whereClauses.push(`${f.field} > $${whereClauses.length + 1}`);
-        } else if (operator === '<') {
-          whereClauses.push(`${f.field} < $${whereClauses.length + 1}`);
-        } else if (operator === '>=') {
-          whereClauses.push(`${f.field} >= $${whereClauses.length + 1}`);
-        } else if (operator === '<=') {
-          whereClauses.push(`${f.field} <= $${whereClauses.length + 1}`);
-        } else if (operator === '<>') {
-          whereClauses.push(`${f.field} <> $${whereClauses.length + 1}`);
-        } else {
-          whereClauses.push(`${f.field} = $${whereClauses.length + 1}`);
-        }
-      });
-    }
-
-    const whereQuery =
-      whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    let orderByQuery = 'ORDER BY updated_at DESC'; // default order
-    if (asc.length > 0 || dec.length > 0) {
-      const sortByFields = [
-        ...asc.map((field) => `${field} ASC`),
-        ...dec.map((field) => `${field} DESC`),
-      ];
-      orderByQuery = `ORDER BY ${sortByFields.join(', ')}`;
-    }
-
-    console.log(whereClauses)
     const students = await this.studentsRepository.query(
-      `SELECT * from students_table ${whereQuery} ${orderByQuery} LIMIT $${whereClauses.length} OFFSET $${whereClauses.length + 1}`,
-      [
-        ...search.map((s) => `%${s.value}%`),
-        ...filter.flatMap((f) => f.value), // Flatten the filter values array
-        limit,
-        offset,
-      ],
+      `SELECT * FROM students_table ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, offset]
     );
 
     const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table ${whereQuery}`,
-      [
-        ...search.map((s) => `%${s.value}%`),
-        ...filter.flatMap((f) => f.value), // Flatten the filter values array
-      ],
+      `SELECT COUNT(*) FROM students_table ${whereClauses}`,
+      params
     );
+
+    // let whereClauses: string[] = ['is_archived = false'];
+    // console.log(asc);
+
+    // if (search && search.length > 0) {
+    //   search.forEach((s) => {
+    //     whereClauses.push(`${s.field} ILIKE $${whereClauses.length}`);
+    //   });
+    // }
+
+    // if (filter && filter.length > 0) {
+    //   filter.forEach((f) => {
+    //     // Default operator is '=' if no operator is specified
+    //     const operator = f.operator || '=';
+
+    //     // Handle 'IN' operator for array values in filter
+    //     if (operator === 'IN') {
+    //       // Ensure the value is an array
+    //       if (Array.isArray(f.value) && f.value.length > 0) {
+    //         const placeholders = f.value
+    //           .map((_, idx) => `$${whereClauses.length + idx}`)
+    //           .join(', ');
+    //         whereClauses.push(`${f.field} IN (${placeholders})`);
+    //       }
+    //     }
+    //     // Handle 'ILIKE' operator (e.g., case-insensitive search)
+    //     else if (operator === 'ILIKE') {
+    //       whereClauses.push(`${f.field} ILIKE $${whereClauses.length}`);
+    //     }
+    //     // Handle other operators (>, <, >=, <=, <>, etc.)
+    //     else if (operator === '>') {
+    //       whereClauses.push(`${f.field} > $${whereClauses.length}`);
+    //     } else if (operator === '<') {
+    //       whereClauses.push(`${f.field} < $${whereClauses.length}`);
+    //     } else if (operator === '>=') {
+    //       whereClauses.push(`${f.field} >= $${whereClauses.length}`);
+    //     } else if (operator === '<=') {
+    //       whereClauses.push(`${f.field} <= $${whereClauses.length}`);
+    //     } else if (operator === '<>') {
+    //       whereClauses.push(`${f.field} <> $${whereClauses.length}`);
+    //     } else {
+    //       whereClauses.push(`${f.field} = $${whereClauses.length}`);
+    //     }
+    //   });
+    // }
+
+    // const whereQuery =
+    //   whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    // let orderByQuery = 'ORDER BY updated_at DESC'; // default order
+    // if (asc.length > 0 || dec.length > 0) {
+    //   const sortByFields = [
+    //     ...asc.map((field) => `${field} ASC`),
+    //     ...dec.map((field) => `${field} DESC`),
+    //   ];
+    //   orderByQuery = `ORDER BY ${sortByFields.join(', ')}`;
+    // }
+
+    // console.log(whereClauses);
+    // const students = await this.studentsRepository.query(
+    //   `SELECT * from students_table ${whereQuery} ${orderByQuery} LIMIT $${whereClauses.length} OFFSET $${whereClauses.length + 1}`,
+    //   [
+    //     ...search.map((s) => `%${s.value}%`),
+    //     ...filter.flatMap((f) => f.value), // Flatten the filter values array
+    //     limit,
+    //     offset,
+    //   ],
+    // );
+
+    // const total = await this.studentsRepository.query(
+    //   `SELECT COUNT(*) from students_table ${whereQuery}`,
+    //   [
+    //     ...search.map((s) => `%${s.value}%`),
+    //     ...filter.flatMap((f) => f.value), // Flatten the filter values array
+    //   ],
+    // );
 
     return {
       data: students,
