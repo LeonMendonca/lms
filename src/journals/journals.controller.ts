@@ -36,6 +36,7 @@ import {
 } from './zod-validation/update-journacopydto-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
+import { issueLogSchema, TIssueLogDTO } from './zod-validation/issue-zod';
 
 @Controller('journals')
 export class JournalsController {
@@ -97,7 +98,7 @@ export class JournalsController {
     }
   }
 
-  // DELETE JPERIODICAL
+  // DELETE PERIODICAL
   @Put('uparchive')
   async archivePeriodical(@Body('journal_uuid') journal_uuid: string) {
     return this.journalsService.archivePeriodical(journal_uuid);
@@ -548,4 +549,46 @@ export class JournalsController {
       search: search ?? undefined,
     });
   }
+
+
+
+    // ISSUE PERIODICALS NEW FUNCTIONS
+    
+    @Post('issue')
+    @UsePipes(new bodyValidationPipe(issueLogSchema))
+    async issue(
+        @Body() issuePayload: TIssueLogDTO,
+        @Req() request: Request
+    ){
+        try{
+            let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+            let result: Record<string, string | number> = {};
+
+            if(issuePayload.action === "borrow"){
+                return await this.journalsService.borrow(
+                    issuePayload,
+                    request,
+                    (status = "borrowed")
+                )
+            }else if(issuePayload.action === "return"){
+                return await this.journalsService.return()
+            }else{
+                return await this.journalsService.borrow(
+                    issuePayload,
+                    request,
+                    (status = "in_library_borrowed")
+                )
+            }
+
+        }catch(error){
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(
+                  error.message,
+                  HttpStatus.INTERNAL_SERVER_ERROR,
+                );
+              }
+              throw error;
+        }
+
+    }
 }

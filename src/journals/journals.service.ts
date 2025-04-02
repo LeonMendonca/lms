@@ -25,12 +25,17 @@ import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 import { ReplOptions, start } from 'repl';
 import { differenceInDays, startOfDay } from 'date-fns';
 import { genIdForCopies } from './id-generation/create-periodical_copy-id'
+import { TIssueLogDTO } from './zod-validation/issue-zod';
+import { BookCopy } from 'src/books_v2/entity/books_v2.copies.entity';
+import { BookTitle } from 'src/books_v2/entity/books_v2.title.entity';
+import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 
 
 
 @Injectable()
 export class JournalsService {
     constructor(
+        // periodicals
         @InjectRepository(JournalLogs)
         private journalLogRepository: Repository<JournalLogs>,
 
@@ -40,11 +45,23 @@ export class JournalsService {
         @InjectRepository(JournalTitle)
         private journalsTitleRepository: Repository<JournalTitle>,
 
+        // students
         @InjectRepository(Students)
         private studentsRepository: Repository<Students>,
 
+        // fees n penalties
         @InjectRepository(FeesPenalties)
         private feesPenaltiesRepository: Repository<FeesPenalties>,
+
+        // books
+        @InjectRepository(BookTitle)
+        private booksTitleRepository: Repository<BookTitle>,
+
+        @InjectRepository(BookCopy)
+        private booksCopyRepository: Repository<BookCopy>,
+
+        @InjectRepository(Booklog_v2)
+        private bookLogRepository: Repository<Booklog_v2>,
 
         private readonly dataSource: DataSource
     ) { }
@@ -655,14 +672,14 @@ export class JournalsService {
                 // 8. Insert Into The Fees-n-Penalties Table
                 // calculate delayed_days
                 let return_date = await this.journalLogRepository.query(
-                    `SELECT time FROM journal_logs WHERE journal_copy_uuid=$1 AND action='borrowed'`,
+                    `SELECT return_date FROM fees_penalties WHERE copy_uuid=$1`,
                     [journal_copy_uuid]
                 )
-                return_date = return_date[0].time
-                return_date.setDate(return_date.getDate() + 7);
+
                 const returned_date = new Date() // today
+
                 const delayed_days = differenceInDays(startOfDay(return_date), startOfDay(returned_date))
-                console.log(return_date, returned_date)
+                console.log(return_date[0].return_date, returned_date, delayed_days)
 
                 let penalty_amount = 0
                 if (delayed_days < 0) {
@@ -671,7 +688,7 @@ export class JournalsService {
                 }
 
                 const penalty = await this.feesPenaltiesRepository.query(
-                    `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2 WHERE journal_copy_uuid=$3 RETURNING *`,
+                    `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2 WHERE copy_uuid=$3 RETURNING *`,
                     [delayed_days, penalty_amount, journal_copy_uuid]
                 )
 
@@ -748,8 +765,10 @@ export class JournalsService {
                     throw new HttpException("No available periodicals for borrowing", HttpStatus.BAD_REQUEST);
                 }
 
-                // store data for fees_n_penalties
-                const return_date = oldTitle[0].subscription_end_date
+                // store data for fees_n_penalties - store the return date properly
+                let return_date = new Date()
+
+                return_date.setDate(return_date.getDate() + 7) 
 
                 console.log("OLD PERIODICAL TITLE DATA : ", oldTitle[0]);
 
@@ -817,8 +836,8 @@ export class JournalsService {
 
                 // 8. Insert Periodical Information into the Fees n Penalties Table
                 const penalty = await this.feesPenaltiesRepository.query(
-                    `INSERT INTO fees_penalties (category, borrower_uuid, book_copy_uuid, return_date, journal_copy_uuid) VALUES ($1, $2, $3, $4, $5)`,
-                    ["periodical", student_uuid, journal_copy_uuid, return_date, journal_copy_uuid]
+                    `INSERT INTO fees_penalties (category, borrower_uuid, copy_uuid, return_date) VALUES ($1, $2, $3, $4)`,
+                    ["periodical", student_uuid, journal_copy_uuid, return_date]
                 )
 
                 return { message: 'Periodical Borrowed Successfully', statusCode: HttpStatus.CREATED };
@@ -1937,6 +1956,36 @@ export class JournalsService {
         } catch (error) {
             throw error;
         }
+    }
+
+
+
+
+
+    // ISSUE PERIODICALS NEW FUNCTIONS
+
+    async borrow(
+        issuePayload: Omit<TIssueLogDTO, 'action'>,
+        request: Request,
+        status: 'borrowed' | 'in_library_borrowed'
+    ){
+        let data = []
+        if(issuePayload.category === 'periodical'){
+            data = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE journal_copy_id=$1`,
+                [issuePayload.copy_id]
+            )
+        }else{
+            data = await this.booksCopyRepository.query(
+                `SELECT * FROM book_copies WHERE book_copy_id=$1`,
+                [issuePayload.copy_id]
+            )
+        }
+        return data
+    }
+
+    async return(){
+        return "returned"
     }
 
 }
