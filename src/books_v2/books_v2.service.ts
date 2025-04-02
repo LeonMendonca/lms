@@ -719,20 +719,23 @@ export class BooksV2Service {
     try {
       const offset = (page - 1) * limit;
       const result: any[] = await this.booklogRepository.query(
-        ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
-          INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid 
-         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
- LIMIT $2 OFFSET $3`,
+        `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 LIMIT $2 OFFSET $3
+        `,
+//         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
+//           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid 
+//          INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
+//  LIMIT $2 OFFSET $3`,
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
-        `SELECT COUNT(*) 
-        FROM book_titles 
-        INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
-        INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
-        INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  
-        WHERE student_id = $1;
-`,
+        `FROM book_logv2 WHERE borrower_uuid = $1`,
+//         `SELECT COUNT(*) 
+//         FROM book_titles 
+//         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
+//         INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+//         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  
+//         WHERE student_id = $1;
+// `,
         [student_id],
       );
       if (result.length === 0) {
