@@ -1,8 +1,9 @@
-export function isWithin30Meters(
+export function isWithinXMeters(
   lat1: number,
   lon1: number,
   lat2: number,
   lon2: number,
+  space: number = 30
 ): boolean {
     console.log(lat1, lon1, lat2, lon2)
   const R = 6371e3; // Earth's radius in meters
@@ -20,5 +21,5 @@ export function isWithin30Meters(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c; // Distance in meters
 
-  return distance <= 30; // Returns true if within 30 meters
+  return distance <= space; // Returns true if within 30 meters
 }

@@ -69,16 +69,26 @@ export class StudentsController {
   async getAllStudents(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
-    @Query('_search') search: string,
-    @Query('_department') department: string,
-    @Query('_year') year: string,
+    @Query()
+    {
+      asc=[],
+      dec=[],
+      filter=[],
+      search=[],
+    }: {
+      asc: string[];
+      dec: string[];
+      filter: { field: string; value: (string | number)[]; operator: string }[];
+      search: { field: string; value: string }[];
+    },
   ): Promise<ApiResponse<Students[]>> {
     const { data, pagination } = await this.studentsService.findAllStudents({
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
-      search: search ?? undefined,
-      department: department ?? undefined,
-      year: year ?? undefined,
+      asc,
+      dec,
+      filter,
+      search,
     });
     return {
       success: true,

@@ -21,8 +21,11 @@ import { TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
-import { isWithin30Meters } from './utilities/location-calculation';
-import { StudentsVisitKey, TStudentsVisitkey } from './entities/student-visit-key';
+import { isWithinXMeters } from './utilities/location-calculation';
+import {
+  StudentsVisitKey,
+  TStudentsVisitkey,
+} from './entities/student-visit-key';
 
 interface DataWithPagination<T> {
   data: T[];
@@ -50,24 +53,93 @@ export class StudentsService {
     page,
     limit,
     search,
+    asc,
+    dec,
+    filter,
   }: {
     page: number;
     limit: number;
-    search?: string;
-    department?: string;
-    year?: string;
+    asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
   }): Promise<DataWithPagination<Students>> {
     const offset = (page - 1) * limit;
-    const searchQuery = search ? `%${search}%` : '%';
 
+    let whereClauses: string[] = ['is_archived = false'];
+    console.log(asc)
+
+    if (search && search.length > 0) {
+      search.forEach((s) => {
+        whereClauses.push(`${s.field} ILIKE $${whereClauses.length + 1}`);
+      });
+    }
+
+    if (filter && filter.length > 0) {
+      filter.forEach((f) => {
+        // Default operator is '=' if no operator is specified
+        const operator = f.operator || '=';
+
+        // Handle 'IN' operator for array values in filter
+        if (operator === 'IN') {
+          // Ensure the value is an array
+          if (Array.isArray(f.value) && f.value.length > 0) {
+            const placeholders = f.value
+              .map((_, idx) => `$${whereClauses.length + idx + 1}`)
+              .join(', ');
+            whereClauses.push(`${f.field} IN (${placeholders})`);
+          }
+        }
+        // Handle 'ILIKE' operator (e.g., case-insensitive search)
+        else if (operator === 'ILIKE') {
+          whereClauses.push(`${f.field} ILIKE $${whereClauses.length + 1}`);
+        }
+        // Handle other operators (>, <, >=, <=, <>, etc.)
+        else if (operator === '>') {
+          whereClauses.push(`${f.field} > $${whereClauses.length + 1}`);
+        } else if (operator === '<') {
+          whereClauses.push(`${f.field} < $${whereClauses.length + 1}`);
+        } else if (operator === '>=') {
+          whereClauses.push(`${f.field} >= $${whereClauses.length + 1}`);
+        } else if (operator === '<=') {
+          whereClauses.push(`${f.field} <= $${whereClauses.length + 1}`);
+        } else if (operator === '<>') {
+          whereClauses.push(`${f.field} <> $${whereClauses.length + 1}`);
+        } else {
+          whereClauses.push(`${f.field} = $${whereClauses.length + 1}`);
+        }
+      });
+    }
+
+    const whereQuery =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    let orderByQuery = 'ORDER BY updated_at DESC'; // default order
+    if (asc.length > 0 || dec.length > 0) {
+      const sortByFields = [
+        ...asc.map((field) => `${field} ASC`),
+        ...dec.map((field) => `${field} DESC`),
+      ];
+      orderByQuery = `ORDER BY ${sortByFields.join(', ')}`;
+    }
+
+    console.log(whereClauses)
     const students = await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false AND student_name ILIKE $1 ORDER BY updated_at DESC  LIMIT $2 OFFSET $3 ',
-      [searchQuery, limit, offset],
+      `SELECT * from students_table ${whereQuery} ${orderByQuery} LIMIT $${whereClauses.length} OFFSET $${whereClauses.length + 1}`,
+      [
+        ...search.map((s) => `%${s.value}%`),
+        ...filter.flatMap((f) => f.value), // Flatten the filter values array
+        limit,
+        offset,
+      ],
     );
 
     const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) from students_table WHERE is_archived = false AND student_name ILIKE $1`,
-      [searchQuery],
+      `SELECT COUNT(*) from students_table ${whereQuery}`,
+      [
+        ...search.map((s) => `%${s.value}%`),
+        ...filter.flatMap((f) => f.value), // Flatten the filter values array
+      ],
     );
 
     return {
@@ -835,7 +907,7 @@ export class StudentsService {
       const lib_longitude = -122.41942;
       const lib_latitude = 37.77491;
       const studentKey = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '5 minutes' AND is_used = false`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes' AND is_used = false`,
         [studentKeyUUID],
       );
 
@@ -848,7 +920,7 @@ export class StudentsService {
       const { latitude, longitude, student_id, action } = studentKey[0];
 
       if (
-        isWithin30Meters(
+        isWithinXMeters(
           lib_latitude,
           lib_longitude,
           parseFloat(latitude),
@@ -892,11 +964,11 @@ export class StudentsService {
   ): Promise<Data<{ status: any }>> {
     try {
       const trial = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key `
+        `SELECT * FROM student_visit_key `,
       );
       console.log(trial);
       const status: TStudentsVisitkey[] = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '5 minutes'`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes'`,
         [studentKeyUUID],
       );
       if (status.length === 0) {
@@ -905,7 +977,6 @@ export class StudentsService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      console.log(status)
       return {
         data: { status: !status[0].is_used },
         pagination: null,
