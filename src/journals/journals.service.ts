@@ -19,11 +19,14 @@ import { TUpdatePeriodicalDTO } from './zod-validation/update-journacopydto-zod'
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
-import { genId } from './id-generation/create-periodical-ids';
+import { genIdForTitle } from './id-generation/create-periodical_title-id'
 import { create } from 'domain';
 import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 import { ReplOptions, start } from 'repl';
 import { differenceInDays, startOfDay } from 'date-fns';
+import { genIdForCopies } from './id-generation/create-periodical_copy-id'
+
+
 
 @Injectable()
 export class JournalsService {
@@ -1150,29 +1153,27 @@ export class JournalsService {
 
             // Check if journal exists in JournalTitle Table
             let journalTitleUUID = await queryRunner.query(
-                `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
+                `SELECT * FROM journal_titles WHERE subscription_id = $1`,
                 [createJournalPayload.subscription_id]
             );
 
             // Generate journal_title_id if not exists
-            let journal_title_id: string;
+            let journal_title_uuid: string;
             if (journalTitleUUID.length === 0) {
                 // Create custom Journal Title ID (Ensure max value exists)
                 const maxInstituteCountQuery = await queryRunner.query(
                     `SELECT MAX(journal_title_id) AS max_id FROM journal_titles`
                 );
 
-                console.log("Journal Title maxCount", maxInstituteCountQuery[0].max_id)
+                // console.log("Journal Title maxCount", maxInstituteCountQuery[0].max_id)
 
                 const maxInstituteCount = maxInstituteCountQuery[0]?.max_id || "000";
                 const instituteName = "Thakur Institute of Aviation";
-                journal_title_id = genId(maxInstituteCount, instituteName);
-
-                // journal_title_id = genId("001", instituteName);
+                journal_title_uuid = genIdForTitle(maxInstituteCount, instituteName);
 
                 const journalTitlePayloadWithId = {
                     ...createJournalPayload,
-                    journal_title_id: journal_title_id,
+                    journal_title_id: journal_title_uuid,
                     subscription_id: createJournalPayload.subscription_id,
                     total_count: total_count + 1,
                     available_count: available_count + 1
@@ -1204,18 +1205,30 @@ export class JournalsService {
                     `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
                     [createJournalPayload.subscription_id]
                 );
-                journal_title_id = journalTitleUUID[0]?.journal_uuid; // use the existing journal UUID
+                journal_title_uuid = journalTitleUUID[0]?.journal_title_id; // use the existing journal UUID
             }
+
+            // console.log("journal_title_uuid : ", journal_title_uuid)
 
             // Generate journal_copy_id
             const maxCopyIdQuery = await queryRunner.query(
                 `SELECT MAX(journal_copy_id) AS max_id FROM journal_copy`
             );
             const maxCopyId = maxCopyIdQuery[0]?.max_id || "000";
-            console.log("Journal Copy maxCount", maxCopyId)
-            const journalCopyId = genId(maxCopyId, "Thakur Institute of Aviation");
+            // console.log("Journal Copy maxCount", maxCopyId)
+            // console.log("t_id start")
 
-            // const journalCopyId = genId("001", "Thakur Institute of Aviation");
+            // take the title id that is generated
+            // const t_id = await this.journalsTitleRepository.query(
+            //     `SELECT journal_title_id FROM journal_titles WHERE journal_uuid=$1`,
+            //     [journal_title_uuid]
+            // )
+            // console.log("t_id", journal_title_uuid)
+            const journalCopyId = genIdForCopies(maxCopyId, journal_title_uuid);
+            // console.log("copy id : ", journalCopyId)
+
+
+            // const journalCopyId = genIdForTitle("001", "Thakur Institute of Aviation");
 
             const journalCopyPayloadWithId = {
                 ...createJournalPayload,

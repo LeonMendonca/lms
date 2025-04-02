@@ -6,7 +6,7 @@ import { DeleteQueryBuilder, Repository } from 'typeorm';
 import { TCreateHolidayDTO } from "./zod-validation/createholiday-zod";
 import { TUpdateHolidayDTO, updateHolidaySchema } from "./zod-validation/updateholiday-zod";
 import { insertQueryHelper, selectQueryHelper, updateQueryHelper } from "src/misc/custom-query-helper";
-import { query } from "express";
+// import { query } from "express";
 import { TFindHolidayDTO } from "./zod-validation/findholiday-zod";
 import { TDeleteHolidayDTO } from "./deleteholiday-zod";
 
