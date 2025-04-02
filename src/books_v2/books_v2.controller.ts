@@ -277,7 +277,7 @@ export class BooksV2Controller {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TbookUUIDZod, {
       validated_array: TbookUUIDZod[];
       invalid_data_count: number;
     }>('book/book-zod-uuid-worker'),

@@ -168,7 +168,7 @@ export class StudentsController {
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TCreateStudentDTO, {
       validated_array: TCreateStudentDTO[];
       invalid_data_count: number;
     }>('student/student-zod-body-worker'),
@@ -251,7 +251,7 @@ export class StudentsController {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TstudentUUIDZod, {
       validated_array: TstudentUUIDZod[];
       invalid_data_count: number;
     }>('student/student-zod-uuid-worker'),

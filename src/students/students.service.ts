@@ -173,7 +173,7 @@ export class StudentsService {
         duplicate_data_pl,
         unique_data,
         duplicate_date_db,
-      }: TInsertResult = await CreateWorker(
+      } = await CreateWorker<TInsertResult>(
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
@@ -236,7 +236,7 @@ export class StudentsService {
       );
       const BatchArr: Promise<TUpdateResult>[] = [];
       for (let i = 0; i < zodValidatedBatchArr.length; i++) {
-        const result = CreateWorker<TstudentUUIDZod>(
+        const result = CreateWorker<TUpdateResult>(
           zodValidatedBatchArr[i],
           'student/student-archive-worker',
         );
