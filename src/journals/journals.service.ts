@@ -1706,12 +1706,12 @@ export class JournalsService {
 
 
     // working
-    async archivePeriodicalCopy(journal_copy_uuid: string) {
+    async archivePeriodicalCopy(journal_copy_id: string) {
         try {
             // Archive the book copy and get the bookTitleUUID
             const archiveResult = await this.journalsCopyRepository.query(
-                `UPDATE journal_copy SET is_archived = true WHERE journal_copy_uuid = $1 RETURNING journal_title_uuid`,
-                [journal_copy_uuid],
+                `UPDATE journal_copy SET is_archived = true WHERE journal_copy_id = $1 RETURNING journal_title_uuid`,
+                [journal_copy_id],
             );
 
             if (archiveResult.length === 0) {
@@ -1773,11 +1773,11 @@ export class JournalsService {
     }
 
     // working
-    async restorePeriodicalCopy(journal_copy_uuid: string) {
+    async restorePeriodicalCopy(journal_copy_id: string) {
         try {
             const journal = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE journal_copy_uuid = $1 AND is_archived = true`,
-                [journal_copy_uuid],
+                `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND is_archived = true`,
+                [journal_copy_id],
             );
 
             if (journal.length === 0) {
@@ -1788,18 +1788,14 @@ export class JournalsService {
             }
 
             await this.journalsTitleRepository.query(
-                `UPDATE journal_copy SET is_archived = false WHERE journal_copy_uuid = $1 RETURNING journal_title_uuid`,
-                [journal_copy_uuid],
+                `UPDATE journal_copy SET is_archived = false WHERE journal_copy_id = $1 RETURNING journal_title_uuid`,
+                [journal_copy_id],
             );
 
             const journalTitleUUID = journal[0].journal_title_uuid;
 
             await this.journalsTitleRepository.query(
-                `UPDATE journal_titles 
-            SET 
-            total_count = total_count + 1, 
-              available_count = available_count + 1
-            WHERE journal_uuid = $1`,
+                `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1 WHERE journal_uuid = $1`,
                 [journalTitleUUID],
             );
 

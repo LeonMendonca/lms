@@ -255,14 +255,14 @@ export class JournalsController {
 
     // ARCHIVE PERIODICAL COPY
     @Put('archive-periodical-copy')
-    async archivePeriodicalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
-        return this.journalsService.archivePeriodicalCopy(journal_copy_uuid);
+    async archivePeriodicalCopy(@Body('journal_copy_id') journal_copy_id: string) {
+        return this.journalsService.archivePeriodicalCopy(journal_copy_id);
     }
 
     // RESTORE PERIODICAL COPY
     @Put('restore-periodical-copy')
-    async restoreJournalCopy(@Body('journal_copy_uuid') journal_copy_uuid: string) {
-        return this.journalsService.restorePeriodicalCopy(journal_copy_uuid);
+    async restoreJournalCopy(@Body('journal_copy_id') journal_copy_id: string) {
+        return this.journalsService.restorePeriodicalCopy(journal_copy_id);
     }
 
 
