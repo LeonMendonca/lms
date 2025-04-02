@@ -1157,12 +1157,13 @@ export class JournalsService {
                 [createJournalPayload.subscription_id]
             );
 
+            const title_id = journalTitleUUID[0].journal_title_id
             // if two different journal in the title have the same subscription id then give the user the error to create a new subscription id by padding /01 or -01
             const subs_id_data = await this.journalsTitleRepository.query(
-                `SELECT * FROM journal_titles WHERE subscription_id=$1 AND N journal_copy.journal_title_uuid=$2`,
-                [createJournalPayload.subscription_id]
+                `SELECT * FROM journal_titles WHERE subscription_id=$1 AND journal_title_id=$2`,
+                [createJournalPayload.subscription_id, title_id]
             )
-            if(subs_id_data.length>0){
+            if(subs_id_data.length > 1){
                 // throw `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`
                 return {message: `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`}
             }
@@ -1222,23 +1223,11 @@ export class JournalsService {
 
             // Generate journal_copy_id
             const maxCopyIdQuery = await queryRunner.query(
-                `SELECT MAX(journal_copy_id) AS max_id FROM journal_copy`
+                `SELECT MAX(journal_copy_id) AS max_id FROM journal_copy WHERE journal_title_uuid=$1`,
+                [journalTitleUUID[0].journal_uuid]
             );
             const maxCopyId = maxCopyIdQuery[0]?.max_id || "000";
-            // console.log("Journal Copy maxCount", maxCopyId)
-            // console.log("t_id start")
-
-            // take the title id that is generated
-            // const t_id = await this.journalsTitleRepository.query(
-            //     `SELECT journal_title_id FROM journal_titles WHERE journal_uuid=$1`,
-            //     [journal_title_uuid]
-            // )
-            // console.log("t_id", journal_title_uuid)
             const journalCopyId = genIdForCopies(maxCopyId, journal_title_uuid);
-            // console.log("copy id : ", journalCopyId)
-
-
-            // const journalCopyId = genIdForTitle("001", "Thakur Institute of Aviation");
 
             const journalCopyPayloadWithId = {
                 ...createJournalPayload,
