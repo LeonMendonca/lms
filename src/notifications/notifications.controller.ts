@@ -21,15 +21,13 @@ export class NotificationsController {
         // books
         @InjectRepository(Booklog_v2) private bookLogRepo: Repository<Booklog_v2>,
 
-        // journals
+        // periodicals
         @InjectRepository(JournalCopy) private journalCopyRepo: Repository<JournalCopy>,
         @InjectRepository(JournalLogs) private journalLogRepo: Repository<JournalLogs>,
         @InjectRepository(JournalTitle) private journalTitleRepo: Repository<JournalTitle>,
 
-
+        // students
         @InjectRepository(Students) private studentsRepo: Repository<Students>
-
-        // @InjectRepository(JournalsTable) private journalRepo: Repository<JournalsTable>,
     ) { }
 
     // @Post('books')

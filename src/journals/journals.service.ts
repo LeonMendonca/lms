@@ -1157,6 +1157,16 @@ export class JournalsService {
                 [createJournalPayload.subscription_id]
             );
 
+            // if two different journal in the title have the same subscription id then give the user the error to create a new subscription id by padding /01 or -01
+            const subs_id_data = await this.journalsTitleRepository.query(
+                `SELECT * FROM journal_titles WHERE subscription_id=$1 AND N journal_copy.journal_title_uuid=$2`,
+                [createJournalPayload.subscription_id]
+            )
+            if(subs_id_data.length>0){
+                // throw `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`
+                return {message: `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`}
+            }
+
             // Generate journal_title_id if not exists
             let journal_title_uuid: string;
             if (journalTitleUUID.length === 0) {
@@ -1618,47 +1628,45 @@ export class JournalsService {
     }
 
     // working
+
     async getSingleJournalCopyInfo({
-        journal_title_uuid = '',
+        journal_title_id = '',
         page = 1,
         limit = 10,
         search = '',
     }: {
-        journal_title_uuid?: string,
+        journal_title_id?: string,
         page?: number;
         limit?: number;
         search?: string;
-    }) {
-        try {
-            if (!journal_title_uuid) {
-                return { message: "Enter journal_title_uuid" }
+    }){
+        try{
+            if(!journal_title_id){
+                return {message: "Enter journal_title_id"}
             }
-
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
-            const periodical_copy = await this.journalsCopyRepository.query(
-                `SELECT jc.*, jt.journal_title_id
-                FROM journal_copy jc
-                JOIN journal_titles jt ON jc.journal_title_uuid = jt.journal_uuid
-                WHERE jc.journal_title_uuid = $1
-                AND jc.is_archived = false
-                AND jc.is_available = true
-                AND jt.is_archived = false
-                AND jt.available_count > 0
-                LIMIT $2 OFFSET $3`,
-                [journal_title_uuid, limit, offset]
-            );
-            if (!periodical_copy.length) {
-                return { message: "Periodical Does Not Exist" }
-            }
+            console.log("start")
+
+            const title_data = await this.journalsTitleRepository.query(
+                `SELECT * FROM journal_titles WHERE journal_title_id=$1 `,
+                [journal_title_id]
+            )
+
+            console.log(title_data)
+
+            const copy_data = await this.journalsCopyRepository.query(
+                `SELECT * FROM journal_copy WHERE journal_title_uuid=$1`,
+                [title_data[0].journal_uuid]
+            )
 
             const total = await this.journalsCopyRepository.query(
                 `SELECT COUNT(*) AS count FROM journal_copy WHERE is_archived=false AND is_available=true AND journal_title_uuid = $1`,
-                [journal_title_uuid]
+                [title_data[0].journal_uuid]
             )
 
             return {
-                data: periodical_copy,
+                data: copy_data,
                 pagination: {
                     total: parseInt(total[0].count, 10),
                     page,
@@ -1666,10 +1674,63 @@ export class JournalsService {
                     totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
                 },
             };
-        } catch (error) {
-            throw new HttpException('Error fetching copy', HttpStatus.INTERNAL_SERVER_ERROR);
+        }catch(error){
+            return {error:error}
         }
     }
+
+    // async getSingleJournalCopyInfo({
+    //     journal_title_uuid = '',
+    //     page = 1,
+    //     limit = 10,
+    //     search = '',
+    // }: {
+    //     journal_title_uuid?: string,
+    //     page?: number;
+    //     limit?: number;
+    //     search?: string;
+    // }) {
+    //     try {
+    //         if (!journal_title_uuid) {
+    //             return { message: "Enter journal_title_uuid" }
+    //         }
+
+    //         const offset = (page - 1) * limit;
+    //         const searchQuery = search ? `${search}%` : '%';
+    //         const periodical_copy = await this.journalsCopyRepository.query(
+    //             `SELECT jc.*, jt.journal_title_id
+    //             FROM journal_copy jc
+    //             JOIN journal_titles jt ON jc.journal_title_uuid = jt.journal_uuid
+    //             WHERE jc.journal_title_uuid = $1
+    //             AND jc.is_archived = false
+    //             AND jc.is_available = true
+    //             AND jt.is_archived = false
+    //             AND jt.available_count > 0
+    //             LIMIT $2 OFFSET $3`,
+    //             [journal_title_uuid, limit, offset]
+    //         );
+    //         if (!periodical_copy.length) {
+    //             return { message: "Periodical Does Not Exist" }
+    //         }
+
+    //         const total = await this.journalsCopyRepository.query(
+    //             `SELECT COUNT(*) AS count FROM journal_copy WHERE is_archived=false AND is_available=true AND journal_title_uuid = $1`,
+    //             [journal_title_uuid]
+    //         )
+
+    //         return {
+    //             data: periodical_copy,
+    //             pagination: {
+    //                 total: parseInt(total[0].count, 10),
+    //                 page,
+    //                 limit,
+    //                 totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+    //             },
+    //         };
+    //     } catch (error) {
+    //         throw new HttpException('Error fetching copy', HttpStatus.INTERNAL_SERVER_ERROR);
+    //     }
+    // }
 
 
     // working
