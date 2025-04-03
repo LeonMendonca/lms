@@ -542,11 +542,11 @@ export class BooksV2Controller {
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
-        result = await this.booksService.bookBorrowed(
-          booklogPayload,
-          request,
-          (status = 'borrowed'),
-        );
+        // result = await this.booksService.bookBorrowed(
+        //   booklogPayload,
+        //   request,
+        //   (status = 'borrowed'),
+        // );
       } else if (booklogPayload.action === 'return') {
         result = await this.booksService.bookReturned(
           booklogPayload,

@@ -446,40 +446,59 @@ export class StudentsService {
   }
   // visit log
   async getVisitAllLog(
-    { page, limit }: { page: number; limit: number } = {
-      page: 1,
-      limit: 10,
-    },
+    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 }
   ) {
     try {
       const offset = (page - 1) * limit;
-
-      const visit_log = await this.studentsRepository.query(
-        `SELECT * FROM visit_log LIMIT $1 OFFSET $2`,
-        [limit, offset],
+  
+      // Optimized SQL Query with Pagination at Database Level
+      const logs = await this.studentsRepository.query(
+        `
+        SELECT * FROM (
+          SELECT visit_log.*, in_time AS log_date FROM visit_log
+          UNION ALL
+          SELECT book_log.*, date AS log_date FROM book_logv2
+        ) AS combined_logs
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [limit, offset]
       );
+  
+      // Fetch total count (for pagination)
       const total = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM visit_log`,
+        `
+        SELECT COUNT(*) AS total FROM (
+          SELECT created_at FROM visit_log
+          UNION ALL
+          SELECT created_at FROM book_log
+        ) AS combined_logs
+        `
       );
-      if (visit_log.length === 0) {
-        throw new HttpException('no log data found', HttpStatus.NOT_FOUND);
+  
+      const totalCount = parseInt(total[0].total, 10);
+  
+      if (logs.length === 0) {
+        throw new HttpException("No log data found", HttpStatus.NOT_FOUND);
       }
+  
       return {
-        data: visit_log,
+        data: logs,
         pagination: {
-          total: parseInt(total[0].count, 10),
+          total: totalCount,
           page,
           limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+          totalPages: Math.ceil(totalCount / limit),
         },
       };
     } catch (error) {
       throw new HttpException(
-        `Error ${error} something went wrong in all log !1`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
+  
   //
 
   async getVisitLogByStudentUUID({
@@ -493,32 +512,27 @@ export class StudentsService {
   }) {
     try {
       const offset = (page - 1) * limit;
-
-      // Fetch paginated results
       const visitLogs = await this.studentsRepository.query(
-        `SELECT * FROM visit_log WHERE student_id = $1 ORDER BY in_time DESC LIMIT $2 OFFSET $3`,
+        `
+          SELECT * FROM (
+            SELECT visit_log.*, in_time AS log_date FROM visit_log WHERE student_uuid = $$1
+            UNION ALL
+            SELECT book_log.*, date AS log_date FROM book_logv2 WHERE borrower_uuid = $$1
+          ) AS combined_logs
+          ORDER BY created_at DESC
+          LIMIT $1 OFFSET $2
+        `,
         [student_id, limit, offset],
       );
-
-      // Get the total count of records
       const totalResult = await this.studentsRepository.query(
         `SELECT COUNT(*) as total FROM visit_log WHERE student_id = $1`,
         [student_id],
       );
-
-      // const total = parseInt(totalResult[0].total, 10);
-      // const totalPages = Math.ceil(total / limit);
       if (visitLogs.length === 0) {
         throw new HttpException('no log data found', HttpStatus.NOT_FOUND);
       }
       return {
         data: visitLogs,
-        // pagination: {
-        //   totalRecords: total,
-        //   currentPage: page,
-        //   limitPerPage: limit,
-        //   totalPages: totalPages,
-        // },
         pagination: {
           total: parseInt(totalResult[0].total, 10),
           page,
