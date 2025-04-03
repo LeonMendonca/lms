@@ -89,6 +89,8 @@ type QueryReturnType = {
       }
     }
 
+    console.log("ISBN COUNT", isbnCountObject);
+
     for (let isbnTobeInserted in isbnCountObject) {
       bookPayloadArr.forEach((item) => {
         if (isbnTobeInserted === item.isbn) {
@@ -154,7 +156,7 @@ type QueryReturnType = {
       bulkQuery3Title = bulkQuery3Title.slice(0, -1);
 
       const finalInsertQueryTitle = bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
-      //console.log(finalInsertQueryTitle);
+      console.log(finalInsertQueryTitle);
       const insertedResult = await client.query(finalInsertQueryTitle);
       const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
       if (isbnUUIDInsert.length) {
