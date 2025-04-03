@@ -43,6 +43,7 @@ import {
 } from './zod/requestbook-zod';
 import { RequestBook, TRequestBook } from './entity/request-book.entity';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
+import { TInsertResult } from 'src/worker-threads/worker-types/book-insert.type';
 
 @Injectable()
 export class BooksV2Service {
@@ -936,7 +937,11 @@ export class BooksV2Service {
     validated_array: TCreateBookZodDTO[];
     invalid_data_count: number;
   }) {
-    return await CreateWorker(bookZodValidatedObject.validated_array, 'book/book-insert-worker');
+    const { inserted_data } = await CreateWorker<TInsertResult>(bookZodValidatedObject.validated_array, 'book/book-insert-worker');
+    return {
+      inserted_data,
+      invalid_data: bookZodValidatedObject.invalid_data_count
+    }
   }
 
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {

@@ -43,10 +43,10 @@ export class BookTitle {
   @Column({ name: 'isbn', type: 'varchar', length: 255 })
   isbn: 'isbn' = 'isbn';
 
-  @Column({ name: 'no_of_pages', type: 'integer' ,nullable:true })
+  @Column({ name: 'no_of_pages', type: 'integer', nullable: true })
   noPages: 'no_of_pages' = 'no_of_pages';
 
-  @Column({ name: 'no_of_preliminary', type: 'integer', nullable:true })
+  @Column({ name: 'no_of_preliminary', type: 'integer', nullable: true })
   noPreliminary: 'no_of_preliminary' = 'no_of_preliminary';
 
   @Column({ name: 'subject', type: 'varchar', length: 255 })
@@ -75,7 +75,7 @@ export class BookTitle {
   @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
   availableCount: 'available_count' = 'available_count';
 
-  @CreateDateColumn({ name: 'created_at' ,type:'date'})
+  @CreateDateColumn({ name: 'created_at', type: 'date' })
   createdAt: 'created_at' = 'created_at';
 
   @UpdateDateColumn({ name: 'updated_at' })
@@ -95,9 +95,30 @@ export class BookTitle {
   bookCopies: 'book_copies' = 'book_copies';
 }
 
-const book_title = new BookTitle();
+export const book_title = new BookTitle();
 
 //Type that represents the table Columns
 export type TBookTitle = {
   [P in keyof typeof book_title as typeof book_title[P]]: any;
 }
+
+export const bookTitleObject = {
+  book_title: 'book_title_placeholder',
+  book_author: 'book_author_placeholder',
+  name_of_publisher: 'name_of_publisher_placeholder',
+  place_of_publication: 'place_of_publication_placeholder',
+  year_of_publication: 'year_of_publication_placeholder',
+  edition: 'edition_placeholder',
+  isbn: 'isbn_placeholder',
+  no_of_pages: 'no_of_pages_placeholder',
+  no_of_preliminary: 'no_of_preliminary_placeholder',
+  subject: 'subject_placeholder',
+  department: 'department_placeholder',
+  call_number: 'call_number_placeholder',
+  author_mark: 'author_mark_placeholder',
+  total_count: 'total_count_placeholder',
+  available_count: 'available_count_placeholder',
+  title_images: 'title_images_placeholder',
+  title_additional_fields: 'title_additional_fields_placeholder',
+  title_description: 'title_description_placeholder',
+} as const;

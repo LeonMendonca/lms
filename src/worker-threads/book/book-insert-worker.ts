@@ -3,8 +3,16 @@ import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';
 import { insertQueryHelper } from 'src/misc/custom-query-helper';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
+import { book_title, bookTitleObject } from 'src/books_v2/entity/books_v2.title.entity';
+import { bookCopyObject } from 'src/books_v2/entity/books_v2.copies.entity';
+import { TInsertResult } from '../worker-types/book-insert.type';
 
 const bookPayloadArr = workerData.oneDArray as TCreateBookZodDTO[];
+
+type QueryReturnType = {
+  book_uuid: string;
+  isbn: string;
+}
 
 (async () => {
   let client = await pool.connect();
@@ -13,65 +21,12 @@ const bookPayloadArr = workerData.oneDArray as TCreateBookZodDTO[];
     console.error('Pool Client in INSERT worker emitted error', err.message);
   });
 
-  //COPIES
-
-  //   let bulkQuery1Copies = 'INSERT INTO book_copies ';
-  //   let bulkQuery2Copies = '';
-  //   let bulkQuery3Copies = '';
-
-  //   let columnsOfBookCopies = createObjectOmitProperties(bookPayloadArr[0], [
-  //     'book_title',
-  //     'book_author',
-  //     'name_of_publisher',
-  //     'place_of_publication',
-  //     'year_of_publication',
-  //     'edition',
-  //     'isbn',
-  //     'no_of_pages',
-  //     'no_of_preliminary',
-  //     'subject',
-  //     'department',
-  //     'call_number',
-  //     'author_mark',
-  //     'title_images',
-  //     'title_description',
-  //     'title_additional_fields',
-  //   ]);
-  //   let key: keyof typeof columnsOfBookCopies | '' = '';
-
-  //   //Create columns with object received for book_copies table
-  //   bulkQuery2Copies += '(';
-  //   for (key in columnsOfBookCopies) {
-  //     bulkQuery2Copies = bulkQuery2Copies.concat(`${key},`);
-  //   }
-  //   bulkQuery2Copies = bulkQuery2Copies.slice(0, -1);
-  //   bulkQuery2Copies += ')';
-  //   bulkQuery2Copies += ' VALUES ';
-
-  //   for (const bookCopyObj of bookPayloadArr) {
-  //     bulkQuery3Copies += '(';
-  //     for (let key in bookCopyObj) {
-  //       if (key in columnsOfBookCopies) {
-  //         if (typeof bookCopyObj[key] === 'object') {
-  //           bookCopyObj[key] = JSON.stringify(bookCopyObj[key]);
-  //         }
-  //         if (typeof bookCopyObj[key] === 'string') {
-  //           bulkQuery3Copies += `'${bookCopyObj[key]}',`;
-  //         } else {
-  //           bulkQuery3Copies += `${bookCopyObj[key]},`;
-  //         }
-  //       }
-  //       //Convert some specific fields to string
-  //     }
-  //     bulkQuery3Copies = bulkQuery3Copies.slice(0, -1);
-  //     bulkQuery3Copies += '),';
-  //   }
-  //   bulkQuery3Copies = bulkQuery3Copies.slice(0, -1);
-
-  //   console.log('test', bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies);
-
   const isbnCountObject = new Object() as { [key: string]: number };
 
+  //An array which has UUIDs and ISBNs after UPDATE and INSERT
+  const arrOfIsbnUUID: QueryReturnType[] = []
+
+  //Create an object of ISBNs along with counts
   for (let element of bookPayloadArr) {
     if (element.isbn in isbnCountObject) {
       isbnCountObject[element.isbn]++;
@@ -98,80 +53,166 @@ const bookPayloadArr = workerData.oneDArray as TCreateBookZodDTO[];
   bulkQueryUpdateAvailableCount += `ELSE available_count END, `;
   bulkQueryUpdateTotalCount += `ELSE total_count END `;
 
-  let bulkQueryEnd = `WHERE isbn IN (${isbnList}) RETURNING isbn, book_uuid`;
+  let bulkQueryUpdateEnd = `WHERE isbn IN (${isbnList}) RETURNING isbn, book_uuid`;
 
-  const finalQueryTitle =
+  const finalUpdateQueryTitle =
     bulkQueryUpdateTitle +
     bulkQueryUpdateAvailableCount +
     bulkQueryUpdateTotalCount +
-    bulkQueryEnd;
+    bulkQueryUpdateEnd;
 
-  const createColumnsFromObject = bookPayloadArr[0];
 
-  const columnsOfBookTitle = createObjectOmitProperties(
-    createColumnsFromObject,
-    [
-      'source_of_acquisition',
-      'date_of_acquisition',
-      'bill_no',
-      'language',
-      'inventory_number',
-      'accession_number',
-      'barcode',
-      'item_type',
-      'institute_name',
-      'institute_uuid',
-      'created_by',
-      'remarks',
-      'copy_images',
-      'copy_description',
-      'copy_additional_fields',
-    ],
-  );
 
   //When inserting to book_titles, the count needs to be calculated
-  let uniqueArrayOfBookTitle: (TCreateBookZodDTO & {
+  let uniqueArrayOfBookTitleWithCount: (TCreateBookZodDTO & {
     available_count: number;
     total_count: number;
   })[] = [];
 
-  //console.log('FINAL QUERY', finalQueryTitle);
+  //console.log('FINAL QUERY', finalUpdateQueryTitle);
   try {
     //Update book_titles table that have existing ISBNs
-    const updatedISBN = await client.query(finalQueryTitle);
+    //Returns updated isbn, and book_uuid
+    const updatedISBN = await client.query(finalUpdateQueryTitle);
+    const isbnUUIDUpdate = updatedISBN.rows as QueryReturnType[];
+    if (isbnUUIDUpdate.length) {
+      for (let element of isbnUUIDUpdate) {
+        arrOfIsbnUUID.push(element);
+      }
+    }
     console.log('Updated ISBN', updatedISBN.rows);
     for (let element of updatedISBN.rows) {
       if (element.isbn in isbnCountObject) {
         //If the ISBN is updated, remove it from the object
-        //This can be used to INSERT new ISBNs in book_titles table
+        //This can be used to INSERT new books with new ISBNs in book_titles table
         delete isbnCountObject[element.isbn];
       }
     }
 
-    for (let insertIsbn in isbnCountObject) {
+    for (let isbnTobeInserted in isbnCountObject) {
       bookPayloadArr.forEach((item) => {
-        if (insertIsbn === item.isbn) {
+        if (isbnTobeInserted === item.isbn) {
           let uniqueArrayOfBookTitleElement = Object.assign(item, {
-            available_count: isbnCountObject[insertIsbn],
-            total_count: isbnCountObject[insertIsbn],
+            available_count: isbnCountObject[isbnTobeInserted],
+            total_count: isbnCountObject[isbnTobeInserted],
           });
           if (
-            !uniqueArrayOfBookTitle.some(
+            !uniqueArrayOfBookTitleWithCount.some(
               (existingItem) =>
                 existingItem.isbn === uniqueArrayOfBookTitleElement.isbn,
             )
           ) {
             console.log('Now pushing ', uniqueArrayOfBookTitleElement.isbn);
-            uniqueArrayOfBookTitle.push(uniqueArrayOfBookTitleElement);
+            uniqueArrayOfBookTitleWithCount.push(uniqueArrayOfBookTitleElement);
           }
         }
       });
     }
 
-    console.log('Object of Array', uniqueArrayOfBookTitle);
 
-    // console.log('Unupdated ISBN Object', isbnCountObject);
-    parentPort?.postMessage('updated!') ?? 'Parent port is null';
+
+    //If anything is pushed to array, it means that there exists data that needs to be inserted
+    if (uniqueArrayOfBookTitleWithCount.length) {
+
+      const createColumnsFromTitleObject = structuredClone(bookTitleObject);
+      //Object.assign(, { available_count: 0, total_count: 0 });
+
+      let bulkQuery1Title = 'INSERT INTO book_titles ';
+      let bulkQuery2Title = '('
+      let bulkQuery3Title = '';
+      const bulkQuery4Title = 'RETURNING book_uuid, isbn';
+
+      for (let key in createColumnsFromTitleObject) {
+        bulkQuery2Title += `${key},`
+      }
+      bulkQuery2Title = bulkQuery2Title.slice(0, -1);
+      bulkQuery2Title += ')';
+      bulkQuery2Title += ' VALUES ';
+
+      let titleKey: keyof typeof createColumnsFromTitleObject | '' = '';
+
+      for (let element of uniqueArrayOfBookTitleWithCount) {
+        bulkQuery3Title += '(';
+        for (titleKey in createColumnsFromTitleObject) {
+          if (titleKey in element) {
+            if (typeof element[titleKey] === 'string') {
+              bulkQuery3Title += `'${element[titleKey]}',`;
+            } else if (typeof element[titleKey] === 'number') {
+              bulkQuery3Title += `${element[titleKey]},`;
+            } else {
+              bulkQuery3Title += `'${JSON.stringify(element[titleKey])}',`;
+            }
+          } else {
+            if (titleKey === 'title_images' || titleKey === 'title_additional_fields' || titleKey === 'title_description') {
+              bulkQuery3Title += `NULL,`;
+            }
+          }
+        }
+        bulkQuery3Title = bulkQuery3Title.slice(0, -1);
+        bulkQuery3Title += '),'
+      }
+      bulkQuery3Title = bulkQuery3Title.slice(0, -1);
+
+      const finalInsertQueryTitle = bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
+      //console.log(finalInsertQueryTitle);
+      const insertedResult = await client.query(finalInsertQueryTitle);
+      const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
+      if (isbnUUIDInsert.length) {
+        for (let element of isbnUUIDInsert) {
+          arrOfIsbnUUID.push(element);
+        }
+      }
+    }
+    console.log("ISBN with UUID", arrOfIsbnUUID);
+
+    const createColumnsFromCopiesObject = structuredClone(bookCopyObject);
+
+    let bulkQuery1Copies = 'INSERT INTO book_copies ';
+    let bulkQuery2Copies = '(';
+    let bulkQuery3Copies = '';
+
+    for (let key in createColumnsFromCopiesObject) {
+      bulkQuery2Copies += `${key},`
+    }
+    bulkQuery2Copies = bulkQuery2Copies.slice(0, -1);
+    bulkQuery2Copies += ')';
+    bulkQuery2Copies += ' VALUES ';
+
+    let copiesKey: keyof typeof createColumnsFromCopiesObject | '' = '';
+
+    for (let element of bookPayloadArr) {
+      bulkQuery3Copies += '(';
+      for (copiesKey in createColumnsFromCopiesObject) {
+        if (copiesKey in element) {
+          if (typeof element[copiesKey] === 'string') {
+            bulkQuery3Copies += `'${element[copiesKey]}',`;
+          } else if (typeof element[copiesKey] === 'number') {
+            bulkQuery3Copies += `${element[copiesKey]},`;
+          } else {
+            bulkQuery3Copies += `'${JSON.stringify(element[copiesKey])}',`;
+          }
+        } else {
+          if (copiesKey === 'copy_images' || copiesKey === 'copy_additional_fields' || copiesKey === 'copy_description') {
+            bulkQuery3Copies += `NULL,`;
+          } else if (copiesKey === 'book_title_uuid') {
+            arrOfIsbnUUID.forEach((item) => {
+              if (element.isbn === item.isbn) {
+                bulkQuery3Copies += `'${item.book_uuid}',`;
+              }
+            });
+          }
+        }
+      }
+      bulkQuery3Copies = bulkQuery3Copies.slice(0, -1);
+      bulkQuery3Copies += '),';
+    }
+    bulkQuery3Copies = bulkQuery3Copies.slice(0, -1);
+
+    const finalInsertQueryCopies = bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies;
+    //console.log(finalInsertQueryCopies);
+
+    const insertedCopies = await client.query(finalInsertQueryCopies);
+    parentPort?.postMessage({ inserted_data: insertedCopies.rowCount ?? 0 } as TInsertResult) ?? 'Parent port is null';
   } catch (error) {
     let errorMessage = 'Something went wrong while bulk inserting';
     if (error instanceof Error) {

@@ -38,8 +38,8 @@ const createCopiesId = `
 CREATE OR REPLACE FUNCTION get_book_copies_id()
 RETURNS TRIGGER AS $$
   const instituteName = NEW.institute_name
-  const instituteCount = plv8.execute('SELECT COUNT(*) FROM book_copies WHERE institute_name = $1', [instituteName])[0].count
-  const instituteCountAsNum = Number(instituteCount);
+  const instituteCount = plv8.execute('SELECT COUNT(book_copy_id) FROM book_copies WHERE institute_name = $1', [instituteName])[0].count
+  const instituteCountAsNum = Number(instituteCount) + 1;
 
   let bookCopyId = ''
   const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
