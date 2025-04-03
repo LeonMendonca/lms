@@ -2024,6 +2024,32 @@ export class BooksV2Service {
     }
   }
 
+  async getRequestBookLogs({ page, limit }: { page: number; limit: number }) {
+    try {
+      const offset = (page - 1) * limit;
+      const requests = await this.requestBooklogRepository.query(
+        `
+        SELECT * FROM request_book_log WHERE is_archived = false LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+      const total = await this.requestBooklogRepository.query(
+        `
+        SELECT COUNT(*) FROM request_book_log WHERE is_archived = false`,
+      );
+      return {
+        data: requests,
+        pagination: {
+          total: parseInt(total[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async createRequestBooklogIssue(
     student_id: string,
     requestBookIssuePayload: TRequestBookZodIssue,
@@ -2067,16 +2093,16 @@ export class BooksV2Service {
       const insertObject = Object.assign(requestBookIssuePayload, {
         request_id: Date.now(),
         ip_address: ipAddress,
+        student_id: student_id,
         book_copy_id: bookPayloadFromBookCopies[0].book_copy_id,
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
-      const result: RequestBook[] =
-        await this.requestBooklogRepository.query(
-          `
+      const result: RequestBook[] = await this.requestBooklogRepository.query(
+        `
         INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
-          queryData.values,
-        );
+        queryData.values,
+      );
       return {
         data: result[0],
         pagination: null,
@@ -2118,7 +2144,7 @@ export class BooksV2Service {
       ]);
       const result: [[], 0 | 1] = await this.requestBooklogRepository.query(
         `
-        UPDATE request_book_log SET ${queryData.queryCol}, is_archived = TRUE, is_completed = ${isCompleted} 
+        UPDATE request_book_log SET ${queryData.queryCol}, is_completed = ${isCompleted} 
         WHERE request_id = '${requestBookIssueARPayload.request_id}' AND is_archived = FALSE AND is_completed = FALSE`,
         queryData.values,
       );
@@ -2242,7 +2268,7 @@ export class BooksV2Service {
         console.log('approved part in work');
         const isCompleted = true;
         const update = await this.booktitleRepository.query(
-          `UPDATE request_book_log set status= $1 ,is_archived=true,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,
+          `UPDATE request_book_log set status= $1 ,is_completed= $2 ,reject_reason= $3 WHERE request_id= $4`,
           [
             requestBookIssueARPayload.status,
             isCompleted,

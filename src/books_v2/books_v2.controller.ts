@@ -725,7 +725,25 @@ export class BooksV2Controller {
   //REQUEST BOOK
 
   @Get('request_booklog')
-  async getRequestBooklog() {}
+  async getRequestBooklog(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    try {
+      return await this.booksService.getRequestBookLogs({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
 
   @Post('request_booklog_issue')
   @UseGuards(StudentAuthGuard)

@@ -71,7 +71,7 @@ export class CsvController {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
         'Content-Disposition',
-        'attachment; filename="total-books.csv"',
+        'attachment; filename="borrowed-books.csv"',
       );
       const csvContent = this.csvService.generateCSV(data);
 
@@ -97,7 +97,7 @@ export class CsvController {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
         'Content-Disposition',
-        'attachment; filename="total-books.csv"',
+        'attachment; filename="total-members.csv"',
       );
       const csvContent = this.csvService.generateCSV(data);
 
@@ -123,7 +123,85 @@ export class CsvController {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader(
         'Content-Disposition',
-        'attachment; filename="total-books.csv"',
+        'attachment; filename="new-books.csv"',
+      );
+      const csvContent = this.csvService.generateCSV(data);
+
+      res.send(csvContent);
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('Failed to generate CSV');
+    }
+  }
+
+  @Get('today-issues')
+  async todayIssuesCSV(
+    @Query('_institute_uuid') institute_uuid: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.studentsService.adminDashboardCsvDownload(
+        institute_uuid,
+        'todayIssues',
+      );
+
+      // Send as downloadable CSV files (you can adjust this to zip if needed)
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="today-issues.csv"',
+      );
+      const csvContent = this.csvService.generateCSV(data);
+
+      res.send(csvContent);
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('Failed to generate CSV');
+    }
+  }
+
+  @Get('ntoday-returned')
+  async todayReturnedCSV(
+    @Query('_institute_uuid') institute_uuid: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.studentsService.adminDashboardCsvDownload(
+        institute_uuid,
+        'todayReturned',
+      );
+
+      // Send as downloadable CSV files (you can adjust this to zip if needed)
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="today-returned.csv"',
+      );
+      const csvContent = this.csvService.generateCSV(data);
+
+      res.send(csvContent);
+    } catch (error) {
+      console.log(error)
+      res.status(500).send('Failed to generate CSV');
+    }
+  }
+
+  @Get('overdue')
+  async overduesCSV(
+    @Query('_institute_uuid') institute_uuid: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const data = await this.studentsService.adminDashboardCsvDownload(
+        institute_uuid,
+        'overdue',
+      );
+
+      // Send as downloadable CSV files (you can adjust this to zip if needed)
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="overdue.csv"',
       );
       const csvContent = this.csvService.generateCSV(data);
 

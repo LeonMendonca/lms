@@ -36,6 +36,8 @@ import { UserController } from './user/user.controller';
 import { UserService } from './user/user.service';
 import { UserModule } from './user/user.module';
 import { User } from './user/user.entity';
+import { Notes } from './notes/entities/notes.entity';
+import { NotesModule } from './notes/notes.module';
 
 config({ path: '.env' });
 @Module({
@@ -57,7 +59,12 @@ config({ path: '.env' });
         Booklog_v2,
         StudentsVisitKey,
         Review,
-        JournalLogs, JournalCopy, JournalTitle, Calendar],
+        JournalLogs,
+        JournalCopy,
+        JournalTitle,
+        Calendar,
+        Notes,
+      ],
       ssl: true,
       synchronize: true,
     }),
@@ -72,9 +79,10 @@ config({ path: '.env' });
     ConfigModule,
     CsvModule,
     ReviewsModule,
-    UserModule
+    UserModule,
+    NotesModule
   ],
 })
 export class AppModule {
-  constructor() { }
+  constructor() {}
 }

@@ -908,7 +908,7 @@ export class StudentsService {
           return totalMembers;
         case 'newBooks':
           const newBooksQuery = `
-            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available, ip_address, action, description 
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
             FROM book_copies bc
             LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
             WHERE bc.is_archived = false 
@@ -916,6 +916,29 @@ export class StudentsService {
               AND bc.created_at >= NOW() - INTERVAL '1 month'
           `;
           return await this.studentsRepository.query(newBooksQuery);
+        case 'todayIssues':
+          const todayIssuesQuery = `
+          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+          FROM book_logv2 bl
+          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+          WHERE date >= CURRENT_DATE AND action = 'borrowed'
+        `;
+          return await this.studentsRepository.query(todayIssuesQuery);
+        case 'todayReturned':
+          const todayReturnedQuery = ` 
+          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+          FROM book_logv2 bl
+          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+          WHERE date >= CURRENT_DATE AND action = 'returned'
+          `;
+          return await this.studentsRepository.query(todayReturnedQuery);
+        case 'overdue':
+          const overdueQuery = `
+          SELECT fp.*, book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,bt.department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, bc.institute_name, bc.created_at, remarks, copy_description, is_available, st.student_id, st.email, st.student_name, st.date_of_birth, st.gender, st.roll_no, st.institute_name, st.phone_no, st.address, st.department AS student_department, st.year_of_admission   FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid LEFT JOIN students_table st ON fp.borrower_uuid = st.student_uuid
+          WHERE penalty_amount > 0`;
+          return await this.studentsRepository.query(overdueQuery);
       }
     } catch (error) {
       throw error;
