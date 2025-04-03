@@ -941,14 +941,15 @@ export class BooksV2Service {
     validated_array: TCreateBookZodDTO[];
     invalid_data_count: number;
   }) {
-    const { inserted_data } = await CreateWorker<TInsertResult>(
-      bookZodValidatedObject.validated_array,
-      'book/book-insert-worker',
-    );
-    return {
-      inserted_data,
-      invalid_data: bookZodValidatedObject.invalid_data_count,
-    };
+    const result = await CreateWorker<TInsertResult>(bookZodValidatedObject.validated_array, 'book/book-insert-worker');
+    if(!result.inserted_data) {
+      return result;
+    } else {
+      return { 
+        inserted_data: result.inserted_data,
+        invalid_data: bookZodValidatedObject.invalid_data_count
+      }
+    }
   }
 
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {
