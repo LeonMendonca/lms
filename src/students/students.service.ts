@@ -815,30 +815,24 @@ export class StudentsService {
 
       const todayIssuesQuery = `
         SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
+        FROM book_logv2 
+        WHERE created_at >= CURRENT_DATE AND action = 'borrowed'
       `;
-      const todayIssues = await this.studentsRepository.query(newBooksQuery);
+      const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
 
       const todayReturnedQuery = `
         SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
+        FROM book_logv2 
+        WHERE created_at >= CURRENT_DATE AND action = 'returned'
       `;
-      const todayReturned = await this.studentsRepository.query(newBooksQuery);
+      const todayReturned = await this.studentsRepository.query(todayReturnedQuery);
 
       const overdueQuery = `
         SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
+        FROM fees_penalties 
+        WHERE penalty_amount > 0
       `;
-      const overdues = await this.studentsRepository.query(newBooksQuery);
+      const overdues = await this.studentsRepository.query(overdueQuery);
 
       const trendingQuery = `
         SELECT COUNT(*) 
