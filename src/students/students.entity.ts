@@ -122,5 +122,5 @@ export const student = new Students();
 
 //Type that represents the table Columns
 export type TStudents = {
-  [P in keyof typeof student as typeof student[P]]: typeof student[P];
+  [P in keyof typeof student as typeof student[P]]: any;
 }

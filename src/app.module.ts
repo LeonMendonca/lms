@@ -22,6 +22,10 @@ import { StudentsVisitKey } from './students/entities/student-visit-key';
 import { CsvModule } from './csv/csv.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { Review } from './reviews/entities/review.entity';
+import { UserController } from './user/user.controller';
+import { UserService } from './user/user.service';
+import { UserModule } from './user/user.module';
+import { User } from './user/user.entity';
 
 config({ path: '.env' });
 @Module({
@@ -31,6 +35,7 @@ config({ path: '.env' });
       url: process.env.DB_URL,
       entities: [
         Students,
+        User,
         BookCopy,
         BookTitle,
         Booklog_v2,
@@ -47,7 +52,8 @@ config({ path: '.env' });
     BooksV2Module,
     FeesPenaltiesModule,
     CsvModule,
-    ReviewsModule
+    ReviewsModule,
+    UserModule
   ],
 })
 export class AppModule {
