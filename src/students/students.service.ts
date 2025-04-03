@@ -456,9 +456,9 @@ export class StudentsService {
       const logs = await this.studentsRepository.query(
         `
         SELECT * FROM (
-          SELECT visit_log.*, in_time AS log_date FROM visit_log
+          SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date FROM visit_log
           UNION ALL
-          SELECT book_log.*, date AS log_date FROM book_logv2
+          SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
         ) AS combined_logs
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
@@ -470,9 +470,9 @@ export class StudentsService {
       const total = await this.studentsRepository.query(
         `
         SELECT COUNT(*) AS total FROM (
-          SELECT created_at FROM visit_log
+          SELECT visitlog_id AS id FROM visit_log
           UNION ALL
-          SELECT created_at FROM book_log
+          SELECT  booklog_uuid AS id  FROM book_logv2 
         ) AS combined_logs
         `,
       );
