@@ -40,7 +40,7 @@ import { issueLogSchema, TIssueLogDTO } from './zod-validation/issue-zod';
 
 @Controller('journals')
 export class JournalsController {
-  constructor(private journalsService: JournalsService) { }
+  constructor(private journalsService: JournalsService) {}
 
   // --------------- JOURNAL TITLE -------------------------
 
@@ -256,7 +256,7 @@ export class JournalsController {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? '',
-    })
+    });
   }
   // async fetchSingleJournalCopyInfo( //enter journal uuid and get periodical copy information
   //     @Query('_journal_title_uuid') journal_title_uuid?: string,
@@ -402,10 +402,13 @@ export class JournalsController {
   // BULK DELETE
   @Delete('bulk-delete-for-periodical-copies')
   @UsePipes(
-    new bulkBodyValidationPipe<{
-      validated_array: TPeriodicalCopyIdDTO[];
-      invalid_data_count: number;
-    }>('journals/bulk-delete-for-periodical-copies'),
+    new bulkBodyValidationPipe<
+      TPeriodicalCopyIdDTO,
+      {
+        validated_array: TPeriodicalCopyIdDTO[];
+        invalid_data_count: number;
+      }
+    >('journals/bulk-delete-for-periodical-copies'),
   )
   async bulkDeletePeriodicalCopies(
     @Body()
@@ -550,61 +553,62 @@ export class JournalsController {
     });
   }
 
-
-
   // ISSUE PERIODICALS NEW FUNCTIONS
 
   @Post('issue')
   @UsePipes(new bodyValidationPipe(issueLogSchema))
   async issue(
     @Body() issuePayload: TCreateJournalLogDTO,
-    @Req() request: Request
+    @Req() request: Request,
   ) {
     try {
-      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined = undefined;
+      let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
+        undefined;
       let result: Record<string, string | number> = {};
 
-      let category = ""
+      let category = '';
 
       // check the category of the input if exists->category="book/periodical" else->category="does_not_exist"
       if (/^[A-Z]+\d+-\d+$/.test(issuePayload.copy_id)) {
-        category = "periodical";
+        category = 'periodical';
       } else if (/^[A-Z]+\d/.test(issuePayload.copy_id)) {
-        category = "book";
+        category = 'book';
       } else {
         // throw "No Book/Periodical With This Id Found";
-        return { message: "Invalid ID" }
+        return { message: 'Invalid ID' };
       }
 
-      if(category==="book" && issuePayload.action==="borrow"){
-        return "all book borrowed from booksServices"
-      }
-      else if(category==="book" && issuePayload.action==="return"){
-        return  "all book returned from booksServices"
-      } 
-      else if(category==="periodical" && issuePayload.action==="borrow"){
+      if (category === 'book' && issuePayload.action === 'borrow') {
+        return 'all book borrowed from booksServices';
+      } else if (category === 'book' && issuePayload.action === 'return') {
+        return 'all book returned from booksServices';
+      } else if (
+        category === 'periodical' &&
+        issuePayload.action === 'borrow'
+      ) {
         return await this.journalsService.periodicalBorrowed(
           issuePayload,
           request,
           (status = 'borrowed'),
-          (category = category)
+          (category = category),
         );
-      }
-      else if(category==="periodical" && issuePayload.action==="return"){
+      } else if (
+        category === 'periodical' &&
+        issuePayload.action === 'return'
+      ) {
         return await this.journalsService.periodicalReturned(
           issuePayload,
           request,
           (status = 'returned'),
-          (category = category)
+          (category = category),
         );
       }
-
 
       // if (category === "book" && issuePayload.action === "borrow") {
       //   return "book borrow"
       // } else if (category === "book" && issuePayload.action === "return") {
       //   return "book return"
-      // } 
+      // }
       // else if (category === "periodical" && issuePayload.action === "borrow") {
       //   return await this.journalsService.borrow(
       //     issuePayload,
