@@ -1,11 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InstituteConfig } from './entity/institute_config.entity';
 import { TInstituteDTO } from './zod-validation/create-institute-zod';
-import { insertQueryHelper } from 'src/misc/custom-query-helper';
+import { insertQueryHelper, updateQueryHelper } from 'src/misc/custom-query-helper';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { genInstituteId } from './id-generation/create-insitute_id';
 import { create } from 'domain';
+import { TInstituteUpdateDTO } from './zod-validation/update-institute-zod';
 
 @Injectable()
 export class ConfigService {
@@ -81,12 +82,86 @@ export class ConfigService {
         }
     }
 
-
-
     // Update Institute Info
+    async updateInstitute(updateInstitutePayload: TInstituteUpdateDTO) {
+        try {
+            // Generate query for update
+            const queryData = updateQueryHelper<TInstituteUpdateDTO>(updateInstitutePayload, []);
+
+            // Check if the institute exists and is not archived
+            const existingInstitute = await this.instituteConfigRepository.query(
+                `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=false`,
+                [updateInstitutePayload.institute_id]
+            );
+
+            if (existingInstitute.length === 0) {
+                throw new HttpException("No Institute Found", HttpStatus.NOT_FOUND);
+            }
+
+            // Execute the update query with parameterized values
+            await this.instituteConfigRepository.query(
+                `UPDATE institute_config SET ${queryData.queryCol} WHERE institute_id=$${queryData.values.length + 1} AND is_archived=false`,
+                [...queryData.values, updateInstitutePayload.institute_id] // Add institute_id at the end
+            );
+
+            return { statusCode: HttpStatus.OK, message: "Institute Updated Successfully!" };
+
+        } catch (error) {
+            console.error("Error updating institute:", error);
+            throw new HttpException(
+                `Error: ${error.message || error} while updating institute.`,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
 
     // Delete (Archive) Institute
+    async archiveInstitute(institute_id: string) {
+        try {
+            if (!institute_id.length) {
+                return { message: "Insert Id!" }
+            }
+            const inst = await this.instituteConfigRepository.query(
+                `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=false`,
+                [institute_id]
+            )
+            if (!inst.length) {
+                return { message: "No Institute Found" }
+            }
 
+            await this.instituteConfigRepository.query(
+                `UPDATE institute_config SET is_archived=true WHERE institute_id=$1`,
+                [institute_id]
+            )
+            return { message: "Institute Deleted" }
+        } catch (error) {
+            return { error: error.message }
+        }
+    }
+
+    // Restore Institute
+    async restoreInstitute(institute_id: string) {
+        try {
+            if (!institute_id.length) {
+                return { message: "Insert Id!" }
+            }
+            const inst = await this.instituteConfigRepository.query(
+                `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=true`,
+                [institute_id]
+            )
+            if (!inst.length) {
+                return { message: "Institute not found or already active" }
+            }
+            await this.instituteConfigRepository.query(
+                `UPDATE institute_config SET is_archived = false WHERE institute_id = $1`,
+                [institute_id],
+            );
+            return { message: 'Institute restored successfully' };
+        } catch (error) {
+            return { error: error.message }
+        }
+    }
 
 
 
