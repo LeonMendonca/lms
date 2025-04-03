@@ -44,8 +44,6 @@ import {
   TStudentCredZodType,
 } from './zod-validation/studentcred-zod';
 import { StudentAuthGuard } from './student.guard';
-// import { Request } from 'express';
-import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { Students } from './students.entity';
 import { StudentsVisitKey } from './entities/student-visit-key';
 import {
@@ -163,7 +161,7 @@ export class StudentsController {
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TCreateStudentDTO, {
       validated_array: TCreateStudentDTO[];
       invalid_data_count: number;
     }>('student/student-zod-body-worker'),
@@ -246,7 +244,7 @@ export class StudentsController {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TstudentUUIDZod, {
       validated_array: TstudentUUIDZod[];
       invalid_data_count: number;
     }>('student/student-zod-uuid-worker'),

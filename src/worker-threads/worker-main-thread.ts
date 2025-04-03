@@ -6,7 +6,7 @@ export async function CreateWorkerQuery<T>(oneDArray, workerScriptName: string) 
 
 export async function CreateWorker<T>
 //Unsure about the type being returned
-(oneDArray: any[], workerScriptName: string): Promise<any> 
+(oneDArray: any[], workerScriptName: string): Promise<T> 
 {
   console.log("MAIN Woker thread is called!");
   return new Promise((resolve, reject) => {

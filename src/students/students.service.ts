@@ -19,7 +19,6 @@ import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
 import { TStudentCredZodType } from './zod-validation/studentcred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
-import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { isWithinXMeters } from './utilities/location-calculation';
 import {
@@ -27,6 +26,7 @@ import {
   TStudentsVisitkey,
 } from './entities/student-visit-key';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
+import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 
 interface DataWithPagination<T> {
   data: T[];
@@ -279,7 +279,7 @@ export class StudentsService {
         duplicate_data_pl,
         unique_data,
         duplicate_date_db,
-      }: TInsertResult = await CreateWorker(
+      } = await CreateWorker<TInsertResult>(
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
@@ -342,7 +342,7 @@ export class StudentsService {
       );
       const BatchArr: Promise<TUpdateResult>[] = [];
       for (let i = 0; i < zodValidatedBatchArr.length; i++) {
-        const result = CreateWorker<TstudentUUIDZod>(
+        const result = CreateWorker<TUpdateResult>(
           zodValidatedBatchArr[i],
           'student/student-archive-worker',
         );
