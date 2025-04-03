@@ -1,21 +1,33 @@
 import { BookCopy } from "src/books_v2/entity/books_v2.copies.entity";
 import { Students } from "src/students/students.entity";
 import { Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, Entity, JoinColumn } from "typeorm";
+import { string } from "zod";
+
+
+export const CATEGORY = {
+    BOOK: "book",
+    PERIODICAL: "periodical"
+} as const
 
 @Entity('fees_penalties')
 export class FeesPenalties {
     @PrimaryGeneratedColumn('uuid', { name: 'fp_uuid' })
     fpUUID: 'fp_uuid' = 'fp_uuid';
 
-    @ManyToOne(() => Students, (student) => student.studentUUID)
-    @JoinColumn({ name: 'borrower_uuid' })
+    @Column({ name: "category", type: "enum", enum: CATEGORY })
+    category: 'category' = 'category';
+
+    // @ManyToOne(() => Students, (student) => student.studentUUID)
+    // @JoinColumn({ name: 'borrower_uuid' })
+    @Column({ name: 'borrower_uuid', type: 'uuid' })
     borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
 
-    @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
-    @JoinColumn({ name: 'book_copy_uuid' })
-    bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
+    // @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
+    // @JoinColumn({ name: 'book_copy_uuid' })
+    @Column({ name: 'copy_uuid', type: 'uuid' })
+    CopyUUID: 'copy_uuid' = 'copy_uuid';
 
-    @Column({ name: 'payment_method', type: 'varchar' })
+    @Column({ name: 'payment_method', type: 'varchar', nullable: true })
     paymentMethod: 'payment_method' = 'payment_method';
 
     @Column({ name: 'days_delayed', type: 'int', default: 0 })

@@ -24,9 +24,10 @@ import { bookQuerySchema } from './zod-validation/bookquery-zod';
 import type { UnionBook } from './books.query-validator';
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import { editBookSchema, TEditBookDTO } from './zod-validation/putbook-zod';
+
 @Controller('book')
 export class BooksController {
-  constructor(private bookService: BooksService) {}
+  constructor(private bookService: BooksService) { }
 
   @Get('all')
   async getAllBooks() {
@@ -80,6 +81,8 @@ export class BooksController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+
   @Delete('delete/:book_id')
   async deleteBook(
     @Param(

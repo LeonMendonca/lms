@@ -13,7 +13,8 @@ export class BooksService {
   constructor(
     @InjectRepository(Books)
     private booksRepository: Repository<Books>,
-  ) {}
+  ) { }
+
   async getBooks() {
     return await this.booksRepository.query(
       'SELECT * from books_table WHERE is_archived = false AND available_count > 0',
@@ -63,6 +64,7 @@ export class BooksService {
       throw error;
     }
   }
+
   async updateBook(bookId: string, editBookPayload: TEditBookDTO) {
     try {
       let queryData = updateQueryHelper<TEditBookDTO>(editBookPayload, []);

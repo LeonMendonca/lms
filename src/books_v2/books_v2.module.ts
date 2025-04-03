@@ -6,7 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BookCopy } from './entity/books_v2.copies.entity';
 import { Students } from 'src/students/students.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
-import { FeesPenalties } from 'src/fees-penalties/fees-penalties.entity';
+import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './entity/request-book.entity';
 import { StudentsService } from 'src/students/students.service';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
@@ -15,4 +15,4 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
   controllers: [BooksV2Controller],
   providers: [BooksV2Service, StudentsService, QueryBuilderService],
 })
-export class BooksV2Module {}
+export class BooksV2Module { }

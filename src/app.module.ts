@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-//import { BooksModule } from './books/books.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { config } from 'dotenv';
 import { Students } from './students/students.entity';
@@ -11,12 +10,20 @@ import { BooklogModule } from './book_log/booklog.module';
 import { Bookcount } from './bookcount/bookcount.entity';
 import { BookcountModule } from './bookcount/bookcount.module';
 import { BookCopy } from './books_v2/entity/books_v2.copies.entity';
-import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { BooksV2Module } from './books_v2/books_v2.module';
+import { BookLogModule } from './book_log/book_log.module';
+import { JournalsModule } from './journals/journals.module';
+import { JournalCopy } from './journals/entity/journals_copy.entity';
+import { NotificationsModule } from './notifications/notifications.module';
 import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
+import { BookTitle } from './books_v2/entity/books_v2.title.entity';
+import { JournalTitle } from './journals/entity/journals_title.entity';
+import { JournalLogs } from './journals/entity/journals_log.entity';
+import { CalendarModule } from './calendar/calendar.module';
+import { Calendar } from './calendar/entity/calendar.entity';
 import { VisitLog } from './students/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
-import { FeesPenalties } from './fees-penalties/fees-penalties.entity';
+import { FeesPenalties } from './fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './books_v2/entity/request-book.entity';
 import { StudentsVisitKey } from './students/entities/student-visit-key';
 import { CsvModule } from './csv/csv.module';
@@ -31,25 +38,30 @@ config({ path: '.env' });
       url: process.env.DB_URL,
       entities: [
         Students,
-        BookCopy,
-        BookTitle,
-        Booklog_v2,
         VisitLog,
         FeesPenalties,
         RequestBook,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
         StudentsVisitKey,
-        Review
-      ],
+        Review,
+        JournalLogs, JournalCopy, JournalTitle, Calendar],
       ssl: true,
       synchronize: true,
     }),
     StudentsModule,
     BooksV2Module,
+    BookLogModule,
+    JournalsModule,
+    NotificationsModule,
+    CalendarModule,
     FeesPenaltiesModule,
+    FeesPenalties,
     CsvModule,
     ReviewsModule
   ],
 })
 export class AppModule {
-  constructor() {}
+  constructor() { }
 }

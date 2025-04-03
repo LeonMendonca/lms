@@ -64,7 +64,7 @@ export class BooksV2Controller {
   ) {}
 
   // Get all books
-  @Get('all')
+  @Get('all') // done
   async getAllBooks(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -78,7 +78,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_copies_with_title')
+  @Get('get_copies_with_title') // done
   async getBookCopiesByTitle(
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
@@ -95,7 +95,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_logs_of_title')
+  @Get('get_logs_of_title') // done
   async getLogDetailsByTitle(
     @Query('_book_title_id') book_title_id: string,
     @Query('_isbn') isbn: string,
@@ -120,7 +120,7 @@ export class BooksV2Controller {
     }
   }
 
-  @Get('get_logs_of_copy')
+  @Get('get_logs_of_copy') // done
   async getLogDetailsByCopy(
     @Query('_barcode') barcode: string,
     @Query('_page') page: string,
@@ -143,7 +143,7 @@ export class BooksV2Controller {
     }
   }
 
-  @Get('get_logs_of_student')
+  @Get('get_logs_of_student') // done
   async getLogDetailsOfStudent(
     @Query('_student_id') student_id: string,
     @Query('_page') page: string = '1',
@@ -173,7 +173,7 @@ export class BooksV2Controller {
     }
   }
 
-  @Get('get_all_available') // working
+  @Get('get_all_available') // working done
   async getAllAvailableBooks(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -184,7 +184,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_available_by_isbn') // working// pagination
+  @Get('get_available_by_isbn') // working// pagination done
   async getavailablebookbyisbn(
     @Query('_isbn') isbn: string,
     @Query('_page') page: string = '1',
@@ -204,7 +204,7 @@ export class BooksV2Controller {
     }
   }
 
-  @Get('get_all_unavailable') // working
+  @Get('get_all_unavailable') // working done
   async getAllUnavailableBooks(
     @Query('_page') page: string,
     @Query('_limit') limit: string,
@@ -215,7 +215,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Get('get_unavailable_by_isbn') // working // pagination
+  @Get('get_unavailable_by_isbn') // working // pagination done
   async getunavailablebookbyisbn(
     @Query('_isbn') isbn: string,
     @Query('_page') page: string,
@@ -246,7 +246,7 @@ export class BooksV2Controller {
   //   return this.booksService.updateTitleArchive(book_uuid);
   // }
 
-  @Put('uparchive') //  working
+  @Put('uparchive') //  working done
   async updateArchive(@Body() creatbookpayload: TupdatearchiveZodDTO) {
     return this.booksService.updateTitleArchive(creatbookpayload);
   }
@@ -261,7 +261,7 @@ export class BooksV2Controller {
   //   } else {
   //     throw new HttpException('No book found', HttpStatus.NOT_FOUND);
   //   }}//see query for nestjs
-  @Get('isbn') // update by insert query helper or create  own query helper for select part// not working
+  @Get('isbn') // update by insert query helper or create  own query helper for select part// not working done
   async searchBookIsbn(@Query('_isbn') isbn: string) {
     try {
       const result = await this.booksService.isbnBook(isbn);
@@ -272,7 +272,7 @@ export class BooksV2Controller {
   }
 
   // Create new book
-  @Post('create') // working
+  @Post('create') // working done
   @UsePipes(new bodyValidationPipe(createBookSchema))
   async createBook(@Body() bookPayload: TCreateBookZodDTO) {
     try {
@@ -280,6 +280,7 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -410,7 +411,7 @@ export class BooksV2Controller {
     return await this.booksService.getSingleCopyInfo(identifier);
   }
 
-  @Patch('update_book_title') //working
+  @Patch('update_book_title') //working done
   async updateBookTitle(
     @Body('book_uuid') book_uuid: string,
     @Body() bookPayload: TUpdatebookZodDTO,
@@ -418,7 +419,7 @@ export class BooksV2Controller {
     return await this.booksService.updateBookTitle(book_uuid, bookPayload);
   }
 
-  @Put('archive_book_copy')
+  @Put('archive_book_copy') // done
   async archiveBookCopy(
     @Body('book_copy_uuid', new ParseUUIDPipe()) book_copy_uuid: string,
   ) {
@@ -443,7 +444,7 @@ export class BooksV2Controller {
     });
   }
 
-  @Put('restore_book_copy')
+  @Put('restore_book_copy') // done
   async restoreBookCopy(@Body('book_uuid') book_uuid: string) {
     return await this.booksService.restoreBookCopy(book_uuid);
   }
@@ -471,12 +472,12 @@ export class BooksV2Controller {
 
   //logs part
 
-  //@Post('borrowed')
-  //@UsePipes(new bodyValidationPipe(booklogV2Schema))
-  //async createBooklogBorrowed(
+  // @Post('borrowed')
+  // @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  // async createBooklogBorrowed(
   //  @Body() booklogPayload: TCreateBooklogV2DTO,
   //  @Req() request: Request
-  //) {
+  // ) {
   //  try {
   //    return await this.booksService.createBookBorrowed(
   //      booklogPayload, request
@@ -487,9 +488,9 @@ export class BooksV2Controller {
   //    }
   //    throw error;
   //  }
-  //}
+  // }
 
-  @Post('library')
+  @Post('library') // done
   @UsePipes(new bodyValidationPipe(booklogSchema))
   async setbooklibrary(
     @Body() booklogpayload: TCreateBooklogV2DTO,
@@ -521,8 +522,8 @@ export class BooksV2Controller {
     }
   }
 
-  //Implements Borrow and Return
-  @Post('update-book-log')
+  //Implements Borrow and Return 
+  @Post('update-book-log') // done
   @UsePipes(new bodyValidationPipe(booklogV2Schema))
   async updateBookLog(
     @Body() booklogPayload: TCreateBooklogV2DTO,
@@ -540,9 +541,10 @@ export class BooksV2Controller {
         undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
+        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
         result = await this.booksService.bookBorrowed(
           booklogPayload,
-          request.ip,
+          request,
           (status = 'borrowed'),
         );
       } else if (booklogPayload.action === 'return') {
@@ -554,13 +556,14 @@ export class BooksV2Controller {
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
-          request.ip,
+          request,
           (status = 'in_library_borrowed'),
         );
       }
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,

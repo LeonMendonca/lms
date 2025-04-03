@@ -28,7 +28,7 @@ import {
   fees_penalties,
   FeesPenalties,
   TFeesPenalties,
-} from 'src/fees-penalties/fees-penalties.entity';
+} from 'src/fees-penalties/entity/fees-penalties.entity';
 import { CalculateDaysFromDate } from 'src/misc/calculate-diff-bw-date';
 import { createNewDate } from 'src/misc/create-new-date';
 import { TUpdateFeesPenaltiesZod } from './zod/update-fp-zod';
@@ -565,6 +565,7 @@ export class BooksV2Service {
       if (books.length === 0) {
         throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
       }
+
       return {
         data: books,
         pagination: {
@@ -602,7 +603,6 @@ export class BooksV2Service {
         `SELECT book_logv2.action,book_logv2.new_book_title,book_logv2.new_book_copy,fees_penalties.created_at , students_table.student_name FROM book_logv2 INNER JOIN students_table ON students_table.student_uuid = book_logv2.borrower_uuid INNER JOIN fees_penalties ON book_logv2.fp_uuid=fees_penalties.fp_uuid LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
-
       const total = await this.booklogRepository.query(
         `SELECT COUNT(*) as count FROM book_logv2`,
       );
@@ -835,7 +835,6 @@ export class BooksV2Service {
           updateBookPayload.year_of_publication,
         ],
       );
-
       return { message: 'Book updated successfully' };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
@@ -1026,21 +1025,21 @@ export class BooksV2Service {
       }
 
       await this.bookcopyRepository.query(
-        `UPDATE book_copies 
-        SET 
-        source_of_acquisition = COALESCE($2, source_of_acquisition),
-          date_of_acquisition = COALESCE($3, date_of_acquisition),
-          bill_no = COALESCE($4, bill_no),
-          language = COALESCE($5, language),
-          inventory_number = COALESCE($6, inventory_number),
-          accession_number = COALESCE($7, accession_number),
-          barcode = COALESCE($8, barcode),
-          item_type = COALESCE($9, item_type),
-          remarks = COALESCE($10, remarks),
-          copy_images = COALESCE($11, copy_images),
-          copy_additional_fields = COALESCE($12, copy_additional_fields),
-          copy_description = COALESCE($13, copy_description),
-          updated_at = NOW()
+        `UPDATE book_copies
+      SET
+      source_of_acquisition = COALESCE($2, source_of_acquisition),
+        date_of_acquisition = COALESCE($3, date_of_acquisition),
+        bill_no = COALESCE($4, bill_no),
+        language = COALESCE($5, language),
+        inventory_number = COALESCE($6, inventory_number),
+        accession_number = COALESCE($7, accession_number),
+        barcode = COALESCE($8, barcode),
+        item_type = COALESCE($9, item_type),
+        remarks = COALESCE($10, remarks),
+        copy_images = COALESCE($11, copy_images),
+        copy_additional_fields = COALESCE($12, copy_additional_fields),
+        copy_description = COALESCE($13, copy_description),
+        updated_at = NOW()
         WHERE book_copy_uuid = $1`,
         [
           id,
@@ -1113,6 +1112,7 @@ export class BooksV2Service {
   //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   //     }
   //   }
+
 
   async archiveBookCopy(book_copy_uuid: string) {
     try {
@@ -1476,7 +1476,7 @@ export class BooksV2Service {
 
   async bookBorrowed(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
-    ipAddress: string,
+    ipAddress: Request,
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {
@@ -1627,6 +1627,7 @@ export class BooksV2Service {
     }
   }
 
+
   async setbooklibrary(booklogpayload: TCreateBooklogV2DTO, ipAddress: string) {
     try {
       // Validate student existence
@@ -1703,7 +1704,7 @@ export class BooksV2Service {
       //console.log('working');
 
       const result = await this.bookcopyRepository.query(
-        `SELECT * FROM book_copies WHERE book_copy_uuid=$1`,
+        `SELECT * FROM book_copies WHERE book_copy_uuid = $1`,
         [createinstitutepayload.book_copy_uuid],
       );
 
@@ -1717,7 +1718,7 @@ export class BooksV2Service {
       }
 
       await this.bookcopyRepository.query(
-        `UPDATE book_copies SET institute_uuid=$1 WHERE book_copy_uuid=$2`,
+        `UPDATE book_copies SET institute_uuid = $1 WHERE book_copy_uuid = $2`,
         [
           createinstitutepayload.institute_uuid,
           createinstitutepayload.book_copy_uuid,
@@ -1741,7 +1742,7 @@ export class BooksV2Service {
 
   //   async visitlogexit(student_uuid: string) {
   //     try {
-  //      const data=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID=$1`,[student_uuid])
+  //      const data=await this.booktitleRepository.query(`SELECT * FROM STUDENTS_TABLE WHERE STUDENT_UUID = $1`,[student_uuid])
   //      if (data.length === 0) {
   //       throw new HttpException(
   //         { message: "Invalid student ID" },
@@ -1749,13 +1750,13 @@ export class BooksV2Service {
   //       );
   //     }
   //     const validation=await this.booktitleRepository.query(
-  //       `SELECT * FROM visit_log WHERE student_uuid=$1 AND action='entry' ORDER BY timestamp DESC LIMIT 1`,
+  //       `SELECT * FROM visit_log WHERE student_uuid = $1 AND action = 'entry' ORDER BY timestamp DESC LIMIT 1`,
   //       [student_uuid]    )
-  //     // console.log(`validation${validation}`);
+  //     // console.log(`validation${ validation }`);
   //     // console.log("Validation result:", JSON.stringify(validation, null, 2));
   //  if(validation===0) console.log('invalid');
   //     await this.booktitleRepository.query(
-  //         `INSERT INTO visit_log (student_uuid, action) VALUES ($1, 'exit')`,
+  //         `INSERT INTO visit_log(student_uuid, action) VALUES($1, 'exit')`,
   //         [student_uuid]
   //       );
   //       return {
@@ -1765,7 +1766,7 @@ export class BooksV2Service {
   //       };
   //     } catch (error) {
   //       throw new HttpException(
-  //         `Error ${error} setting book in library`,
+  //         `Error ${ error } setting book in library`,
   //         HttpStatus.INTERNAL_SERVER_ERROR,);
   //     }
   //   }
@@ -1779,7 +1780,7 @@ export class BooksV2Service {
       if (student_id) {
         const result: { student_uuid: string }[] =
           await this.booktitleRepository.query(
-            `SELECT student_uuid FROM students_table WHERE student_id=$1`,
+            `SELECT student_uuid FROM students_table WHERE student_id = $1`,
             [student_id],
           );
         if (result.length === 0) {
@@ -1807,7 +1808,7 @@ export class BooksV2Service {
       //00008-Tech University-2025
       else if (isPenalty) {
         const data = await this.bookcopyRepository.query(
-          `SELECT * FROM fees_penalties WHERE is_penalised=$1`,
+          `SELECT * FROM fees_penalties WHERE is_penalised = $1`,
           [isPenalty],
         );
         if (data.length === 0) {
@@ -1819,7 +1820,7 @@ export class BooksV2Service {
         return data;
       } else if (isCompleted) {
         const data = await this.bookcopyRepository.query(
-          `SELECT * FROM fees_penalties WHERE is_completed=$1`,
+          `SELECT * FROM fees_penalties WHERE is_completed = $1`,
           [isCompleted],
         );
         if (data.length === 0) {
@@ -1869,10 +1870,10 @@ export class BooksV2Service {
   async getFullFeeListStudent() {
     try {
       const result = await this.booktitleRepository
-        .query(`SELECT students_table.student_id,book_copies.book_copy_id,students_table.student_name, students_table.department,book_titles.subject, fees_penalties.return_date, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
-         INNER JOIN students_table ON fees_penalties.borrower_uuid=students_table.student_uuid 
-        INNER JOIN  book_copies ON fees_penalties.book_copy_uuid=book_copies.book_copy_uuid
-        INNER JOIN book_titles ON book_titles.book_uuid= book_copies.book_title_uuid`);
+        .query(`SELECT students_table.student_id, book_copies.book_copy_id, students_table.student_name, students_table.department, book_titles.subject, fees_penalties.return_date, fees_penalties.created_at, fees_penalties.penalty_amount FROM  fees_penalties
+         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
+        INNER JOIN  book_copies ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+        INNER JOIN book_titles ON book_titles.book_uuid = book_copies.book_title_uuid`);
       if (result.length === 0) {
         throw new HttpException(
           { message: 'No data found!!' },
@@ -1889,11 +1890,11 @@ export class BooksV2Service {
       const offset = (page - 1) * limit;
 
       const result = await this.booktitleRepository.query(
-        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ;`,
+        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ; `,
         [start, end, limit, offset],
       );
       const total = await this.booktitleRepository.query(
-        `SELECT count (*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 ;`,
+        `SELECT count(*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2; `,
         [start, end],
       );
       if (result.length === 0) {
@@ -2040,7 +2041,7 @@ export class BooksV2Service {
       const result: Pick<TRequestBook, 'request_id'>[] =
         await this.requestBooklogRepository.query(
           `
-        INSERT INTO request_book_log (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING request_id`,
+        INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
           queryData.values,
         );
       return {
