@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { student } from '../students.entity';
-import { createObjectIncludeProperties } from '../../misc/create-object-from-class';
 
 
 export const studentCredZodSchema = z.object({

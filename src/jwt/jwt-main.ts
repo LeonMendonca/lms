@@ -7,7 +7,7 @@ config({ path: '.env' })
 
 const secret = process.env.SECRET ?? "secret9090" as Secret;
 
-export function setTokenFromPayload(payload: Pick<TStudents, 'email' | 'student_id'>) {
+export function setTokenFromPayload<T, E extends keyof T>(payload: Pick<T, E>) {
     return sign(payload, secret, { expiresIn: '30d' });
 }
 

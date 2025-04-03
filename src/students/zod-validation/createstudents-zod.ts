@@ -2,8 +2,6 @@ import { z } from 'zod';
 import { Gender, Students } from '../students.entity';
 import { createObjectOmitProperties } from '../../misc/create-object-from-class';
 
-let GenderArr: readonly string[] = Object.keys(Gender);
-
 let studentCreateObject = createObjectOmitProperties(new Students(), [
   'studentUUID',
   'studentId',
