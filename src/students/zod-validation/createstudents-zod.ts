@@ -20,20 +20,18 @@ export const createStudentSchema = z.object({
   }),
 
   [studentCreateObject.rollNo]: z.number(),
-  
+
   [studentCreateObject.email]: z.string().email(),
 
   [studentCreateObject.phoneNo]: z.string(),
-  
+
   [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
 
   [studentCreateObject.instituteName]: z.string(),
 
   [studentCreateObject.instituteUUID]: z.string().uuid(),
 
-  [studentCreateObject.yearOfAdmission]: z.coerce
-    .number()
-    .optional(),
+  [studentCreateObject.yearOfAdmission]: z.coerce.number().optional(),
 
   [studentCreateObject.password]: z.string().optional(),
 
@@ -46,7 +44,6 @@ export const createStudentSchema = z.object({
     .refine((val) => val === null || !isNaN(Date.parse(val as string)), {
       message: 'Invalid date format',
     }),
-
 
   [studentCreateObject.address]: z
     .string()

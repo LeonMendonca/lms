@@ -15,6 +15,8 @@ import {
   Res,
   UseGuards,
   Req,
+  HttpCode,
+  Request,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -37,33 +39,45 @@ import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { HttpExceptionFilter } from 'src/misc/exception-filter';
 import { TVisit_log } from './zod-validation/visitlog';
-import { studentCredZodSchema, TStudentCredZodType } from './zod-validation/studentcred-zod';
+import {
+  studentCredZodSchema,
+  TStudentCredZodType,
+} from './zod-validation/studentcred-zod';
 import { StudentAuthGuard } from './student.guard';
-import { Request } from "express";
-import { TInsertResult } from 'src/worker-threads/student/student-insert-worker';
+import { Students } from './students.entity';
+import { StudentsVisitKey } from './entities/student-visit-key';
+import {
+  PaginationParserType,
+  ParsePaginationPipe,
+} from 'src/pipes/pagination-parser.pipe';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  pagination: {} | null;
+  error?: string;
+}
+
+interface AuthenticatedRequest extends Request {
+  user?: any; // Ideally, replace `any` with your `User` type
+}
 
 @Controller('student')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) { }
+  constructor(private studentsService: StudentsService) {}
 
   @Get('all')
   @UseGuards(StudentAuthGuard)
   async getAllStudents(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
-    @Query('_search') search: string,
-    @Query('_department') department: string,
-    @Query('_year') year: string,
-    @Req() request: Request
-  ) {
-    console.log(request['user'])
-    return await this.studentsService.findAllStudents({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      search: search ?? undefined,
-      department: department ?? undefined,
-      year: year ?? undefined,
-    });
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
+  ): Promise<ApiResponse<Students[]>> {
+    const { data, pagination } =
+      await this.studentsService.findAllStudents(query);
+    return {
+      success: true,
+      data,
+      pagination,
+    };
   }
 
   @Get('detail')
@@ -121,9 +135,18 @@ export class StudentsController {
 
   @Post('create')
   @UsePipes(new bodyValidationPipe(createStudentSchema))
-  async createStudent(@Body() studentPayload: TCreateStudentDTO) {
+  @HttpCode(HttpStatus.CREATED)
+  async createStudent(
+    @Body() studentPayload: TCreateStudentDTO,
+  ): Promise<ApiResponse<Students>> {
     try {
-      return await this.studentsService.createStudent(studentPayload);
+      const data: Students =
+        await this.studentsService.createStudent(studentPayload);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -138,17 +161,18 @@ export class StudentsController {
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<{
-      validated_array: TCreateStudentDTO[],
-      invalid_data_count: number
-    }>(
-      'student/student-zod-body-worker',
-    ),
+    new bulkBodyValidationPipe<TCreateStudentDTO, {
+      validated_array: TCreateStudentDTO[];
+      invalid_data_count: number;
+    }>('student/student-zod-body-worker'),
   )
-  async bulkCreateStudent(@Body() studentZodValidatedObject: {
-    validated_array: TCreateStudentDTO[];
-    invalid_data_count: number;
-  }) {
+  async bulkCreateStudent(
+    @Body()
+    studentZodValidatedObject: {
+      validated_array: TCreateStudentDTO[];
+      invalid_data_count: number;
+    },
+  ) {
     try {
       console.log('CONTROLLER Moving to service');
       return await this.studentsService.bulkCreate(studentZodValidatedObject);
@@ -164,29 +188,22 @@ export class StudentsController {
     }
   }
 
-  @Put('edit')
+  @Put('edit/:_student_id')
   @UsePipes(new putBodyValidationPipe(editStudentSchema))
   async editStudent(
-    @Query('_student_id')
-    studentId: string,
+    @Param('_student_id') studentId: string,
     @Body() studentPayload: TEditStudentDTO,
-  ) {
+  ): Promise<ApiResponse<Students>> {
     try {
-      const result = await this.studentsService.editStudent(
+      const data = await this.studentsService.editStudent(
         studentId,
         studentPayload,
       );
-      if (result[1]) {
-        return {
-          statusCode: HttpStatus.OK,
-          message: `User id ${studentId} updated successfully!`,
-        };
-      } else {
-        throw new HttpException(
-          `User with id ${studentId} not found`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -199,10 +216,8 @@ export class StudentsController {
     }
   }
 
-  @Delete('delete')
-  async deleteStudent(
-    @Query('_student_id') studentId: string,
-  ) {
+  @Delete('delete/:_student_id')
+  async deleteStudent(@Param('_student_id') studentId: string) {
     try {
       const result = await this.studentsService.deleteStudent(studentId);
       if (!result[1]) {
@@ -229,19 +244,22 @@ export class StudentsController {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<{
+    new bulkBodyValidationPipe<TstudentUUIDZod, {
       validated_array: TstudentUUIDZod[];
       invalid_data_count: number;
-    }>(
-      'student/student-zod-uuid-worker',
-    ),
+    }>('student/student-zod-uuid-worker'),
   )
-  async bulkDeleteStudent(@Body() studentZodValidatedUUIDObject: {
-    validated_array: TstudentUUIDZod[];
-    invalid_data_count: number;
-  }) {
+  async bulkDeleteStudent(
+    @Body()
+    studentZodValidatedUUIDObject: {
+      validated_array: TstudentUUIDZod[];
+      invalid_data_count: number;
+    },
+  ) {
     try {
-      const result = await this.studentsService.bulkDelete(studentZodValidatedUUIDObject);
+      const result = await this.studentsService.bulkDelete(
+        studentZodValidatedUUIDObject,
+      );
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -251,7 +269,7 @@ export class StudentsController {
         );
       } else {
         throw error;
-      }   
+      }
     }
   }
 
@@ -381,7 +399,6 @@ export class StudentsController {
     @Query('_limit') limit: string = '10',
   ) {
     try {
-
       return await this.studentsService.getVisitLogByStudentUUID({
         student_id,
         page: page ? parseInt(page, 10) : 1,
@@ -428,18 +445,15 @@ export class StudentsController {
   }
 
   @Get('student-profile')
-  async student_profile(
-    @Query('_student_id') student_id: string
-  ) {
+  async student_profile(@Query('_student_id') student_id: string) {
     try {
       return await this.studentsService.studentProfile(student_id);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
       }
-      throw error
+      throw error;
     }
-
   }
 
   @Post('login')
@@ -449,7 +463,118 @@ export class StudentsController {
       return await this.studentsService.studentLogin(studentCredPayload);
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('student-dashboard')
+  @UseGuards(StudentAuthGuard)
+  async studentDashboard(@Request() req: AuthenticatedRequest) {
+    try {
+      const user = req.user;
+      return await this.studentsService.studentDashboard(user);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('admin-dashboard')
+  async adminDashboard(
+    @Query('_institute_uuid') institute_uuid: string | null,
+  ) {
+    try {
+      return await this.studentsService.adminDashboard(institute_uuid);
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Post('student-visit-key')
+  @UseGuards(StudentAuthGuard)
+  async studentVisitKey(
+    @Request() req: AuthenticatedRequest,
+    @Body('longitude') longitude: number,
+    @Body('latitude') latitude: number,
+    @Body('action') action: string,
+  ): Promise<ApiResponse<StudentsVisitKey>> {
+    try {
+      const user = req.user;
+      const createKey = await this.studentsService.createStudentVisitKey(
+        user,
+        latitude,
+        longitude,
+        action,
+      );
+      return {
+        success: true,
+        data: createKey,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('verify-student-visit-key/:student_key_uuid')
+  async getStudentVisitKey(
+    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
+  ) {
+    try {
+      const visitKey =
+        await this.studentsService.verifyStudentVisitKey(student_key_uuid);
+      return visitKey;
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('check-status-of-key/:student_key_uuid')
+  async checkStatusofKey(
+    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
+  ): Promise<ApiResponse<{ status: any }>> {
+    try {
+      const { data } =
+        await this.studentsService.checkVisitKeyStatus(student_key_uuid);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }

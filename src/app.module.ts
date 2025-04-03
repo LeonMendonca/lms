@@ -25,6 +25,10 @@ import { VisitLog } from './students/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
 import { FeesPenalties } from './fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './books_v2/entity/request-book.entity';
+import { StudentsVisitKey } from './students/entities/student-visit-key';
+import { CsvModule } from './csv/csv.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { Review } from './reviews/entities/review.entity';
 import { ConfigModule } from './config/config.module';
 import { LibraryConfig } from './config/entity/library_config.entity';
 import { InstituteConfig } from './config/entity/institute_config.entity';
@@ -35,7 +39,17 @@ config({ path: '.env' });
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
-      entities: [Students, VisitLog, FeesPenalties, RequestBook, Books, Booklog, Booklog_v2, BookTitle, Bookcount, BookCopy, JournalLogs, JournalCopy, JournalTitle, Calendar, LibraryConfig, InstituteConfig],
+      entities: [
+        Students,
+        VisitLog,
+        FeesPenalties,
+        RequestBook,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
+        StudentsVisitKey,
+        Review,
+        JournalLogs, JournalCopy, JournalTitle, Calendar],
       ssl: true,
       synchronize: true,
     }),
@@ -47,7 +61,9 @@ config({ path: '.env' });
     CalendarModule,
     FeesPenaltiesModule,
     FeesPenalties,
-    ConfigModule
+    ConfigModule,
+    CsvModule,
+    ReviewsModule
   ],
 })
 export class AppModule {

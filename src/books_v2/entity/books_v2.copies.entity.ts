@@ -89,6 +89,26 @@ export class BookCopy {
 
 const book_copy = new BookCopy();
 
+export const bookCopyObject = {
+  source_of_acquisition: 'source_of_acquisition_placeholder',
+  date_of_acquisition: 'date_of_acquisition_placeholder',
+  bill_no: 'bill_no_placeholder',
+  language: 'language_placeholder',
+  inventory_number: 'inventory_number_placeholder',
+  accession_number: 'accession_number_placeholder',
+  barcode: 'barcode_placeholder',
+  item_type: 'item_type_placeholder',
+  institute_name: 'institute_name_placeholder',
+  institute_uuid: 'institute_uuid_placeholder',
+  created_by: 'created_by_placeholder',
+  remarks: 'remarks_placeholder',
+  copy_images: 'copy_images_placeholder',
+  copy_additional_fields: 'copy_additional_fields_placeholder',
+  copy_description: 'copy_description_placeholder',
+  book_title_uuid: 'book_title_uuid_placeholder',
+} as const;
+
+
 //Type that represents the table Columns
 export type TBookCopy = {
   [P in keyof typeof book_copy as typeof book_copy[P]]: any;
