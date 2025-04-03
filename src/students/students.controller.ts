@@ -161,10 +161,13 @@ export class StudentsController {
 
   @Post('bulk-create')
   @UsePipes(
-    new bulkBodyValidationPipe<TCreateStudentDTO, {
-      validated_array: TCreateStudentDTO[];
-      invalid_data_count: number;
-    }>('student/student-zod-body-worker'),
+    new bulkBodyValidationPipe<
+      TCreateStudentDTO,
+      {
+        validated_array: TCreateStudentDTO[];
+        invalid_data_count: number;
+      }
+    >('student/student-zod-body-worker'),
   )
   async bulkCreateStudent(
     @Body()
@@ -244,10 +247,13 @@ export class StudentsController {
 
   @Delete('bulk-delete')
   @UsePipes(
-    new bulkBodyValidationPipe<TstudentUUIDZod, {
-      validated_array: TstudentUUIDZod[];
-      invalid_data_count: number;
-    }>('student/student-zod-uuid-worker'),
+    new bulkBodyValidationPipe<
+      TstudentUUIDZod,
+      {
+        validated_array: TstudentUUIDZod[];
+        invalid_data_count: number;
+      }
+    >('student/student-zod-uuid-worker'),
   )
   async bulkDeleteStudent(
     @Body()
@@ -366,6 +372,7 @@ export class StudentsController {
 
   @Get('alllog')
   async getAllLog(
+    @Request() req: AuthenticatedRequest,
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
@@ -393,14 +400,21 @@ export class StudentsController {
   // }
 
   @Get('visitlog_by_id')
+  @UseGuards(StudentAuthGuard)
   async getVisitlog(
-    @Query('_student_id') student_id: string,
+    @Request() req: AuthenticatedRequest,
     @Query('_page') page: string = '1',
     @Query('_limit') limit: string = '10',
   ) {
     try {
+      const student = await this.studentsService.findStudentBy({
+        student_id: req.user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       return await this.studentsService.getVisitLogByStudentUUID({
-        student_id,
+        student_id: student.student_uuid,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
       });

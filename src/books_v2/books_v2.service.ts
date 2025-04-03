@@ -1593,7 +1593,7 @@ export class BooksV2Service {
       const createReturnDate = createNewDate(returnDays);
 
       const fpUUID: { fp_uuid: string }[] = await this.fpRepository.query(
-        `INSERT INTO fees_penalties (payment_method, borrower_uuid, book_copy_uuid, return_date) values ($1, $2, $3, $4) RETURNING fp_uuid`,
+        `INSERT INTO fees_penalties (payment_method, borrower_uuid, copy_uuid, return_date) values ($1, $2, $3, $4) RETURNING fp_uuid`,
         [
           'offline',
           studentExists[0].student_uuid,
