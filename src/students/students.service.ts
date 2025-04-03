@@ -49,7 +49,7 @@ export class StudentsService {
     @InjectRepository(Students)
     private studentsRepository: Repository<Students>,
 
-    private readonly queryBuilderService: QueryBuilderService
+    private readonly queryBuilderService: QueryBuilderService,
   ) {}
 
   async findAllStudents({
@@ -71,19 +71,23 @@ export class StudentsService {
 
     const params: (string | number)[] = [];
 
-    const whereClauses = this.queryBuilderService.buildWhereClauses(filter, search, params);
+    const whereClauses = this.queryBuilderService.buildWhereClauses(
+      filter,
+      search,
+      params,
+    );
     const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
 
-    console.log({params})
+    console.log({ params });
 
     const students = await this.studentsRepository.query(
       `SELECT * FROM students_table ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset]
+      [...params, limit, offset],
     );
 
     const total = await this.studentsRepository.query(
       `SELECT COUNT(*) FROM students_table ${whereClauses}`,
-      params
+      params,
     );
 
     // let whereClauses: string[] = ['is_archived = false'];
@@ -214,7 +218,12 @@ export class StudentsService {
         'password',
         'is_archived',
       ]);
-      return filteredStudentObject;
+
+      const reviews = await this.studentsRepository.query(
+        `SELECT * FROM reviews WHERE student_uuid = '${filteredStudentObject.student_uuid}' AND is_archived = false`,
+      );
+
+      return { ...filteredStudentObject, reviews };
     } catch (error) {
       throw error;
     }
@@ -652,7 +661,7 @@ export class StudentsService {
   async studentProfile(student_id: string) {
     try {
       const result = await this.studentsRepository.query(
-        `SELECT student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`,
+        `SELECT student_uuid, student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`,
         [student_id],
       );
       if (result.length === 0) {
@@ -661,7 +670,11 @@ export class StudentsService {
           HttpStatus.BAD_REQUEST,
         );
       }
-      return result;
+
+      const reviews = await this.studentsRepository.query(
+        `SELECT * FROM reviews WHERE student_uuid = '${result[0].student_uuid}' AND is_archived = false`,
+      );
+      return { ...result[0], reviews };
     } catch (error) {
       throw error;
     }
