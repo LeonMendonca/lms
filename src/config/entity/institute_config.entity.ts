@@ -27,9 +27,9 @@ export class InstituteConfig {
     @Column({ name: "is_archived", type: 'boolean', default: false })
     isArchived: "is_archived" = "is_archived"
 
-    @ManyToOne(() => LibraryConfig, (rule) => rule.libraryRuleId)
-    @JoinColumn({ name: 'library_rule_id' })
-    libraryRuleId: 'library_rule_id' = 'library_rule_id';
+    // @ManyToOne(() => LibraryConfig, (rule) => rule.libraryRuleId)
+    // @JoinColumn({ name: 'library_rule_id' })
+    // libraryRuleId: 'library_rule_id' = 'library_rule_id';
 
 
 }

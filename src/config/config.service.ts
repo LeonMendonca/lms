@@ -7,6 +7,10 @@ import { Repository } from 'typeorm';
 import { genInstituteId } from './id-generation/create-insitute_id';
 import { create } from 'domain';
 import { TInstituteUpdateDTO } from './zod-validation/update-institute-zod';
+import { TLibraryDTO } from './zod-validation/create-library_rules-zod';
+import { genRuleId } from './id-generation/create-library_rule_id';
+import { LibraryConfig } from './entity/library_config.entity';
+import { TLibraryUpdateDTO } from './zod-validation/update-library_rules-zod';
 
 @Injectable()
 export class ConfigService {
@@ -14,6 +18,10 @@ export class ConfigService {
     constructor(
         @InjectRepository(InstituteConfig)
         private instituteConfigRepository: Repository<InstituteConfig>,
+
+
+        @InjectRepository(LibraryConfig)
+        private libraryConfigRepository: Repository<LibraryConfig>,
     ) { }
 
     //  ------------- INSTITUTE CONFIGURATIONS ----------
@@ -169,10 +177,141 @@ export class ConfigService {
     //  -------------- LIBRARY CONFIGURATIONS -----------
 
     // Get Library Rules Info
+    async getRule() {
+        const result = await this.libraryConfigRepository.query(
+            `SELECT * FROM library_config WHERE is_archived=false`
+        )
+        if (!result.length) {
+            return { message: "No Rule Found" }
+        }
+        return result
+    }
 
     // Create Library Rules
+    async createLibrary(rulesPayload: TLibraryDTO) {
+        // Generate institute ID
+        const created_at = new Date().toISOString(); // Use ISO format
+        const institute_id = rulesPayload.institute_id
+        const library_rule_id = genRuleId(institute_id, created_at);
+        console.log("Generated Library ID:", library_rule_id);
+        // PAY ATTENTIOBN OT THE ID
+
+        // Check if rule with the same ID exists
+        const existingRule = await this.libraryConfigRepository.query(
+            `SELECT * FROM library_config WHERE library_rule_id=$1`,
+            [library_rule_id]
+        );
+        if (existingRule.length > 0) {
+            throw new HttpException("Rule With Same ID Exists", HttpStatus.BAD_REQUEST);
+        }
+
+        // Prepare final payload with generated fields
+        const finalPayload = {
+            ...rulesPayload,
+            library_rule_id: library_rule_id,
+            created_at: created_at,
+        };
+
+        // Generate query data
+        const insertQuery = insertQueryHelper(finalPayload, []);
+
+        // Convert objects/arrays to JSON before passing to the query
+        const sanitizedValues = insertQuery.values.map((value) =>
+            typeof value === "object" ? JSON.stringify(value) : value
+        );
+
+        // Construct query argument placeholders dynamically ($1, $2, $3...)
+        const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
+
+        // Execute the insert query
+        await this.libraryConfigRepository.query(
+            `INSERT INTO library_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
+            sanitizedValues
+        );
+
+        return { statusCode: HttpStatus.CREATED, message: "Rule Created!" };
+    }
 
     // Update Library Rules Info
+    async updateRule(updateLibraryPayload: TLibraryUpdateDTO) {
+        try {
+            // Generate query for update
+            const queryData = updateQueryHelper<TLibraryUpdateDTO>(updateLibraryPayload, []);
+
+             // Check if the institute exists and is not archived
+             const existingRule = await this.libraryConfigRepository.query(
+                `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
+                [updateLibraryPayload.library_rule_id]
+            );
+            if (existingRule.length === 0) {
+                throw new HttpException("No Rule Found", HttpStatus.NOT_FOUND);
+            }
+
+            // Execute the update query with parameterized values
+            await this.libraryConfigRepository.query(
+                `UPDATE library_config SET ${queryData.queryCol} WHERE library_rule_id=$${queryData.values.length + 1} AND is_archived=false`,
+                [...queryData.values, updateLibraryPayload.library_rule_id] // Add institute_id at the end
+            );
+
+            return { statusCode: HttpStatus.OK, message: "Rule Updated Successfully!" };
+
+
+
+        } catch (error) {
+            console.error("Error updating institute:", error);
+            throw new HttpException(
+                `Error: ${error.message || error} while updating institute.`,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
 
     // Delete (Archive) Library Rules
+    async archiveRule(rule_id) {
+        try {
+            if (!rule_id.length) {
+                return { message: "Insert Id!" }
+            }
+            const inst = await this.libraryConfigRepository.query(
+                `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
+                [rule_id]
+            )
+            if (!inst.length) {
+                return { message: "No Institute Found" }
+            }
+
+            await this.libraryConfigRepository.query(
+                `UPDATE library_config SET is_archived=true WHERE library_rule_id=$1`,
+                [rule_id]
+            )
+            return { message: "Rule Deleted" }
+        } catch (error) {
+            return { error: error.message }
+        }
+    }
+
+    // Restore Library Rules
+    async restoreRule(rule_id: string) {
+        try {
+            if (!rule_id.length) {
+                return { message: "Insert Id!" }
+            }
+            const inst = await this.libraryConfigRepository.query(
+                `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=true`,
+                [rule_id]
+            )
+            if (!inst.length) {
+                return { message: "Rule not found or already active" }
+            }
+            await this.libraryConfigRepository.query(
+                `UPDATE library_config SET is_archived = false WHERE library_rule_id = $1`,
+                [rule_id],
+            );
+            return { message: 'Rule restored successfully' };
+        } catch (error) {
+            return { error: error.message }
+        }
+    }
+
 }

@@ -3,6 +3,8 @@ import { ConfigService } from './config.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createInstituteSchema, TInstituteDTO } from './zod-validation/create-institute-zod';
 import { TInstituteUpdateDTO, updateInstituteSchema } from './zod-validation/update-institute-zod';
+import { createLibraryRuleSchema, TLibraryDTO } from './zod-validation/create-library_rules-zod';
+import { TLibraryUpdateDTO, updateLibraryRuleSchema } from './zod-validation/update-library_rules-zod';
 
 @Controller('config')
 export class ConfigController {
@@ -54,7 +56,6 @@ export class ConfigController {
         }
     }
 
-
     // Delete (Archive) Institute
     @Put('delete-institute')
     async archiveInstitute(@Body('institute_id') institute_id: string) {
@@ -69,11 +70,59 @@ export class ConfigController {
 
     //  -------------- LIBRARY CONFIGURATIONS -----------
 
-    // Get Library Rules Info
+    // Get Library Rules 
+    @Get('get-rule')
+    async getRule() {
+        return this.configService.getRule()
+    }
 
     // Create Library Rules
+    @Post('create-library-rule')
+    @UsePipes(new bodyValidationPipe(createLibraryRuleSchema))
+    async createLibrary(@Body() rulesPayload: TLibraryDTO){
+        try{
+            const result = await this.configService.createLibrary(rulesPayload);
+            return result
+        }catch(error){
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(
+                    error.message,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                );
+            } else {
+                throw error;
+            }
+        }
+    }
 
     // Update Library Rules Info
+    @Patch('update-rule')
+    @UsePipes(new bodyValidationPipe(updateLibraryRuleSchema))
+    async updateRule(@Body() updateLibraryPayload: TLibraryUpdateDTO) {
+        try {
+            const result =
+                await this.configService.updateRule(updateLibraryPayload);
+            return result;
+        } catch (error) {
+            if (!(error instanceof HttpException)) {
+                throw new HttpException(
+                    error.message,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                );
+            }
+            throw error;
+        }
+    }
 
     // Delete (Archive) Library Rules
+    @Put('delete-rule')
+    async archiveRule(@Body('rule_id') rule_id: string) {
+        return this.configService.archiveRule(rule_id);
+    }
+
+    // Restore Library Rules
+    @Put('restore-rule')
+    async restoreRule(@Body('rule_id') rule_id: string) {
+        return this.configService.restoreRule(rule_id);
+    }
 }

@@ -15,7 +15,7 @@ export class LibraryConfig {
     @Column({ name: 'late_fees_per_day', type: 'int' })
     lateFeesPerDay: "late_fees_per_day" = "late_fees_per_day"
 
-    @Column({ name: 'operating_hours', type: 'int' })
+    @Column({ name: 'operating_hours', type: 'jsonb' })
     operatingHours: "operating_hours" = "operating_hours"
 
     @Column({ name: 'enable_email', type: 'boolean', default: false })
@@ -30,10 +30,12 @@ export class LibraryConfig {
     @Column({ name: "is_archived", type: 'boolean', default: false })
     isArchived: "is_archived" = "is_archived"
 
-    @OneToMany(() => InstituteConfig, (institute) => institute.instituteId)
-    @JoinColumn({ name: 'institute_id' })
-    instituteId: 'institute_id' = 'institute_id';
+    @Column({ name: 'institute_id', type: 'varchar', length: 255 })
+    instituteId: "institute_id" = "institute_id"
 
+    // @OneToMany(() => InstituteConfig, (institute) => institute.instituteId)
+    // @JoinColumn({ name: 'institute_id' })
+    // instituteId: 'institute_id' = 'institute_id';
 
 }
 

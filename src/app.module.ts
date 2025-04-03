@@ -49,7 +49,7 @@ config({ path: '.env' });
         Booklog_v2,
         StudentsVisitKey,
         Review,
-        JournalLogs, JournalCopy, JournalTitle, Calendar],
+        JournalLogs, JournalCopy, JournalTitle, Calendar, LibraryConfig, InstituteConfig],
       ssl: true,
       synchronize: true,
     }),
@@ -63,7 +63,8 @@ config({ path: '.env' });
     FeesPenalties,
     ConfigModule,
     CsvModule,
-    ReviewsModule
+    ReviewsModule,
+    ConfigModule
   ],
 })
 export class AppModule {

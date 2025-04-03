@@ -2,7 +2,7 @@ import { z } from "zod"
 import { createObjectOmitProperties } from "src/misc/create-object-from-class"
 import { InstituteConfig } from "../entity/institute_config.entity"
 
-const createInstitute = createObjectOmitProperties(new InstituteConfig(), ['instituteId', 'createdDate', 'libraryRuleId', 'isArchived'])
+const createInstitute = createObjectOmitProperties(new InstituteConfig(), ['instituteId', 'createdDate', 'isArchived'])
 
 export const createInstituteSchema = z.object({
     // [createInstitute.createdDate]: z.string().date(),
