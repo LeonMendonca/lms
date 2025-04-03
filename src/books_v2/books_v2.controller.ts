@@ -541,7 +541,7 @@ export class BooksV2Controller {
         undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
-        result = await this.booksService.bookBorrowed(booklogPayload, request, status = 'borrowed');
+        result = await this.booksService.bookBorrowed(booklogPayload, request.ip, status = 'borrowed');
         // result = await this.booksService.bookBorrowed(
         //   booklogPayload,
         //   request,
@@ -556,7 +556,7 @@ export class BooksV2Controller {
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
-          request,
+          request.ip,
           (status = 'in_library_borrowed'),
         );
       }

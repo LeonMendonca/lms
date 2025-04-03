@@ -410,6 +410,32 @@ export class StudentsController {
       const student = await this.studentsService.findStudentBy({
         student_id: req.user.student_id,
       });
+      console.log(student)
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      return await this.studentsService.getVisitLogByStudentUUID({
+        student_id: student.student_uuid,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('activity')
+  @UseGuards(StudentAuthGuard)
+  async getActivity(
+    @Request() req: AuthenticatedRequest,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+      const student = await this.studentsService.findStudentBy({
+        student_id: req.user.student_id,
+      });
+      console.log(student)
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }

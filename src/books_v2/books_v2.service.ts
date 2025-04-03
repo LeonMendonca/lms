@@ -1481,7 +1481,7 @@ export class BooksV2Service {
 
   async bookBorrowed(
     booklogPayload: Omit<TCreateBooklogV2DTO, 'action'>,
-    ipAddress: Request,
+    ipAddress: string,
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {

@@ -27,6 +27,7 @@ import {
 } from './entities/student-visit-key';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
+import { VisitLog } from './visitlog.entity';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -446,11 +447,11 @@ export class StudentsService {
   }
   // visit log
   async getVisitAllLog(
-    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 }
+    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
   ) {
     try {
       const offset = (page - 1) * limit;
-  
+
       // Optimized SQL Query with Pagination at Database Level
       const logs = await this.studentsRepository.query(
         `
@@ -462,9 +463,9 @@ export class StudentsService {
         ORDER BY created_at DESC
         LIMIT $1 OFFSET $2
         `,
-        [limit, offset]
+        [limit, offset],
       );
-  
+
       // Fetch total count (for pagination)
       const total = await this.studentsRepository.query(
         `
@@ -473,15 +474,15 @@ export class StudentsService {
           UNION ALL
           SELECT created_at FROM book_log
         ) AS combined_logs
-        `
+        `,
       );
-  
+
       const totalCount = parseInt(total[0].total, 10);
-  
+
       if (logs.length === 0) {
-        throw new HttpException("No log data found", HttpStatus.NOT_FOUND);
+        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
       }
-  
+
       return {
         data: logs,
         pagination: {
@@ -494,11 +495,11 @@ export class StudentsService {
     } catch (error) {
       throw new HttpException(
         `Error: ${error.message || error}, something went wrong in fetching all logs!`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
-  
+
   //
 
   async getVisitLogByStudentUUID({
@@ -515,17 +516,22 @@ export class StudentsService {
       const visitLogs = await this.studentsRepository.query(
         `
           SELECT * FROM (
-            SELECT visit_log.*, in_time AS log_date FROM visit_log WHERE student_uuid = $$1
+            SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, in_time AS log_date FROM visit_log WHERE student_uuid = $1
             UNION ALL
-            SELECT book_log.*, date AS log_date FROM book_logv2 WHERE borrower_uuid = $$1
+            SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address, NULL AS out_time,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid  WHERE borrower_uuid = $1
           ) AS combined_logs
-          ORDER BY created_at DESC
-          LIMIT $1 OFFSET $2
+          ORDER BY log_date DESC
+          LIMIT $2 OFFSET $3
         `,
         [student_id, limit, offset],
       );
+      console.log(visitLogs);
       const totalResult = await this.studentsRepository.query(
-        `SELECT COUNT(*) as total FROM visit_log WHERE student_id = $1`,
+        `SELECT COUNT(*) FROM (
+            SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, in_time AS log_date FROM visit_log WHERE student_uuid = $1
+            UNION ALL
+            SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address, NULL AS out_time,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid  WHERE borrower_uuid = $1
+          ) AS combined_logs2`,
         [student_id],
       );
       if (visitLogs.length === 0) {
@@ -825,7 +831,8 @@ export class StudentsService {
         FROM book_logv2 
         WHERE date >= CURRENT_DATE AND action = 'returned'
       `;
-      const todayReturned = await this.studentsRepository.query(todayReturnedQuery);
+      const todayReturned =
+        await this.studentsRepository.query(todayReturnedQuery);
 
       const overdueQuery = `
         SELECT COUNT(*) 
