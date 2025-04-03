@@ -25,17 +25,17 @@ export class Booklog_v2 {
   @JoinColumn({ name: 'book_copy_uuid' })
   bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
 
-  @Column({ name: 'old_book_copy', type: 'jsonb' })
+  @Column({ name: 'old_book_copy', type: 'json' })
   oldBookCopy: 'old_book_copy' = "old_book_copy";
 
-  @Column({ name: 'new_book_copy', type: 'jsonb' })
+  @Column({ name: 'new_book_copy', type: 'json' })
   newBookCopy: 'new_book_copy' = "new_book_copy";
 
 
-  @Column({ name: 'old_book_title', type: 'jsonb' })
+  @Column({ name: 'old_book_title', type: 'json' })
   oldBookTitle: 'old_book_copy' = "old_book_copy";
 
-  @Column({ name: 'new_book_title', type: 'jsonb' })
+  @Column({ name: 'new_book_title', type: 'json' })
   newBookTitle: 'old_book_copy' = "old_book_copy";
 
   @Column({ name: 'action', type: 'varchar', length: 255 })

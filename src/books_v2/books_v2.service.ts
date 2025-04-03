@@ -746,21 +746,21 @@ export class BooksV2Service {
       const result: any[] = await this.booklogRepository.query(
         `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 LIMIT $2 OFFSET $3
         `,
-//         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
-//           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid 
-//          INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
-//  LIMIT $2 OFFSET $3`,
+        //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
+        //           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid
+        //          INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
+        //  LIMIT $2 OFFSET $3`,
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
         `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1`,
-//         `SELECT COUNT(*) 
-//         FROM book_titles 
-//         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
-//         INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
-//         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  
-//         WHERE student_id = $1;
-// `,
+        //         `SELECT COUNT(*)
+        //         FROM book_titles
+        //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
+        //         INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+        //         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid
+        //         WHERE student_id = $1;
+        // `,
         [student_id],
       );
       if (result.length === 0) {
@@ -853,7 +853,6 @@ export class BooksV2Service {
 
       //Book Title Table logic
       if (!bookTitleUUID.length) {
-
         //Create the required Columns, Arg, and Values
         //Ignore the Columns that are used by Copy table
         const bookTitleQueryData = insertQueryHelper(createBookpayload, [
@@ -872,7 +871,7 @@ export class BooksV2Service {
           'copy_images',
           'copy_description',
           'copy_additional_fields',
-        ]); 
+        ]);
 
         //Convert some specific fields to string
         bookTitleQueryData.values.forEach((element, idx) => {
@@ -899,24 +898,27 @@ export class BooksV2Service {
 
       //Create the required Columns, Arg, and Values
       //Ignore the Columns that are used by Title table
-      const bookCopyQueryData = insertQueryHelper(bookCopiesPayloadWithTitleUUID, [
-        'book_title',
-        'book_author',
-        'name_of_publisher',
-        'place_of_publication',
-        'year_of_publication',
-        'edition',
-        'isbn',
-        'no_of_pages',
-        'no_of_preliminary',
-        'subject',
-        'department',
-        'call_number',
-        'author_mark',
-        'title_images',
-        'title_description',
-        'title_additional_fields',
-      ]);
+      const bookCopyQueryData = insertQueryHelper(
+        bookCopiesPayloadWithTitleUUID,
+        [
+          'book_title',
+          'book_author',
+          'name_of_publisher',
+          'place_of_publication',
+          'year_of_publication',
+          'edition',
+          'isbn',
+          'no_of_pages',
+          'no_of_preliminary',
+          'subject',
+          'department',
+          'call_number',
+          'author_mark',
+          'title_images',
+          'title_description',
+          'title_additional_fields',
+        ],
+      );
 
       //Convert some specific fields to string
       bookCopyQueryData.values.forEach((element, idx) => {
@@ -939,11 +941,14 @@ export class BooksV2Service {
     validated_array: TCreateBookZodDTO[];
     invalid_data_count: number;
   }) {
-    const { inserted_data } = await CreateWorker<TInsertResult>(bookZodValidatedObject.validated_array, 'book/book-insert-worker');
+    const { inserted_data } = await CreateWorker<TInsertResult>(
+      bookZodValidatedObject.validated_array,
+      'book/book-insert-worker',
+    );
     return {
       inserted_data,
-      invalid_data: bookZodValidatedObject.invalid_data_count
-    }
+      invalid_data: bookZodValidatedObject.invalid_data_count,
+    };
   }
 
   async updateTitleArchive(creatbookpayload: TupdatearchiveZodDTO) {
@@ -1112,7 +1117,6 @@ export class BooksV2Service {
   //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
   //     }
   //   }
-
 
   async archiveBookCopy(book_copy_uuid: string) {
     try {
@@ -1501,6 +1505,8 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
       }
 
+      console.log(bookPayloadFromBookCopies);
+
       //Check if Book exists in Book Titles through book_title_uuid received from Book Copies via SELECT query
       //Also make sure it's available
       //Insert into old_book_title COLUMN
@@ -1517,10 +1523,12 @@ export class BooksV2Service {
         );
       }
 
+      console.log(bookPayloadFromBookTitle);
+
       //assuming that borower is trying to borrow penalised book
       const feesPenaltiesPayload: TFeesPenalties[] =
         await this.fpRepository.query(
-          `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND is_completed = FALSE AND is_penalised = TRUE`,
+          `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND copy_uuid = $2 AND is_completed = FALSE AND is_penalised = TRUE`,
           [
             studentExists[0].student_uuid,
             bookPayloadFromBookCopies[0].book_copy_uuid,
@@ -1533,6 +1541,8 @@ export class BooksV2Service {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      console.log(feesPenaltiesPayload);
 
       //UPDATING now is safe
       //Insert into new_book_copy
@@ -1573,11 +1583,21 @@ export class BooksV2Service {
           [bookTitleUUID],
         );
 
-      const oldBookCopy = JSON.stringify(bookPayloadFromBookCopies[0]);
-      const newBookCopy = JSON.stringify(updatedBookCopiesPayload[0][0]);
+      const oldBookCopy = JSON.stringify(
+        structuredClone(bookPayloadFromBookCopies[0]),
+      );
+      const newBookCopy = JSON.stringify(
+        structuredClone(updatedBookCopiesPayload[0][0]),
+      );
 
-      const oldBookTitle = JSON.stringify(bookPayloadFromBookTitle[0]);
-      const newBookTitle = JSON.stringify(updatedBookTitlePayload[0][0]);
+      const oldBookTitle = JSON.stringify(
+        structuredClone(bookPayloadFromBookTitle[0]),
+      );
+      const newBookTitle = JSON.stringify(
+        structuredClone(updatedBookTitlePayload[0][0]),
+      );
+
+      console.log({ oldBookCopy, newBookCopy, oldBookTitle, newBookTitle });
 
       let returnDays = 0;
       //if borrowed in library then return day 0, else incremented date
@@ -1589,14 +1609,29 @@ export class BooksV2Service {
       const createReturnDate = createNewDate(returnDays);
 
       const fpUUID: { fp_uuid: string }[] = await this.fpRepository.query(
-        `INSERT INTO fees_penalties (payment_method, borrower_uuid, copy_uuid, return_date) values ($1, $2, $3, $4) RETURNING fp_uuid`,
+        `INSERT INTO fees_penalties (payment_method, borrower_uuid, copy_uuid, return_date, category) values ($1, $2, $3, $4, $5) RETURNING fp_uuid`,
         [
           'offline',
           studentExists[0].student_uuid,
           bookCopyUUID,
           createReturnDate,
+          'book',
         ],
       );
+
+      console.log({
+        a: studentExists[0].student_uuid,
+        bookCopyUUID,
+        status,
+        c: 'Book has been borrowed',
+        bookTitleUUID,
+        oldBookCopy,
+        newBookCopy,
+        oldBookTitle,
+        newBookTitle,
+        ipAddress,
+        b: fpUUID[0].fp_uuid,
+      });
 
       await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
@@ -1626,7 +1661,6 @@ export class BooksV2Service {
       throw error;
     }
   }
-
 
   async setbooklibrary(booklogpayload: TCreateBooklogV2DTO, ipAddress: string) {
     try {
@@ -1792,7 +1826,7 @@ export class BooksV2Service {
         const data = await this.booktitleRepository.query(
           `SELECT s1.* , b1.* , t1.* , f1.* FROM fees_penalties f1 
           LEFT JOIN students_table s1 ON f1.borrower_uuid = s1.student_uuid
-          LEFT JOIN book_copies b1 ON f1.book_copy_uuid = b1.book_copy_uuid
+          LEFT JOIN book_copies b1 ON f1.copy_uuid = b1.book_copy_uuid
           LEFT JOIN book_titles t1 ON b1.book_title_uuid = t1.book_uuid
           WHERE borrower_uuid=$1 and is_penalised=$2 or is_completed= $3`,
           [result[0].student_uuid, isPenalty, isCompleted],
@@ -1995,7 +2029,11 @@ export class BooksV2Service {
     }
   }
 
-  async createRequestBooklogIssue(student_id: string, requestBookIssuePayload: TRequestBookZodIssue, ipAddress: string) {
+  async createRequestBooklogIssue(
+    student_id: string,
+    requestBookIssuePayload: TRequestBookZodIssue,
+    ipAddress: string,
+  ) {
     try {
       const studentExists: Pick<TStudents, 'student_id'>[] =
         await this.studentRepository.query(
@@ -2020,7 +2058,7 @@ export class BooksV2Service {
         await this.requestBooklogRepository.query(
           `
         SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
-          [student_id, requestBookIssuePayload.barcode]
+          [student_id, requestBookIssuePayload.barcode],
         );
 
       if (requestExists.length) {

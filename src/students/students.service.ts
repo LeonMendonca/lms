@@ -816,14 +816,14 @@ export class StudentsService {
       const todayIssuesQuery = `
         SELECT COUNT(*) 
         FROM book_logv2 
-        WHERE created_at >= CURRENT_DATE AND action = 'borrowed'
+        WHERE date >= CURRENT_DATE AND action = 'borrowed'
       `;
       const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
 
       const todayReturnedQuery = `
         SELECT COUNT(*) 
         FROM book_logv2 
-        WHERE created_at >= CURRENT_DATE AND action = 'returned'
+        WHERE date >= CURRENT_DATE AND action = 'returned'
       `;
       const todayReturned = await this.studentsRepository.query(todayReturnedQuery);
 

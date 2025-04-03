@@ -623,12 +623,14 @@ export class BooksV2Controller {
           isCompleted,
         );
       } else if (isPenalty) {
+        console.log("h")
         return await this.booksService.getStudentFee(
           studentId,
           isPenalty,
           isCompleted,
         );
       } else if (isCompleted) {
+        console.log("p")
         return await this.booksService.getStudentFee(
           studentId,
           isPenalty,
