@@ -48,10 +48,14 @@ import type {
   TRequestBookZodIssueReIssueAR,
   TRequestBookZodReIssue,
 } from './zod/requestbook-zod';
+import { StudentsService } from 'src/students/students.service';
 
 @Controller('book_v2')
 export class BooksV2Controller {
-  constructor(private readonly booksService: BooksV2Service) {}
+  constructor(
+    private readonly booksService: BooksV2Service,
+    private readonly studentService: StudentsService,
+  ) {}
 
   // Get all books
   @Get('all')
@@ -140,8 +144,14 @@ export class BooksV2Controller {
     @Query('_limit') limit: string = '10',
   ) {
     try {
+      const student = await this.studentService.findStudentBy({
+        student_id: student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       return await this.booksService.getLogDetailsOfStudent({
-        student_id,
+        student_id: student[0].studedent_uuid,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
       });
