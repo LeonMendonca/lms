@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs';
+import { concat, Subscription } from 'rxjs';
 // import { journalCopyQueryValidator } from './validators/journalcopy.query-validator';
 import { HttpException, HttpStatus, Inject, Injectable, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -579,7 +579,8 @@ export class JournalsService {
     async periodicalReturned(
         journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
         request: Request,
-        status: 'returned'
+        status: 'returned',
+        category
     ) {
         try {
             if (!request.ip) {
@@ -600,7 +601,7 @@ export class JournalsService {
                 // 2. Check if Journal Copy Exists and is Issued (is_available = false)
                 const journalData = await transactionalEntityManager.query(
                     `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=false`,
-                    [journalLogPayload.journal_copy_id]
+                    [journalLogPayload.copy_id]
                 )
 
                 if (journalData.length === 0) {
@@ -638,7 +639,7 @@ export class JournalsService {
                 // 6. Mark Journal Copy as 
                 const newCopyData = await transactionalEntityManager.query(
                     `UPDATE journal_copy SET is_available=true WHERE journal_copy_id=$1 RETURNING *`,
-                    [journalLogPayload.journal_copy_id]
+                    [journalLogPayload.copy_id]
                 )
 
                 if (newCopyData.length === 0) {
@@ -677,19 +678,15 @@ export class JournalsService {
                 )
 
                 const returned_date = new Date() // today
-
-                const delayed_days = differenceInDays(startOfDay(return_date), startOfDay(returned_date))
-                console.log(return_date[0].return_date, returned_date, delayed_days)
-
-                let penalty_amount = 0
-                if (delayed_days < 0) {
-                    const penalty = 50
-                    penalty_amount = Math.abs(delayed_days) * penalty
-                }
+                let delayed_days = differenceInDays(startOfDay(return_date), startOfDay(returned_date))
+                delayed_days = (delayed_days > 0) ? 0 : delayed_days
+                const penalty_amount = delayed_days < 0 ? delayed_days * 50 : 0;
+                const is_penalised = (delayed_days < 0) ? true : false
+                
 
                 const penalty = await this.feesPenaltiesRepository.query(
-                    `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2 WHERE copy_uuid=$3 RETURNING *`,
-                    [delayed_days, penalty_amount, journal_copy_uuid]
+                    `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4 WHERE copy_uuid=$5 RETURNING *`,
+                    [delayed_days, penalty_amount, is_penalised, returned_date,journal_copy_uuid]
                 )
 
             });
@@ -702,14 +699,11 @@ export class JournalsService {
     }
 
 
-
-
-
-
     async periodicalBorrowed(
         journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
         request: Request,
-        status: 'borrowed' | 'in_library_borrowed'
+        status: 'borrowed' | 'in_library_borrowed',
+        category
     ) {
         try {
             if (!request.ip) {
@@ -737,7 +731,7 @@ export class JournalsService {
 
                 const journalData = await transactionalEntityManager.query(
                     `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=true AND is_archived=false LIMIT 1`,
-                    [journalLogPayload.journal_copy_id]
+                    [journalLogPayload.copy_id]
                 )
                 if (journalData.length === 0) {
                     throw new HttpException('Invalid Barcode or Journal Copy is not available', HttpStatus.BAD_REQUEST);
@@ -768,7 +762,7 @@ export class JournalsService {
                 // store data for fees_n_penalties - store the return date properly
                 let return_date = new Date()
 
-                return_date.setDate(return_date.getDate() + 7) 
+                return_date.setDate(return_date.getDate() + 7)
 
                 console.log("OLD PERIODICAL TITLE DATA : ", oldTitle[0]);
 
@@ -837,7 +831,7 @@ export class JournalsService {
                 // 8. Insert Periodical Information into the Fees n Penalties Table
                 const penalty = await this.feesPenaltiesRepository.query(
                     `INSERT INTO fees_penalties (category, borrower_uuid, copy_uuid, return_date) VALUES ($1, $2, $3, $4)`,
-                    ["periodical", student_uuid, journal_copy_uuid, return_date]
+                    [category, student_uuid, journal_copy_uuid, return_date]
                 )
 
                 return { message: 'Periodical Borrowed Successfully', statusCode: HttpStatus.CREATED };
@@ -1182,9 +1176,9 @@ export class JournalsService {
                 `SELECT * FROM journal_titles WHERE subscription_id=$1 AND journal_title_id=$2`,
                 [createJournalPayload.subscription_id, title_id]
             )
-            if(subs_id_data.length > 1){
+            if (subs_id_data.length > 1) {
                 // throw `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`
-                return {message: `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`}
+                return { message: `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id` }
             }
 
             // Generate journal_title_id if not exists
@@ -1647,10 +1641,10 @@ export class JournalsService {
         page?: number;
         limit?: number;
         search?: string;
-    }){
-        try{
-            if(!journal_title_id){
-                return {message: "Enter journal_title_id"}
+    }) {
+        try {
+            if (!journal_title_id) {
+                return { message: "Enter journal_title_id" }
             }
             const offset = (page - 1) * limit;
             const searchQuery = search ? `${search}%` : '%';
@@ -1682,8 +1676,8 @@ export class JournalsService {
                     totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
                 },
             };
-        }catch(error){
-            return {error:error}
+        } catch (error) {
+            return { error: error }
         }
     }
 
@@ -1967,25 +1961,166 @@ export class JournalsService {
     async borrow(
         issuePayload: Omit<TIssueLogDTO, 'action'>,
         request: Request,
-        status: 'borrowed' | 'in_library_borrowed'
-    ){
-        let data = []
-        if(issuePayload.category === 'periodical'){
-            data = await this.journalsCopyRepository.query(
-                `SELECT * FROM journal_copy WHERE journal_copy_id=$1`,
-                [issuePayload.copy_id]
-            )
-        }else{
-            data = await this.booksCopyRepository.query(
-                `SELECT * FROM book_copies WHERE book_copy_id=$1`,
-                [issuePayload.copy_id]
-            )
+        status: 'borrowed' | 'in_library_borrowed' | 'returned',
+        category
+    ) {
+        try {
+            if (!request.ip) {
+                throw new HttpException("Unable to get IP address of the Student", HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            return await this.dataSource.transaction(async (transactionalEntityManager) => {
+                // Check if student exists
+                const studentExists = await transactionalEntityManager.query(
+                    `SELECT * FROM students_table WHERE student_id = $1`,
+                    [issuePayload.student_id]
+                );
+                if (studentExists.length === 0) {
+                    throw new HttpException('Invalid Student ID', HttpStatus.BAD_REQUEST);
+                }
+
+                const student_uuid = studentExists[0].student_uuid;
+                const journal_copy_id = issuePayload.copy_id;
+
+                // Check if journal exists and is available
+                const journalData = await transactionalEntityManager.query(
+                    `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_archived=false ${status === 'borrowed' ? 'AND is_available=true' : 'AND is_available=false'}`,
+                    [issuePayload.copy_id]
+                );
+                if (journalData.length === 0) {
+                    throw new HttpException(
+                        status === 'borrowed' ? 'Journal Copy is not available' : 'Periodical not issued or does not exist',
+                        HttpStatus.BAD_REQUEST
+                    );
+                }
+
+                const journal_copy_uuid = journalData[0].journal_copy_uuid;
+                const journal_title_uuid = journalData[0].journal_title_uuid;
+
+                // Check if journal exists in the title table
+                const journalTitle = await transactionalEntityManager.query(
+                    `SELECT * FROM journal_titles WHERE journal_uuid=$1 AND is_archived=false`,
+                    [journal_title_uuid]
+                );
+                if (journalTitle.length === 0) {
+                    throw new HttpException("Periodical title not found or archived", HttpStatus.BAD_REQUEST);
+                }
+
+                let updatedTitle: any = null;
+                let updatedCopy: any = null;
+
+                // Borrowed Logic
+                if (status === 'borrowed' || status === 'in_library_borrowed') {
+                    if (journalTitle[0].available_count <= 0) {
+                        throw new HttpException("No available periodicals for borrowing", HttpStatus.BAD_REQUEST);
+                    }
+
+                    updatedTitle = await transactionalEntityManager.query(
+                        `UPDATE journal_titles SET available_count=available_count-1 WHERE journal_uuid=$1 AND available_count>0 RETURNING *`,
+                        [journal_title_uuid]
+                    );
+                    if (updatedTitle.length === 0) {
+                        throw new HttpException("Failed to update available count", HttpStatus.INTERNAL_SERVER_ERROR);
+                    }
+
+                    updatedCopy = await transactionalEntityManager.query(
+                        `UPDATE journal_copy SET is_available=false WHERE journal_copy_id=$1 RETURNING *`,
+                        [journal_copy_id]
+                    );
+
+                    const return_date = new Date();
+                    return_date.setDate(return_date.getDate() + 7);
+
+                    await this.feesPenaltiesRepository.query(
+                        `INSERT INTO fees_penalties (category, borrower_uuid, copy_uuid, return_date) VALUES ($1, $2, $3, $4)`,
+                        [category, student_uuid, journal_copy_uuid, return_date]
+                    );
+                } // Returned Logic - need to get the existing fp_uuid for existingBorrow so that every record with the same copy_id does not get updated
+                else if (status === 'returned') {
+                    // Check if the journal was actually borrowed before returning
+                    const existingBorrow = await this.journalLogRepository.query(
+                        `SELECT * FROM fees_penalties WHERE copy_uuid=$1`,
+                        [journal_copy_uuid]
+                    );
+                    if (existingBorrow.length === 0) {
+                        throw new HttpException("This journal was not borrowed before", HttpStatus.BAD_REQUEST);
+                    }
+                    if (journalTitle[0].available_count >= journalTitle[0].total_count) {
+                        throw new HttpException("Cannot return periodical. Available count already at maximum.", HttpStatus.BAD_REQUEST);
+                    }
+
+                    updatedTitle = await transactionalEntityManager.query(
+                        `UPDATE journal_titles SET available_count=available_count+1 WHERE journal_uuid=$1 RETURNING *`,
+                        [journal_title_uuid]
+                    );
+                    updatedCopy = await transactionalEntityManager.query(
+                        `UPDATE journal_copy SET is_available=true WHERE journal_copy_id=$1 RETURNING *`,
+                        [journal_copy_id]
+                    );
+
+                    let returnRecord = await this.journalLogRepository.query(
+                        `SELECT return_date FROM fees_penalties WHERE copy_uuid=$1`,
+                        [journal_copy_uuid]
+                    );
+
+                    if (returnRecord.length > 0) {
+                        const return_date = new Date(returnRecord[0].return_date);
+                        const today = new Date();
+                        let delayed_days = differenceInDays(startOfDay(return_date), startOfDay(today));
+                        delayed_days = (delayed_days > 0) ? 0 : delayed_days
+                        const penalty_amount = delayed_days < 0 ? delayed_days * 50 : 0;
+                        const is_penalised = (delayed_days < 0) ? true : false
+                        console.log(is_penalised)
+
+                        await this.feesPenaltiesRepository.query(
+                            `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4 WHERE copy_uuid=$5 RETURNING *`,
+                            [delayed_days, penalty_amount, is_penalised, today, journal_copy_uuid]
+                        );
+                    }
+                }
+
+                if (!updatedCopy || !updatedTitle) {
+                    throw new HttpException("Failed to update journal records", HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+
+                await transactionalEntityManager.query(
+                    `INSERT INTO journal_logs 
+              (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
+              action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid)  
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+                    [
+                        JSON.stringify(journalData[0]),
+                        JSON.stringify(updatedCopy[0]),
+                        JSON.stringify(journalTitle[0]),
+                        JSON.stringify(updatedTitle[0]),
+                        status,
+                        status === 'borrowed' ? 'Periodical has been borrowed' : 'Periodical has been returned',
+                        journalData[0].issn,
+                        request.ip,
+                        student_uuid,
+                        journal_title_uuid,
+                        journal_copy_uuid
+                    ]
+                );
+
+                return {
+                    message: `Periodical ${status === 'borrowed' ? 'Borrowed' : 'Returned'} Successfully`,
+                    statusCode: status === 'borrowed' ? HttpStatus.CREATED : HttpStatus.OK
+                };
+            });
+        } catch (error) {
+            return { error: error.message };
         }
-        return data
     }
 
-    async return(){
-        return "returned"
+
+    async return(
+        issuePayload: Omit<TIssueLogDTO, 'action'>,
+        request: Request,
+        status: 'borrowed' | 'in_library_borrowed',
+        category
+    ) {
+        return `${category} Returned`
     }
 
 }
