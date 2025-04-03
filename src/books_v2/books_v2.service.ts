@@ -1969,13 +1969,13 @@ export class BooksV2Service {
     }
   }
 
-  async createRequestBooklogIssue(requestBookIssuePayload: TRequestBookZodIssue, ipAddress: string) {
+  async createRequestBooklogIssue(student_id: string, requestBookIssuePayload: TRequestBookZodIssue, ipAddress: string) {
     try {
 
       const studentExists: Pick<TStudents, 'student_id'>[] =
         await this.studentRepository.query(
           `SELECT student_id FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
-          [requestBookIssuePayload.student_id],
+          [student_id],
         );
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
@@ -1994,7 +1994,7 @@ export class BooksV2Service {
       const requestExists: Pick<TRequestBook, 'request_id'>[] = await this.requestBooklogRepository.query
         (`
         SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
-          [requestBookIssuePayload.student_id, requestBookIssuePayload.barcode]
+          [student_id, requestBookIssuePayload.barcode]
         );
 
       if (requestExists.length) {

@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
@@ -49,6 +50,11 @@ import type {
   TRequestBookZodReIssue,
 } from './zod/requestbook-zod';
 import { StudentsService } from 'src/students/students.service';
+import { StudentAuthGuard } from 'src/students/student.guard';
+
+interface AuthenticatedRequest extends Request {
+  user?: any; // Ideally, replace `any` with your `User` type
+}
 
 @Controller('book_v2')
 export class BooksV2Controller {
@@ -151,7 +157,7 @@ export class BooksV2Controller {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
       return await this.booksService.getLogDetailsOfStudent({
-        student_id: student[0].studedent_uuid,
+        student_id: student[0].student_uuid,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
       });
@@ -679,10 +685,11 @@ export class BooksV2Controller {
   async getRequestBooklog() {}
 
   @Post('request_booklog_issue')
+  @UseGuards(StudentAuthGuard)
   @UsePipes(new bodyValidationPipe(requestBookZodIssue))
   async createRequestBooklogIssue(
     @Body() requestBookIssuePayload: TRequestBookZodIssue,
-    @Req() request: Request,
+    @Req() request: AuthenticatedRequest, // Ensure the request object has the correct type
   ) {
     try {
       if (!request.ip) {
@@ -691,8 +698,10 @@ export class BooksV2Controller {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
+      const user = request.user;
       //Adding IP address, since required for issuing
       return await this.booksService.createRequestBooklogIssue(
+        user.student_id,
         requestBookIssuePayload,
         request.ip,
       );

@@ -6,7 +6,7 @@ const createRequestBooklogObject = createObjectIncludeProperties(request_book, [
 
 
 export const requestBookZodIssue = z.object({
-    [createRequestBooklogObject.studentId]: z.string(),
+    // [createRequestBooklogObject.studentId]: z.string(),
     [createRequestBooklogObject.bookBarcode]: z.string(),
     [createRequestBooklogObject.requestType]: z.literal('issue'),
 });
