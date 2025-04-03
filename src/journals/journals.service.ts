@@ -1939,7 +1939,7 @@ export class JournalsService {
             );
             const BatchArr: Promise<TPeriodicalCopyIdDTO[]>[] = [];
             for (let i = 0; i < zodValidatedBatchArr.length; i++) {
-                let result = CreateWorker<TPeriodicalCopyIdDTO>(
+                let result =  CreateWorker<TPeriodicalCopyIdDTO[]>(
                     zodValidatedBatchArr[i],
                     'journals/bulk-delete-for-periodicals-copies',
                 );
