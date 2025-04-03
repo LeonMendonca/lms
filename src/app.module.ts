@@ -32,6 +32,10 @@ import { Review } from './reviews/entities/review.entity';
 import { ConfigModule } from './config/config.module';
 import { LibraryConfig } from './config/entity/library_config.entity';
 import { InstituteConfig } from './config/entity/institute_config.entity';
+import { UserController } from './user/user.controller';
+import { UserService } from './user/user.service';
+import { UserModule } from './user/user.module';
+import { User } from './user/user.entity';
 
 config({ path: '.env' });
 @Module({
@@ -41,6 +45,10 @@ config({ path: '.env' });
       url: process.env.DB_URL,
       entities: [
         Students,
+        User,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
         VisitLog,
         FeesPenalties,
         RequestBook,
@@ -63,7 +71,8 @@ config({ path: '.env' });
     FeesPenalties,
     ConfigModule,
     CsvModule,
-    ReviewsModule
+    ReviewsModule,
+    UserModule
   ],
 })
 export class AppModule {

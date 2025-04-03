@@ -51,7 +51,7 @@ import {
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   pagination: {} | null;

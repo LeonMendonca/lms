@@ -28,7 +28,7 @@ import {
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 
-interface DataWithPagination<T> {
+export interface DataWithPagination<T> {
   data: T[];
   pagination: {
     total: number;
@@ -38,7 +38,7 @@ interface DataWithPagination<T> {
   };
 }
 
-interface Data<T> {
+export interface Data<T> {
   data: T;
   pagination: null;
 }
