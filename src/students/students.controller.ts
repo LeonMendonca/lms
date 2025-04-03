@@ -71,6 +71,7 @@ export class StudentsController {
   async getAllStudents(
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ): Promise<ApiResponse<Students[]>> {
+    console.log(query)
     const { data, pagination } =
       await this.studentsService.findAllStudents(query);
     return {

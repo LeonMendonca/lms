@@ -45,6 +45,11 @@ import { RequestBook, TRequestBook } from './entity/request-book.entity';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { TInsertResult } from 'src/worker-threads/worker-types/book-insert.type';
 
+export interface Data<T> {
+  data: T;
+  pagination: null;
+}
+
 @Injectable()
 export class BooksV2Service {
   constructor(
@@ -744,7 +749,7 @@ export class BooksV2Service {
     try {
       const offset = (page - 1) * limit;
       const result: any[] = await this.booklogRepository.query(
-        `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 LIMIT $2 OFFSET $3
+        `SELECT * FROM book_logv2 WHERE borrower_uuid = $1 ORDER BY time DESC  LIMIT $2 OFFSET $3
         `,
         //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
         //           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid
@@ -941,14 +946,17 @@ export class BooksV2Service {
     validated_array: TCreateBookZodDTO[];
     invalid_data_count: number;
   }) {
-    const result = await CreateWorker<TInsertResult>(bookZodValidatedObject.validated_array, 'book/book-insert-worker');
-    if(!result.inserted_data) {
+    const result = await CreateWorker<TInsertResult>(
+      bookZodValidatedObject.validated_array,
+      'book/book-insert-worker',
+    );
+    if (!result.inserted_data) {
       return result;
     } else {
-      return { 
+      return {
         inserted_data: result.inserted_data,
-        invalid_data: bookZodValidatedObject.invalid_data_count
-      }
+        invalid_data: bookZodValidatedObject.invalid_data_count,
+      };
     }
   }
 
@@ -1293,7 +1301,7 @@ export class BooksV2Service {
       //Insert into old_book_copy COLUMN
       const bookPayloadFromBookCopies: TBookCopy[] =
         await this.bookcopyRepository.query(
-          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = FALSE AND is_archived = FALSE`,
+          `SELECT * FROM book_copies WHERE book_copy_id = $1 AND is_available = false AND is_archived = false`,
           [booklogPayload.book_copy_id],
         );
 
@@ -1384,7 +1392,7 @@ export class BooksV2Service {
 
       const feesPenaltiesPayload: TFeesPenalties[] =
         await this.fpRepository.query(
-          `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND book_copy_uuid = $2 AND is_completed = FALSE`,
+          `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND copy_uuid = $2 AND is_completed = FALSE`,
           [
             studentExists[0].student_uuid,
             bookBorrowedPayload[0].book_copy_uuid,
@@ -1429,7 +1437,7 @@ export class BooksV2Service {
         await this.fpRepository.query(
           `UPDATE fees_penalties SET days_delayed = $1, penalty_amount = $2, is_penalised = $3, 
         returned_at = $4, is_completed = $5, updated_at = NOW()
-        WHERE borrower_uuid = $6 AND book_copy_uuid = $7 AND is_completed = FALSE RETURNING fp_uuid`,
+        WHERE borrower_uuid = $6 AND copy_uuid = $7 AND is_completed = FALSE RETURNING fp_uuid`,
           [
             delayedDays,
             penaltyAmount,
@@ -1619,20 +1627,6 @@ export class BooksV2Service {
           'book',
         ],
       );
-
-      console.log({
-        a: studentExists[0].student_uuid,
-        bookCopyUUID,
-        status,
-        c: 'Book has been borrowed',
-        bookTitleUUID,
-        oldBookCopy,
-        newBookCopy,
-        oldBookTitle,
-        newBookTitle,
-        ipAddress,
-        b: fpUUID[0].fp_uuid,
-      });
 
       await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
@@ -2034,7 +2028,7 @@ export class BooksV2Service {
     student_id: string,
     requestBookIssuePayload: TRequestBookZodIssue,
     ipAddress: string,
-  ) {
+  ): Promise<Data<RequestBook>> {
     try {
       const studentExists: Pick<TStudents, 'student_id'>[] =
         await this.studentRepository.query(
@@ -2047,7 +2041,7 @@ export class BooksV2Service {
 
       const bookPayloadFromBookCopies: Pick<TBookCopy, 'book_copy_id'>[] =
         await this.bookcopyRepository.query(
-          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = TRUE AND is_archived = FALSE`,
+          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = true AND is_archived = false`,
           [requestBookIssuePayload.barcode],
         );
 
@@ -2058,7 +2052,7 @@ export class BooksV2Service {
       const requestExists: Pick<TRequestBook, 'request_id'>[] =
         await this.requestBooklogRepository.query(
           `
-        SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
+        SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
           [student_id, requestBookIssuePayload.barcode],
         );
 
@@ -2077,14 +2071,15 @@ export class BooksV2Service {
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
-      const result: Pick<TRequestBook, 'request_id'>[] =
+      const result: RequestBook[] =
         await this.requestBooklogRepository.query(
           `
         INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
           queryData.values,
         );
       return {
-        request_id: result[0].request_id,
+        data: result[0],
+        pagination: null,
       };
     } catch (error) {
       throw error;

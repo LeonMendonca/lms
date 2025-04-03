@@ -51,9 +51,16 @@ import type {
 } from './zod/requestbook-zod';
 import { StudentsService } from 'src/students/students.service';
 import { StudentAuthGuard } from 'src/students/student.guard';
+import { RequestBook } from './entity/request-book.entity';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
+}
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  pagination: {} | null;
+  error?: string;
 }
 
 @Controller('book_v2')
@@ -156,7 +163,7 @@ export class BooksV2Controller {
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
-      console.log(student)
+      console.log(student);
       return await this.booksService.getLogDetailsOfStudent({
         student_id: student.student_uuid,
         page: page ? parseInt(page, 10) : 1,
@@ -280,7 +287,10 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -522,7 +532,7 @@ export class BooksV2Controller {
     }
   }
 
-  //Implements Borrow and Return 
+  //Implements Borrow and Return
   @Post('update-book-log') // done
   @UsePipes(new bodyValidationPipe(booklogV2Schema))
   async updateBookLog(
@@ -541,7 +551,11 @@ export class BooksV2Controller {
         undefined;
       let result: Record<string, string | number> = {};
       if (booklogPayload.action === 'borrow') {
-        result = await this.booksService.bookBorrowed(booklogPayload, request.ip, status = 'borrowed');
+        result = await this.booksService.bookBorrowed(
+          booklogPayload,
+          request.ip,
+          (status = 'borrowed'),
+        );
         // result = await this.booksService.bookBorrowed(
         //   booklogPayload,
         //   request,
@@ -563,7 +577,10 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -623,14 +640,14 @@ export class BooksV2Controller {
           isCompleted,
         );
       } else if (isPenalty) {
-        console.log("h")
+        console.log('h');
         return await this.booksService.getStudentFee(
           studentId,
           isPenalty,
           isCompleted,
         );
       } else if (isCompleted) {
-        console.log("p")
+        console.log('p');
         return await this.booksService.getStudentFee(
           studentId,
           isPenalty,
@@ -716,7 +733,7 @@ export class BooksV2Controller {
   async createRequestBooklogIssue(
     @Body() requestBookIssuePayload: TRequestBookZodIssue,
     @Req() request: AuthenticatedRequest, // Ensure the request object has the correct type
-  ) {
+  ): Promise<ApiResponse<RequestBook>> {
     try {
       if (!request.ip) {
         throw new HttpException(
@@ -726,11 +743,16 @@ export class BooksV2Controller {
       }
       const user = request.user;
       //Adding IP address, since required for issuing
-      return await this.booksService.createRequestBooklogIssue(
+      const { data } = await this.booksService.createRequestBooklogIssue(
         user.student_id,
         requestBookIssuePayload,
         request.ip,
       );
+      return {
+        data,
+        pagination: null,
+        success: true,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
