@@ -728,7 +728,7 @@ export class BooksV2Service {
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
-        `FROM book_logv2 WHERE borrower_uuid = $1`,
+        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1`,
 //         `SELECT COUNT(*) 
 //         FROM book_titles 
 //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid

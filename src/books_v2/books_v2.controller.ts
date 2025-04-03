@@ -156,8 +156,9 @@ export class BooksV2Controller {
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
+      console.log(student)
       return await this.booksService.getLogDetailsOfStudent({
-        student_id: student[0].student_uuid,
+        student_id: student.student_uuid,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
       });
