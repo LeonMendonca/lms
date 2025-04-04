@@ -49,7 +49,7 @@ export const createStudentSchema = z.object({
     .max(200, 'Address must be less than 200 characters')
     .optional(),
 
-  [studentCreateObject.imageField]: z.array(z.any()).optional(),
+  [studentCreateObject.imageField]: z.string().optional(),
 });
 
 export type TCreateStudentDTO = z.infer<typeof createStudentSchema>;
