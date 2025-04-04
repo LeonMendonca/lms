@@ -1133,8 +1133,8 @@ export class StudentsService {
 
   async verifyStudentVisitKey(studentKeyUUID: string) {
     try {
-      const lib_longitude = -122.41942;
-      const lib_latitude = 37.77491;
+      const lib_longitude = 72.8645;
+      const lib_latitude = 19.2135;
       const studentKey = await this.studentsRepository.query(
         `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes' AND is_used = false`,
         [studentKeyUUID],
@@ -1154,6 +1154,7 @@ export class StudentsService {
           lib_longitude,
           parseFloat(latitude),
           parseFloat(longitude),
+          3000
         )
       ) {
         await this.studentsRepository.query(
