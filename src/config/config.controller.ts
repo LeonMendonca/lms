@@ -96,7 +96,7 @@ export class ConfigController {
     // Create Library Rules
     @Post('create-library-rule')
     @UsePipes(new bodyValidationPipe(createLibraryRuleSchema))
-    async createLibrary(@Body() rulesPayload: TLibraryDTO){
+    async createLibrary( @Body() rulesPayload: TLibraryDTO){
         try{
             const result = await this.configService.createLibrary(rulesPayload);
             return result

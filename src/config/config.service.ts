@@ -9,7 +9,7 @@ import { create } from 'domain';
 import { TInstituteUpdateDTO } from './zod-validation/update-institute-zod';
 import { TLibraryDTO } from './zod-validation/create-library_rules-zod';
 import { genRuleId } from './id-generation/create-library_rule_id';
-import { LibraryConfig } from './entity/library_config.entity';
+import { LibraryConfig, TLibraryConfig } from './entity/library_config.entity';
 import { TLibraryUpdateDTO } from './zod-validation/update-library_rules-zod';
 
 @Injectable()
@@ -115,10 +115,30 @@ export class ConfigService {
             const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
 
             // Execute the insert query
-            await this.instituteConfigRepository.query(
+            const result = await this.instituteConfigRepository.query(
                 `INSERT INTO institute_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
                 sanitizedValues
             );
+
+            // const institute_uuid = result.institute_uuid
+            // const created_by_uuid = "de89b394-a108-4de6-acf1-b8684f4e0917"
+
+            // const defaultRule = {
+            //     "library_rule_id":"",
+            //     "institute_uuid": "",
+            //     "max_books": 10,
+            //     "max_days": 7,
+            //     "late_fees_per_day": 2,
+            //     "operating_hours": {
+            //         "starting_time" : "9:00 am",
+            //         "closing_time": "5:00 am"
+            //     },
+            //     "created_at": new Date(),
+            //     "created_by": created_by_uuid,
+            //     "is_archived": false,
+            //     "institute_uuid": institute_uuid
+            // }
+ 
 
             return { statusCode: HttpStatus.CREATED, message: "Institute Created!" };
 
@@ -132,61 +152,6 @@ export class ConfigService {
             );
         }
     }
-    // async createInstitute(institutePayload: TInstituteDTO) {
-    //     try {
-    //         const created_date = new Date().toISOString(); // Use ISO format
-    //         const instituteName = institutePayload.institute_name
-
-    //         // Generate institute ID
-    //         const institute_id = genInstituteId(instituteName, created_date);
-
-    //         // Generate Institute Abbreviation
-    //         const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
-
-    //         // Check if institute with the same ID exists
-    //         const existingInstitute = await this.instituteConfigRepository.query(
-    //             `SELECT * FROM institute_config WHERE institute_id=$1`,
-    //             [institute_id]
-    //         );
-    //         if (existingInstitute.length > 0) {
-    //             throw new HttpException("Institute With Same ID Exists", HttpStatus.BAD_REQUEST);
-    //         }
-
-    //         // Prepare final payload with generated fields
-    //         const finalPayload = {
-    //             ...institutePayload,
-    //             institute_abbr: institute_abbr,
-    //             institute_id: institute_id,
-    //             created_date: created_date,
-    //         };
-
-    //         // Generate query data
-    //         const insertQuery = insertQueryHelper(finalPayload, []);
-
-    //         // Convert objects/arrays to JSON before passing to the query
-    //         const sanitizedValues = insertQuery.values.map((value) =>
-    //             typeof value === "object" ? JSON.stringify(value) : value
-    //         );
-
-    //         // Construct query argument placeholders dynamically ($1, $2, $3...)
-    //         const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
-
-    //         // Execute the insert query
-    //         await this.instituteConfigRepository.query(
-    //             `INSERT INTO institute_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
-    //             sanitizedValues
-    //         );
-
-    //         return { statusCode: HttpStatus.CREATED, message: "Institute Created!" };
-
-    //     } catch (error) {
-    //         console.error("Error creating institute:", error);
-    //         throw new HttpException(
-    //             `Error: ${error.message || error} while creating institute.`,
-    //             HttpStatus.INTERNAL_SERVER_ERROR
-    //         );
-    //     }
-    // }
 
     // Update Institute Info
     async updateInstitute(updateInstitutePayload: TInstituteUpdateDTO) {
@@ -284,9 +249,9 @@ export class ConfigService {
             `SELECT * FROM library_config WHERE is_archived=false`
         )
         if (!result.length) {
-            return result
-        }else{
             return { message: "No Rule Found" }
+        }else{
+            return result
         }
     }
 
@@ -311,49 +276,64 @@ export class ConfigService {
     // Create Library Rules
     async createLibrary(rulesPayload: TLibraryDTO) {
         // Generate institute ID
-        const created_at = new Date().toISOString(); // Use ISO format
-        const institute_id = rulesPayload.institute_id
+        try{
+            const created_at = new Date().toISOString(); // Use ISO format
+            let instituteUUID: Pick<TLibraryConfig, 'institute_uuid'>[] = await this.instituteConfigRepository.query(
+                `SELECT institute_uuid FROM institute_config WHERE institute_id = $1`,
+                [rulesPayload.institute_id]
+            )
+            if(!instituteUUID.length){
+                throw new HttpException("No Institute Exists", HttpStatus.NOT_FOUND)
+            }
 
-        const maxIdQuery = await this.libraryConfigRepository.query(
-            `SELECT MAX(library_rule_id) as max_id FROM library_config`
-        )
-        const maxId = maxIdQuery[0]?.max_id || "000"
-
-        const library_rule_id = genRuleId(institute_id, maxId);
-
-        // Check if rule with the same ID exists
-        const existingRule = await this.libraryConfigRepository.query(
-            `SELECT * FROM library_config WHERE library_rule_id=$1`,
-            [library_rule_id]
-        );
-        if (existingRule.length > 0) {
-            throw new HttpException("Rule With Same ID Exists", HttpStatus.BAD_REQUEST);
+            const maxIdQuery = await this.libraryConfigRepository.query(
+                `SELECT MAX(library_rule_id) as max_id FROM library_config`
+            )
+            const maxId = maxIdQuery[0]?.max_id || "000"
+    
+            const library_rule_id = genRuleId(rulesPayload.institute_id, maxId);
+    
+            // Check if rule with the same ID exists
+            const existingRule = await this.libraryConfigRepository.query(
+                `SELECT * FROM library_config WHERE library_rule_id=$1`,
+                [library_rule_id]
+            );
+            if (existingRule.length > 0) {
+                throw new HttpException("Rule With Same ID Exists", HttpStatus.BAD_REQUEST);
+            }
+    
+            // Prepare final payload with generated fields
+            const finalPayload = {
+                ...rulesPayload,
+                institute_uuid: instituteUUID[0].institute_uuid,
+                library_rule_id: library_rule_id,
+                created_at: created_at,
+            };
+    
+            // Generate query data
+            const insertQuery = insertQueryHelper(finalPayload, ['institute_id']);
+    
+            // Convert objects/arrays to JSON before passing to the query
+            const sanitizedValues = insertQuery.values.map((value) =>
+                typeof value === "object" ? JSON.stringify(value) : value
+            );
+    
+            // Construct query argument placeholders dynamically ($1, $2, $3...)
+            const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
+    
+            // Execute the insert query
+            const result = await this.libraryConfigRepository.query(
+                `INSERT INTO library_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
+                sanitizedValues
+            );
+            console.log(result)
+    
+            return { statusCode: HttpStatus.CREATED, message: "Rule Created!" };
+        }catch(error){
+            throw error
         }
-        // Prepare final payload with generated fields
-        const finalPayload = {
-            ...rulesPayload,
-            library_rule_id: library_rule_id,
-            created_at: created_at,
-        };
 
-        // Generate query data
-        const insertQuery = insertQueryHelper(finalPayload, []);
-
-        // Convert objects/arrays to JSON before passing to the query
-        const sanitizedValues = insertQuery.values.map((value) =>
-            typeof value === "object" ? JSON.stringify(value) : value
-        );
-
-        // Construct query argument placeholders dynamically ($1, $2, $3...)
-        const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
-
-        // Execute the insert query
-        await this.libraryConfigRepository.query(
-            `INSERT INTO library_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
-            sanitizedValues
-        );
-
-        return { statusCode: HttpStatus.CREATED, message: "Rule Created!" };
+        
     }
 
     // Update Library Rules Info

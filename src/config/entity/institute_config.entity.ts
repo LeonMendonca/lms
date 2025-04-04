@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 import { LibraryConfig } from "./library_config.entity";
 
 @Entity('institute_config')
@@ -56,6 +56,9 @@ export class InstituteConfig {
 
     @Column({ name: "is_archived", type: 'boolean', default: false })
     isArchived: "is_archived" = "is_archived"
+
+
+    // one institute can have one rule
 
 }
 

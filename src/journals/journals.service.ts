@@ -1071,7 +1071,7 @@ async periodicalReturned(
             student_uuid,
             journalTitleUUID,
             journalCopyUUID,
-            fp_uuid, // Pass fp_uuid here
+            fp_uuid,
           ],
         );
 

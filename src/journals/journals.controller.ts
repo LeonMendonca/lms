@@ -580,6 +580,7 @@ export class JournalsController {
       } else {
         return { message: 'Invalid ID' };
       }
+      console.log(category)
 
       if (category === 'book' && issuePayload.action === 'borrow') {
         return "all book borrowed from bookServices"
@@ -592,7 +593,15 @@ export class JournalsController {
           (status = 'borrowed'),
           (category = category),
         );
-      } else if (category === 'periodical' && issuePayload.action === 'return') {
+      }else if(category === "periodical" && issuePayload.action === 'in_library'){
+        return await this.journalsService.periodicalBorrowed(
+          issuePayload,
+          request,
+          (status = 'in_library_borrowed'),
+          (category = category)
+        )
+      }
+       else if (category === 'periodical' && issuePayload.action === 'return') {
         return await this.journalsService.periodicalReturned(
           issuePayload,
           request,
