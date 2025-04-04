@@ -24,7 +24,7 @@ export class LibraryConfig {
     @Column({ name: 'created_at', type: 'date', default: () => 'CURRENT_DATE' })
     createdAt: "created_at" = "created_at"
 
-    @Column({ name: 'created_by_uuid', type: 'uuid' })
+    @Column({ name: 'created_by_uuid', type: 'uuid', nullable:true })
     createdByUUID: "created_by_uuid" = "created_by_uuid"
 
     @Column({ name: "is_archived", type: 'boolean', default: false })
@@ -32,10 +32,6 @@ export class LibraryConfig {
 
     @Column({ name: 'institute_id', type: 'varchar', length: 255 })
     instituteId: "institute_id" = "institute_id"
-
-    // @OneToMany(() => InstituteConfig, (institute) => institute.instituteId)
-    // @JoinColumn({ name: 'institute_id' })
-    // instituteId: 'institute_id' = 'institute_id';
 
 }
 

@@ -14,7 +14,7 @@ export const createLibraryRuleSchema = z.object({
         closing_time: z.string()
     }),
     [createLibraryRules.enableEmail]: z.boolean(),
-    [createLibraryRules.createdByUUID]: z.string().uuid()
+    [createLibraryRules.createdByUUID]: z.string().uuid().optional()
 })
 
 export type TLibraryDTO = z.infer<typeof createLibraryRuleSchema>
