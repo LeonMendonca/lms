@@ -15,7 +15,7 @@ import {
 import { ReviewsService } from './reviews.service';
 import { TCreateReviewDTO } from './dto/create-review.dto';
 import { TUpdateReviewDTO } from './dto/update-review.dto';
-import { StudentAuthGuard } from 'src/students/student.guard';
+import { TokenAuthGuard } from 'src/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
 import { Review } from './entities/review.entity';
 
@@ -38,7 +38,7 @@ export class ReviewsController {
   ) {}
 
   @Post()
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async create(
     @Request() req: AuthenticatedRequest,
     @Body() createReviewDto: TCreateReviewDTO,
@@ -70,13 +70,15 @@ export class ReviewsController {
   }
 
   @Get('student')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async findAllStudent(
     @Request() req: AuthenticatedRequest,
     @Query('_book_uuid') book_uuid: string,
   ): Promise<ApiResponse<Review[]>> {
     try {
-      const student = await this.studentService.findStudentBy({student_id: req.user.student_id});
+      const student = await this.studentService.findStudentBy({
+        student_id: req.user.student_id,
+      });
       const { data } = await this.reviewsService.findAllReviewsForStudent(
         student,
         book_uuid,

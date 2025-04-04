@@ -15,7 +15,7 @@ import {
 import { NotesService } from './notes.service';
 import { TCreateNotesDTO } from './dto/create-notes.dto';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
-import { StudentAuthGuard } from 'src/students/student.guard';
+import { TokenAuthGuard } from 'src/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
 import { Notes } from './entities/notes.entity';
 
@@ -38,7 +38,7 @@ export class NotesController {
   ) {}
 
   @Post()
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async create(
     @Request() req: AuthenticatedRequest,
     @Body() createNotesDto: TCreateNotesDTO,
@@ -72,7 +72,7 @@ export class NotesController {
   }
 
   @Get('student')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async findAllStudent(
     @Request() req: AuthenticatedRequest,
   ): Promise<ApiResponse<Notes[]>> {

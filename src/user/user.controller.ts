@@ -1,32 +1,56 @@
-import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Post, Query, UseGuards, UsePipes } from '@nestjs/common';
-import { StudentAuthGuard } from 'src/students/student.guard';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
+import { TokenAuthGuard } from 'src/guards/token.guard';
 import { UserService } from './user.service';
-import { PaginationParserType, ParsePaginationPipe } from 'src/pipes/pagination-parser.pipe';
+import {
+  PaginationParserType,
+  ParsePaginationPipe,
+} from 'src/pipes/pagination-parser.pipe';
 import { ApiResponse } from 'src/students/students.controller';
 import { TUser, User } from './user.entity';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-import { TCreateUserDTO, UserSchemaZod } from './zod-validation/create-user-zod';
-import { TUserCredZodType, userCredZodSchema } from './zod-validation/user-cred-zod';
+import {
+  TCreateUserDTO,
+  createUserSchemaZod,
+} from './zod-validation/create-user-zod';
+import {
+  TUserCredZodType,
+  userCredZodSchema,
+} from './zod-validation/user-cred-zod';
+import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
+import { editUserSchemaZod, TEditUserDTO } from './zod-validation/edit-user-zod';
 
 @Controller('user')
 export class UserController {
-    constructor(private userService: UserService) {}
+  constructor(private userService: UserService) {}
 
-    @Get('all')
-    //@UseGuards(StudentAuthGuard)
-    async getAllUsers(
-      @Query(new ParsePaginationPipe()) query: PaginationParserType,
-    ): Promise<ApiResponse<TUser[]>> {
-      const { data, pagination } = await this.userService.findAllUsers(query);
-      return {
-        success: true,
-        data,
-        pagination,
-      };
-    }
+  @Get('all')
+  //@UseGuards(StudentAuthGuard)
+  async getAllUsers(
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
+  ): Promise<ApiResponse<TUser[]>> {
+    const { data, pagination } = await this.userService.findAllUsers(query);
+    return {
+      success: true,
+      data,
+      pagination,
+    };
+  }
 
   @Post('create')
-  @UsePipes(new bodyValidationPipe(UserSchemaZod))
+  @UsePipes(new bodyValidationPipe(createUserSchemaZod))
   async createStudent(
     @Body() userPayload: TCreateUserDTO,
   ): Promise<ApiResponse<TUser>> {
@@ -62,6 +86,31 @@ export class UserController {
         );
       }
       throw error;
+    }
+  }
+
+  @Put('edit/:_user_id')
+  @UsePipes(new putBodyValidationPipe(editUserSchemaZod))
+  async editStudent(
+    @Param('_user_id') userId: string,
+    @Body() userPayload: TEditUserDTO,
+  ): Promise<ApiResponse<TUser>> {
+    try {
+      // const data = await this.userService.editUser();
+      return {
+        success: true,
+        // data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
     }
   }
 }
