@@ -880,6 +880,8 @@ export class StudentsService {
           ...jwtPayload[0],
           institute_image:
             'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+            institute_header:
+              'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
         },
       };
     } catch (error) {

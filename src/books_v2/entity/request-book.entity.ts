@@ -8,6 +8,7 @@ const EnumStatus = {
 
 const EnumRequestType = {
     ISSUE: 'issue',
+    RETURN: 'return',
     REISSUE: 're-issue'
 } as const;
 
