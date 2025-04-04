@@ -7,6 +7,8 @@ import {
   Post,
   Put,
   Query,
+  Request,
+  UseGuards,
   UsePipes,
 } from '@nestjs/common';
 import {
@@ -17,10 +19,18 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { FeesPenaltiesService } from './fees-penalties.service';
 import { createPenaltyZod, TCreatePenaltyZod } from './zod/create-penalty-zod';
 import { student } from 'src/students/students.entity';
+import { StudentAuthGuard } from 'src/students/student.guard';
+import { StudentsService } from 'src/students/students.service';
 
+interface AuthenticatedRequest extends Request {
+  user?: any; // Ideally, replace `any` with your `User` type
+}
 @Controller('fees-penalties')
 export class FeesPenaltiesController {
-  constructor(private feesPenaltiesService: FeesPenaltiesService) {}
+  constructor(
+    private feesPenaltiesService: FeesPenaltiesService,
+    private readonly studentService: StudentsService,
+  ) {}
 
   @Put('pay-student-fee')
   @UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
@@ -51,13 +61,21 @@ export class FeesPenaltiesController {
   }
 
   @Get('get-student-fee') // done
+  @UseGuards(StudentAuthGuard)
   async getStudentFeeHistory(
+    @Request() req: AuthenticatedRequest,
     @Query('_student_id') studentId: string,
     @Query('_ispenalised') isPenalty: string,
     @Query('_iscompleted') isCompleted: string,
   ) {
+    const student = await this.studentService.findStudentBy({
+      student_id: req.user.student_id,
+    });
+    if (!student) {
+      throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+    }
     return this.feesPenaltiesService.getStudentFee({
-      studentId: studentId ?? '',
+      studentId: student?.student_uuid ?? '',
       isPenalty: JSON.parse(isPenalty || 'false'),
       isCompleted: JSON.parse(isCompleted || 'false'),
     });

@@ -387,6 +387,22 @@ export class StudentsController {
       console.log(error);
     }
   }
+
+  @Get('all_visit_log')
+  async getCompleteVisitLog(
+    // @Request() req: AuthenticatedRequest,
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+  ) {
+    try {
+      return await this.studentsService.getCompleteVisitLog({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  }
   //   @Get('visitlog_by_id')
   // async getVisitlog(
   //     @Query('_student_id') student_ID: string,

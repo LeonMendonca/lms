@@ -280,8 +280,13 @@ export class StudentsService {
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
-      if(typeof result === 'object') {
-        const { inserted_data, duplicate_data_pl, duplicate_date_db, unique_data } = result;
+      if (typeof result === 'object') {
+        const {
+          inserted_data,
+          duplicate_data_pl,
+          duplicate_date_db,
+          unique_data,
+        } = result;
         return {
           invalid_data: studentZodValidatedObject.invalid_data_count,
           inserted_data,
@@ -290,12 +295,8 @@ export class StudentsService {
           unique_data,
         };
       } else {
-        throw new HttpException(
-          result,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
       }
-      
     } catch (error) {
       throw error;
     }
@@ -451,6 +452,54 @@ export class StudentsService {
     };
   }
   // visit log
+  async getCompleteVisitLog(
+    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Optimized SQL Query with Pagination at Database Level
+      const logs = await this.studentsRepository.query(
+        `
+        SELECT visitlog_id, department, student_id As student_id, out_time, visitor_name AS visitor, in_time FROM visit_log
+        ORDER BY in_time DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [limit, offset],
+      );
+
+      // Fetch total count (for pagination)
+      const total = await this.studentsRepository.query(
+        `
+        SELECT COUNT(*) FROM visit_log
+        `,
+      );
+
+      const totalCount = parseInt(total[0].total, 10);
+
+      if (logs.length === 0) {
+        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
+      }
+
+      console.log({ totalCount, logs });
+
+      return {
+        data: logs,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async getVisitAllLog(
     { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
   ) {
@@ -671,13 +720,7 @@ export class StudentsService {
     }
   }
 
-  async getAllInquiry({
-    page,
-    limit,
-  }: {
-    page: number;
-    limit: number;
-  }) {
+  async getAllInquiry({ page, limit }: { page: number; limit: number }) {
     try {
       const offset = (page - 1) * limit;
       const inquiryLogs = await this.studentsRepository.query(
@@ -686,7 +729,7 @@ export class StudentsService {
       );
 
       const total = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE is_archived = false `
+        `SELECT * FROM inquire_logs WHERE is_archived = false `,
       );
 
       if (inquiryLogs.length === 0) {
@@ -880,8 +923,8 @@ export class StudentsService {
           ...jwtPayload[0],
           institute_image:
             'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
-            institute_header:
-              'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+          institute_header:
+            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
         },
       };
     } catch (error) {
@@ -1154,25 +1197,25 @@ export class StudentsService {
           lib_longitude,
           parseFloat(latitude),
           parseFloat(longitude),
-          3000
+          3000,
         )
       ) {
         await this.studentsRepository.query(
           `UPDATE student_visit_key SET is_used = true WHERE student_key_uuid = $1`,
           [studentKeyUUID],
         );
-
-        if (action === 'entry') {
+        try {
           return await this.visitlogentry({ action, student_id });
-        } else if (action === 'exit') {
-          return await this.visitlogexit({ action, student_id });
-        } else {
-          throw new HttpException(
-            'Invalid action type',
-            HttpStatus.BAD_REQUEST,
-          );
+        } catch (error) {
+          if (error?.message.includes('Previous entry not exited')) {
+            return await this.visitlogexit({ action, student_id });
+          } else {
+            throw new HttpException(
+              'Invalid action type',
+              HttpStatus.BAD_REQUEST,
+            );
+          }
         }
-
         // run the entry or exit function based on the action
       } else {
         throw new HttpException(
