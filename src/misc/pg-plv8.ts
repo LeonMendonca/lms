@@ -31,6 +31,10 @@ CREATE OR REPLACE FUNCTION create_student_id()
 
   plv8.execute('UPDATE students_table SET student_id = $1 WHERE student_uuid = $2', [studentId, NEW.student_uuid]);
 
+  if(!NEW.password) {
+    plv8.execute('UPDATE students_table SET password = $1 WHERE student_uuid = $2', [studentId, NEW.student_uuid]);
+  }
+
 $$ LANGUAGE plv8;
 `;
 

@@ -2,6 +2,7 @@ import { TCreateStudentDTO } from 'src/students/zod-validation/createstudents-zo
 import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';
 import { TInsertResult } from '../worker-types/student-insert.type';
+import { studentObj } from 'src/students/students.entity';
 
 let start = Date.now();
 let uniqueArray: TCreateStudentDTO[] = [];
@@ -32,10 +33,10 @@ console.log('Unique array done in', Date.now() - start, 'ms');
   let bulkQuery2 = '';
   let bulkQuery3 = '';
 
-  const insertObjectCol = uniqueArray[0];
+  const insertObjectCol = studentObj;
   let key: keyof typeof insertObjectCol | '' = '';
 
-  //Create columns with object received with explicit student_id column
+  //Create columns with object keys
   bulkQuery2 += '(';
   for (key in insertObjectCol) {
     bulkQuery2 = bulkQuery2.concat(`${key},`);
@@ -49,11 +50,17 @@ console.log('Unique array done in', Date.now() - start, 'ms');
 
   for (const stuObj of uniqueArray) {
     bulkQuery3 += '(';
-    for (key in stuObj) {
-      if (typeof stuObj[key] === 'string') {
-        bulkQuery3 += `'${stuObj[key]}',`;
+    for (key in insertObjectCol) {
+      if (key in stuObj) {
+        if (typeof stuObj[key] === 'string') {
+          bulkQuery3 += `'${stuObj[key]}',`;
+        } else if (typeof stuObj[key] === 'number') {
+          bulkQuery3 += `${stuObj[key]},`;
+        } else {
+          bulkQuery3 += `'${JSON.stringify(stuObj[key])}',`;
+        }
       } else {
-        bulkQuery3 += `${stuObj[key]},`;
+          bulkQuery3 += `NULL,`;
       }
     }
     bulkQuery3 = bulkQuery3.slice(0, -1);
@@ -84,7 +91,7 @@ console.log('Unique array done in', Date.now() - start, 'ms');
   } catch (error) {
     let errorMessage = 'Something went wrong while bulk inserting';
     if (error instanceof Error) {
-      errorMessage = error.message; 
+      errorMessage = error.message;
     }
     //console.log("this insert worker ended at", Date.now() - start, 'ms', false);
     parentPort?.postMessage(errorMessage) ?? 'Parent port is null';
