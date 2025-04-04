@@ -452,6 +452,54 @@ export class StudentsService {
     };
   }
   // visit log
+  async getCompleteVisitLog(
+    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
+  ) {
+    try {
+      const offset = (page - 1) * limit;
+
+      // Optimized SQL Query with Pagination at Database Level
+      const logs = await this.studentsRepository.query(
+        `
+        SELECT visitlog_id, department, student_id As student_id, out_time, visitor_name AS visitor, in_time FROM visit_log
+        ORDER BY in_time DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [limit, offset],
+      );
+
+      // Fetch total count (for pagination)
+      const total = await this.studentsRepository.query(
+        `
+        SELECT COUNT(*) FROM visit_log
+        `,
+      );
+
+      const totalCount = parseInt(total[0].total, 10);
+
+      if (logs.length === 0) {
+        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
+      }
+
+      console.log({ totalCount, logs });
+
+      return {
+        data: logs,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async getVisitAllLog(
     { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
   ) {
