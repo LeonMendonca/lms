@@ -44,7 +44,7 @@ import {
   studentCredZodSchema,
   TStudentCredZodType,
 } from './zod-validation/studentcred-zod';
-import { StudentAuthGuard } from './student.guard';
+import { TokenAuthGuard } from '../guards/token.guard';
 import { Students } from './students.entity';
 import { StudentsVisitKey } from './entities/student-visit-key';
 import {
@@ -68,11 +68,11 @@ export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 
   @Get('all')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getAllStudents(
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ): Promise<ApiResponse<Students[]>> {
-    console.log(query)
+    console.log(query);
     const { data, pagination } =
       await this.studentsService.findAllStudents(query);
     return {
@@ -402,7 +402,7 @@ export class StudentsController {
   // }
 
   @Get('visitlog_by_id')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getVisitlog(
     @Request() req: AuthenticatedRequest,
     @Query('_page') page: string = '1',
@@ -412,7 +412,7 @@ export class StudentsController {
       const student = await this.studentsService.findStudentBy({
         student_id: req.user.student_id,
       });
-      console.log(student)
+      console.log(student);
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
@@ -427,7 +427,7 @@ export class StudentsController {
   }
 
   @Get('activity')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getActivity(
     @Request() req: AuthenticatedRequest,
     @Query('_page') page: string = '1',
@@ -437,7 +437,7 @@ export class StudentsController {
       const student = await this.studentsService.findStudentBy({
         student_id: req.user.student_id,
       });
-      console.log(student)
+      console.log(student);
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
@@ -451,8 +451,8 @@ export class StudentsController {
     }
   }
 
-  @Post("report-inquiry")
-  @UseGuards(StudentAuthGuard)
+  @Post('report-inquiry')
+  @UseGuards(TokenAuthGuard)
   async createInquiryLog(
     @Request() req: AuthenticatedRequest,
     @Body('inquiry_type') type: string,
@@ -475,7 +475,7 @@ export class StudentsController {
     }
   }
 
-  @Patch("report-inquiry-action")
+  @Patch('report-inquiry-action')
   async inquiryLogAction(
     @Body('action_type') type: string,
     @Body('report_uuid') report_uuid: string,
@@ -491,7 +491,7 @@ export class StudentsController {
   }
 
   @Get('get-student-inquiry')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getInquiryLogByStudentUUID(
     @Request() req: AuthenticatedRequest,
     @Query('_page') page: string = '1',
@@ -502,8 +502,6 @@ export class StudentsController {
         student_id: req.user.student_id,
       });
 
-      
-      
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
@@ -518,7 +516,7 @@ export class StudentsController {
   }
 
   @Get('get-admin-inquiry')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getAllInquiryLog(
     @Request() req: AuthenticatedRequest,
     @Query('_page') page: string = '1',
@@ -533,8 +531,6 @@ export class StudentsController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
-
-
 
   // @Post("vistlog_entry")
   //   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
@@ -600,7 +596,7 @@ export class StudentsController {
   }
 
   @Get('student-dashboard')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async studentDashboard(@Request() req: AuthenticatedRequest) {
     try {
       const user = req.user;
@@ -634,7 +630,7 @@ export class StudentsController {
   }
 
   @Post('student-visit-key')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async studentVisitKey(
     @Request() req: AuthenticatedRequest,
     @Body('longitude') longitude: number,
