@@ -281,15 +281,12 @@ export class ConfigService {
         const created_at = new Date().toISOString(); // Use ISO format
         const institute_id = rulesPayload.institute_id
 
-
         const maxIdQuery = await this.libraryConfigRepository.query(
-            `SELECT MAX()`
+            `SELECT MAX(library_rule_id) as max_id FROM library_config`
         )
+        const maxId = maxIdQuery[0]?.max_id || "000"
 
-        const library_rule_id = genRuleId(institute_id, created_at);
-        console.log("Generated Library ID:", library_rule_id);
-
-        // PAY ATTENTION TO THE ID
+        const library_rule_id = genRuleId(institute_id, maxId);
 
         // Check if rule with the same ID exists
         const existingRule = await this.libraryConfigRepository.query(

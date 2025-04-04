@@ -1186,7 +1186,7 @@ export class JournalsService {
             if (journalTitleUUID.length === 0) {
                 // Create custom Journal Title ID (Ensure max value exists)
                 const maxInstituteCountQuery = await queryRunner.query(
-                    `SELECT MAX(journal_title_id) AS max_id FROM journal_titles`
+                    `SELECT MAX(journal_titl) AS max_id FROM journal_titles`
                 );
 
                 // console.log("Journal Title maxCount", maxInstituteCountQuery[0].max_id)
