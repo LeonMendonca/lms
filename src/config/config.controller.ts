@@ -136,4 +136,9 @@ export class ConfigController {
     async restoreRule(@Body('rule_id') rule_id: string) {
         return this.configService.restoreRule(rule_id);
     }
+
+
+    // ---------- INSTITUTE AND USER INTEGRATIONS ROUTES ----------
+    
+
 }
