@@ -40,17 +40,20 @@ export class ConfigService {
     // Create Institute
     async createInstitute(institutePayload: TInstituteDTO) {
         try {
-            // Generate institute ID
             const created_date = new Date().toISOString(); // Use ISO format
-            const institute_id = genInstituteId(institutePayload.institute_name, created_date);
-            console.log("Generated Institute ID:", institute_id);
+            const instituteName = institutePayload.institute_name
+
+            // Generate institute ID
+            const institute_id = genInstituteId(instituteName, created_date);
+
+            // Generate Institute Abbreviation
+            const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
 
             // Check if institute with the same ID exists
             const existingInstitute = await this.instituteConfigRepository.query(
                 `SELECT * FROM institute_config WHERE institute_id=$1`,
                 [institute_id]
             );
-
             if (existingInstitute.length > 0) {
                 throw new HttpException("Institute With Same ID Exists", HttpStatus.BAD_REQUEST);
             }
@@ -58,6 +61,7 @@ export class ConfigService {
             // Prepare final payload with generated fields
             const finalPayload = {
                 ...institutePayload,
+                institute_abbr: institute_abbr,
                 institute_id: institute_id,
                 created_date: created_date,
             };
@@ -194,7 +198,7 @@ export class ConfigService {
         const institute_id = rulesPayload.institute_id
         const library_rule_id = genRuleId(institute_id, created_at);
         console.log("Generated Library ID:", library_rule_id);
-        // PAY ATTENTIOBN OT THE ID
+        // PAY ATTENTION TO THE ID
 
         // Check if rule with the same ID exists
         const existingRule = await this.libraryConfigRepository.query(
