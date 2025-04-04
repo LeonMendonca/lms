@@ -38,10 +38,10 @@ export const createStudentSchema = z.object({
     .trim()
     .transform((val) => (val === '' ? null : val))
     .nullable()
-    .optional()
     .refine((val) => val === null || !isNaN(Date.parse(val as string)), {
       message: 'Invalid date format',
-    }),
+    })
+    .optional(),
 
   [studentCreateObject.address]: z
     .string()
@@ -49,7 +49,7 @@ export const createStudentSchema = z.object({
     .max(200, 'Address must be less than 200 characters')
     .optional(),
 
-  [studentCreateObject.imageField]: z.string().optional(),
+  [studentCreateObject.imageField]: z.array(z.any()).optional(),
 });
 
 export type TCreateStudentDTO = z.infer<typeof createStudentSchema>;

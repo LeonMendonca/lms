@@ -3,7 +3,10 @@ import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';
 import { insertQueryHelper } from 'src/misc/custom-query-helper';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
-import { book_title, bookTitleObject } from 'src/books_v2/entity/books_v2.title.entity';
+import {
+  book_title,
+  bookTitleObject,
+} from 'src/books_v2/entity/books_v2.title.entity';
 import { bookCopyObject } from 'src/books_v2/entity/books_v2.copies.entity';
 import { TInsertResult } from '../worker-types/book-insert.type';
 
@@ -12,7 +15,7 @@ const bookPayloadArr = workerData.oneDArray as TCreateBookZodDTO[];
 type QueryReturnType = {
   book_uuid: string;
   isbn: string;
-}
+};
 
 (async () => {
   let client = await pool.connect();
@@ -24,7 +27,7 @@ type QueryReturnType = {
   const isbnCountObject = new Object() as { [key: string]: number };
 
   //An array which has UUIDs and ISBNs after UPDATE and INSERT
-  const arrOfIsbnUUID: QueryReturnType[] = []
+  const arrOfIsbnUUID: QueryReturnType[] = [];
 
   //Create an object of ISBNs along with counts
   for (let element of bookPayloadArr) {
@@ -61,8 +64,6 @@ type QueryReturnType = {
     bulkQueryUpdateTotalCount +
     bulkQueryUpdateEnd;
 
-
-
   //When inserting to book_titles, the count needs to be calculated
   let uniqueArrayOfBookTitleWithCount: (TCreateBookZodDTO & {
     available_count: number;
@@ -89,7 +90,7 @@ type QueryReturnType = {
       }
     }
 
-    console.log("ISBN COUNT", isbnCountObject);
+    console.log('ISBN COUNT', isbnCountObject);
 
     for (let isbnTobeInserted in isbnCountObject) {
       bookPayloadArr.forEach((item) => {
@@ -111,21 +112,18 @@ type QueryReturnType = {
       });
     }
 
-
-
     //If anything is pushed to array, it means that there exists data that needs to be inserted
     if (uniqueArrayOfBookTitleWithCount.length) {
-
       const createColumnsFromTitleObject = structuredClone(bookTitleObject);
       //Object.assign(, { available_count: 0, total_count: 0 });
 
       let bulkQuery1Title = 'INSERT INTO book_titles ';
-      let bulkQuery2Title = '('
+      let bulkQuery2Title = '(';
       let bulkQuery3Title = '';
       const bulkQuery4Title = 'RETURNING book_uuid, isbn';
 
       for (let key in createColumnsFromTitleObject) {
-        bulkQuery2Title += `${key},`
+        bulkQuery2Title += `${key},`;
       }
       bulkQuery2Title = bulkQuery2Title.slice(0, -1);
       bulkQuery2Title += ')';
@@ -145,17 +143,22 @@ type QueryReturnType = {
               bulkQuery3Title += `'${JSON.stringify(element[titleKey])}',`;
             }
           } else {
-            if (titleKey === 'title_images' || titleKey === 'title_additional_fields' || titleKey === 'title_description') {
+            if (
+              titleKey === 'title_images' ||
+              titleKey === 'title_additional_fields' ||
+              titleKey === 'title_description'
+            ) {
               bulkQuery3Title += `NULL,`;
             }
           }
         }
         bulkQuery3Title = bulkQuery3Title.slice(0, -1);
-        bulkQuery3Title += '),'
+        bulkQuery3Title += '),';
       }
       bulkQuery3Title = bulkQuery3Title.slice(0, -1);
 
-      const finalInsertQueryTitle = bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
+      const finalInsertQueryTitle =
+        bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
       console.log(finalInsertQueryTitle);
       const insertedResult = await client.query(finalInsertQueryTitle);
       const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
@@ -165,7 +168,7 @@ type QueryReturnType = {
         }
       }
     }
-    console.log("ISBN with UUID", arrOfIsbnUUID);
+    console.log('ISBN with UUID', arrOfIsbnUUID);
 
     const createColumnsFromCopiesObject = structuredClone(bookCopyObject);
 
@@ -174,7 +177,7 @@ type QueryReturnType = {
     let bulkQuery3Copies = '';
 
     for (let key in createColumnsFromCopiesObject) {
-      bulkQuery2Copies += `${key},`
+      bulkQuery2Copies += `${key},`;
     }
     bulkQuery2Copies = bulkQuery2Copies.slice(0, -1);
     bulkQuery2Copies += ')';
@@ -194,7 +197,11 @@ type QueryReturnType = {
             bulkQuery3Copies += `'${JSON.stringify(element[copiesKey])}',`;
           }
         } else {
-          if (copiesKey === 'copy_images' || copiesKey === 'copy_additional_fields' || copiesKey === 'copy_description') {
+          if (
+            copiesKey === 'copy_images' ||
+            copiesKey === 'copy_additional_fields' ||
+            copiesKey === 'copy_description'
+          ) {
             bulkQuery3Copies += `NULL,`;
           } else if (copiesKey === 'book_title_uuid') {
             arrOfIsbnUUID.forEach((item) => {
@@ -210,11 +217,14 @@ type QueryReturnType = {
     }
     bulkQuery3Copies = bulkQuery3Copies.slice(0, -1);
 
-    const finalInsertQueryCopies = bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies;
+    const finalInsertQueryCopies =
+      bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies;
     //console.log(finalInsertQueryCopies);
 
     const insertedCopies = await client.query(finalInsertQueryCopies);
-    parentPort?.postMessage({ inserted_data: insertedCopies.rowCount ?? 0 } as TInsertResult) ?? 'Parent port is null';
+    parentPort?.postMessage({
+      inserted_data: insertedCopies.rowCount ?? 0,
+    } as TInsertResult) ?? 'Parent port is null';
   } catch (error) {
     let errorMessage = 'Something went wrong while bulk inserting';
     if (error instanceof Error) {
