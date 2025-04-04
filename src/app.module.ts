@@ -51,7 +51,6 @@ config({ path: '.env' });
         User,
         BookCopy,
         BookTitle,
-        Booklog_v2,
         VisitLog,
         FeesPenalties,
         RequestBook,
