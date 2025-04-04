@@ -38,37 +38,37 @@ export class ConfigService {
     }
 
     // Get Institute By Id
-    async getInstituteById(institute_id: string){
-        if(!institute_id.length){
-            return {message:"Enter The Institute Id"}
+    async getInstituteById(institute_id: string) {
+        if (!institute_id.length) {
+            return { message: "Enter The Institute Id" }
         }
-        const result =  await this.instituteConfigRepository.query(
+        const result = await this.instituteConfigRepository.query(
             `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=false`,
             [institute_id]
         )
-        if (!result.length){
-            return {message: "No Institute With The Id Found"}
-        }else{
+        if (!result.length) {
+            return { message: "No Institute With The Id Found" }
+        } else {
             return result
         }
     }
 
     //  Get Institute Detail For user (admin)
-    async getInstituteName(){
+    async getInstituteName() {
         const insts = await this.instituteConfigRepository.query(
             `SELECT institute_name, institute_uuid FROM institute_config WHERE is_archived=false`
         )
-        if(!insts.length){
-            return {message : "No Institutes Exists"}
-        }else{
+        if (!insts.length) {
+            return { message: "No Institutes Exists" }
+        } else {
             return insts
         }
 
     }
 
     // Create Institute
-    async createInstitute(institutePayload: TInstituteDTO){
-        try{
+    async createInstitute(institutePayload: TInstituteDTO) {
+        try {
             // check if institute with same name exists 
             const created_date = new Date().toISOString();
             const instituteName = institutePayload.institute_name
@@ -77,8 +77,8 @@ export class ConfigService {
                 `SELECT * FROM institute_config WHERE institute_name=$1`,
                 [instituteName]
             )
-            if(data.length){
-                return {message:"Institute With Same Name Already Exists"}
+            if (data.length) {
+                return { message: "Institute With Same Name Already Exists" }
             }
             // Generate institute ID
             const institute_id = genInstituteId(instituteName, created_date);
@@ -93,7 +93,7 @@ export class ConfigService {
             }
 
             // Generate Institute Abbreviation
-            const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
+            const institute_abbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("")
 
             // Prepare final payload with generated fields
             const finalPayload = {
@@ -114,37 +114,46 @@ export class ConfigService {
             // Construct query argument placeholders dynamically ($1, $2, $3...)
             const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
 
-            // Execute the insert query
+
+            // After inserting into institute_config
             const result = await this.instituteConfigRepository.query(
-                `INSERT INTO institute_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
+                `INSERT INTO institute_config (${insertQuery.queryCol}) VALUES (${queryArgs}) RETURNING institute_uuid`,
                 sanitizedValues
             );
 
-            // const institute_uuid = result.institute_uuid
-            // const created_by_uuid = "de89b394-a108-4de6-acf1-b8684f4e0917"
+            const institute_uuid = result[0]?.institute_uuid;
+            const created_by_uuid = "de89b394-a108-4de6-acf1-b8684f4e0917";
 
-            // const defaultRule = {
-            //     "library_rule_id":"",
-            //     "institute_uuid": "",
-            //     "max_books": 10,
-            //     "max_days": 7,
-            //     "late_fees_per_day": 2,
-            //     "operating_hours": {
-            //         "starting_time" : "9:00 am",
-            //         "closing_time": "5:00 am"
-            //     },
-            //     "created_at": new Date(),
-            //     "created_by": created_by_uuid,
-            //     "is_archived": false,
-            //     "institute_uuid": institute_uuid
-            // }
- 
+            // Prepare default rule payload
+            const defaultRule: TLibraryDTO = {
+                institute_id: institute_id,
+                max_books: 10,
+                max_days: 7,
+                late_fees_per_day: 2,
+                operating_hours: {
+                    starting_time: "9:00 am",
+                    closing_time: "5:00 pm",
+                },
+                created_by_uuid: created_by_uuid,
+                email_notifications: {
+                    borrow_books_admin: false,
+                    borrow_books_student: false,
+                    return_books_admin: false,
+                    return_books_student: false,
+                    checkin_admin: false,
+                    checkin_student: false,
+                    checkout_admin: false,
+                    checkout_student: false,
+                    penalties_admin: true,
+                    penalties_student: true,
+                }
+            };
 
-            return { statusCode: HttpStatus.CREATED, message: "Institute Created!" };
+            // Call createLibrary with default rule
+            await this.createLibrary(defaultRule);
 
 
-
-        }catch(error){
+        } catch (error) {
             console.error("Error updating institute:", error);
             throw new HttpException(
                 `Error: ${error.message || error} while updating institute.`,
@@ -175,10 +184,10 @@ export class ConfigService {
                 [...queryData.values, updateInstitutePayload.institute_id] // Add institute_id at the end
             );
 
-            return { 
-                result : existingInstitute,
-                statusCode: HttpStatus.OK, 
-                message: "Institute Updated Successfully!" 
+            return {
+                result: existingInstitute,
+                statusCode: HttpStatus.OK,
+                message: "Institute Updated Successfully!"
             };
 
         } catch (error) {
@@ -250,25 +259,25 @@ export class ConfigService {
         )
         if (!result.length) {
             return { message: "No Rule Found" }
-        }else{
+        } else {
             return result
         }
     }
 
     // Get Library Rule By Id
-    async getRuleById(rule_id: string){
+    async getRuleById(rule_id: string) {
         // ensure the rule id is passed
-        if(!rule_id.length){
-            return {message:"Enter The Rule Id"}
+        if (!rule_id.length) {
+            return { message: "Enter The Rule Id" }
         }
         // check if the rule with the given id exists
         const data = await this.libraryConfigRepository.query(
             `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
             [rule_id]
         )
-        if(!data.length){
-            return {message: "No Rule With The Given Id Exists"}
-        }else{
+        if (!data.length) {
+            return { message: "No Rule With The Given Id Exists" }
+        } else {
             return data
         }
     }
@@ -276,13 +285,13 @@ export class ConfigService {
     // Create Library Rules
     async createLibrary(rulesPayload: TLibraryDTO) {
         // Generate institute ID
-        try{
+        try {
             const created_at = new Date().toISOString(); // Use ISO format
             let instituteUUID: Pick<TLibraryConfig, 'institute_uuid'>[] = await this.instituteConfigRepository.query(
                 `SELECT institute_uuid FROM institute_config WHERE institute_id = $1`,
                 [rulesPayload.institute_id]
             )
-            if(!instituteUUID.length){
+            if (!instituteUUID.length) {
                 throw new HttpException("No Institute Exists", HttpStatus.NOT_FOUND)
             }
 
@@ -290,9 +299,9 @@ export class ConfigService {
                 `SELECT MAX(library_rule_id) as max_id FROM library_config`
             )
             const maxId = maxIdQuery[0]?.max_id || "000"
-    
+
             const library_rule_id = genRuleId(rulesPayload.institute_id, maxId);
-    
+
             // Check if rule with the same ID exists
             const existingRule = await this.libraryConfigRepository.query(
                 `SELECT * FROM library_config WHERE library_rule_id=$1`,
@@ -301,7 +310,7 @@ export class ConfigService {
             if (existingRule.length > 0) {
                 throw new HttpException("Rule With Same ID Exists", HttpStatus.BAD_REQUEST);
             }
-    
+
             // Prepare final payload with generated fields
             const finalPayload = {
                 ...rulesPayload,
@@ -309,31 +318,31 @@ export class ConfigService {
                 library_rule_id: library_rule_id,
                 created_at: created_at,
             };
-    
+
             // Generate query data
             const insertQuery = insertQueryHelper(finalPayload, ['institute_id']);
-    
+
             // Convert objects/arrays to JSON before passing to the query
             const sanitizedValues = insertQuery.values.map((value) =>
                 typeof value === "object" ? JSON.stringify(value) : value
             );
-    
+
             // Construct query argument placeholders dynamically ($1, $2, $3...)
             const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
-    
+
             // Execute the insert query
             const result = await this.libraryConfigRepository.query(
                 `INSERT INTO library_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
                 sanitizedValues
             );
             console.log(result)
-    
+
             return { statusCode: HttpStatus.CREATED, message: "Rule Created!" };
-        }catch(error){
+        } catch (error) {
             throw error
         }
 
-        
+
     }
 
     // Update Library Rules Info
@@ -342,8 +351,8 @@ export class ConfigService {
             // Generate query for update
             const queryData = updateQueryHelper<TLibraryUpdateDTO>(updateLibraryPayload, []);
 
-             // Check if the institute exists and is not archived
-             const existingRule = await this.libraryConfigRepository.query(
+            // Check if the institute exists and is not archived
+            const existingRule = await this.libraryConfigRepository.query(
                 `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
                 [updateLibraryPayload.library_rule_id]
             );
@@ -415,6 +424,37 @@ export class ConfigService {
             return { message: 'Rule restored successfully' };
         } catch (error) {
             return { error: error.message }
+        }
+    }
+
+    // Get Rule By Institute Id
+    async getRuleByInstituteId(institute_id: string) {
+        try {
+            // Fix typo: 'istitute_id' → 'institute_id'
+            const instituteUUIDResult = await this.instituteConfigRepository.query(
+                `SELECT institute_uuid FROM institute_config WHERE institute_id = $1`,
+                [institute_id]
+            );
+
+            if (!instituteUUIDResult.length) {
+                throw new HttpException("Institute not found", HttpStatus.NOT_FOUND);
+            }
+
+            const institute_uuid = instituteUUIDResult[0].institute_uuid;
+
+            // Fix typo: 'instiute_uuid' → 'institute_uuid'
+            const rules = await this.libraryConfigRepository.query(
+                `SELECT * FROM library_config WHERE institute_uuid = $1`,
+                [institute_uuid]
+            );
+
+            return rules[0]
+        } catch (error) {
+            console.error("Error fetching rules:", error);
+            throw new HttpException(
+                error.message || "Internal Server Error",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 

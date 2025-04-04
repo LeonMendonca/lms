@@ -2057,7 +2057,7 @@ export class BooksV2Service {
         AND is_completed = FALSE
         AND is_penalised = TRUE
         AND returned_at IS NOT NULL`,
-        [updateFeesPayload.student_id, updateFeesPayload.book_copy_id],
+        [updateFeesPayload.student_id, updateFeesPayload.copy_id], //updateFeesPayload.student_id, updateFeesPayload.book_copy_id
       );
 
       if (!studentAndBookCopiesPayloadWithFeesPenalties.length) {

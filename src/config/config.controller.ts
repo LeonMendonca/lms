@@ -20,13 +20,13 @@ export class ConfigController {
 
     // Get Institute by id
     @Get('get-institutebyid')
-    async getInstituteById(@Query('institute_id') institute_id:string){
+    async getInstituteById(@Query('institute_id') institute_id: string) {
         return this.configService.getInstituteById(institute_id)
     }
 
     //  Get Institute Detail For user (admin)
     @Get('get-institute-names')
-    async getInstituteName(){
+    async getInstituteName() {
         return this.configService.getInstituteName()
     }
 
@@ -90,17 +90,17 @@ export class ConfigController {
 
     @Get('get-rule-by-id')
     async getRuleById(@Query('rule_id') rule_id: string) {
-      return this.configService.getRuleById(rule_id);
+        return this.configService.getRuleById(rule_id);
     }
 
     // Create Library Rules
     @Post('create-library-rule')
     @UsePipes(new bodyValidationPipe(createLibraryRuleSchema))
-    async createLibrary( @Body() rulesPayload: TLibraryDTO){
-        try{
+    async createLibrary(@Body() rulesPayload: TLibraryDTO) {
+        try {
             const result = await this.configService.createLibrary(rulesPayload);
             return result
-        }catch(error){
+        } catch (error) {
             if (!(error instanceof HttpException)) {
                 throw new HttpException(
                     error.message,
@@ -144,7 +144,17 @@ export class ConfigController {
     }
 
 
+    // Get Rule By Institute Id
+    @Get('get-rule-by-institute-id')
+    async getRuleByInstituteId(@Query('institute_id') institute_id: string) {
+        if (!institute_id) {
+            throw new HttpException("Institute ID is required", HttpStatus.BAD_REQUEST);
+        }
+        return this.configService.getRuleByInstituteId(institute_id);
+    }
+
+
     // ---------- INSTITUTE AND USER INTEGRATIONS ROUTES ----------
-    
+
 
 }
