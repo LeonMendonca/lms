@@ -940,11 +940,11 @@ export class StudentsService {
         [user.student_id],
       );
       const totalBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false`,
+        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false`,
       );
-      const availableBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true`,
-      );
+      // const availableBooks = await this.studentsRepository.query(
+      //   `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true`,
+      // );
       const newBooks = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true AND created_at >= NOW() - INTERVAL '1 month'`,
       );
@@ -954,14 +954,14 @@ export class StudentsService {
         [student[0].student_uuid],
       );
       const totalBorrowedBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 `,
+        `SELECT COUNT(*) FROM fees_penalties WHERE is_completed = false AND borrower_uuid = $1 `,
         [student[0].student_uuid],
       );
 
       //Asserted a type as UPDATE returns it
       return {
         totalBooks: totalBooks[0].count,
-        availableBooks: availableBooks[0].count,
+        // availableBooks: availableBooks[0].count,
         newBooks: newBooks[0].count,
         yearlyBorrow: yearlyBorrow[0].count,
         totalBorrowedBooks: totalBorrowedBooks[0].count,
