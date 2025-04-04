@@ -8,16 +8,16 @@ export const createInstituteSchema = z.object({
     [createInstitute.instituteName]: z.string(),
     [createInstitute.instituteContactPerson]: z.string().optional(),
     [createInstitute.landline]: z.string().optional(),
-    [createInstitute.instituteEmail]: z.string(),
-    [createInstitute.mobile]: z.string().min(10),
-    [createInstitute.instituteAddress]: z.string(),
-    [createInstitute.pincode]: z.string(),
-    [createInstitute.state]: z.string(),
-    [createInstitute.city]: z.string(),
-    [createInstitute.websiteUrl]: z.string(),
-    [createInstitute.author]: z.string(),
-    [createInstitute.instituteLogo]: z.string(),
-    [createInstitute.instituteHeader]: z.string()
+    [createInstitute.instituteEmail]: z.string().optional(),
+    [createInstitute.mobile]: z.string().min(10).optional(),
+    [createInstitute.instituteAddress]: z.string().optional(),
+    [createInstitute.pincode]: z.string().optional(),
+    [createInstitute.state]: z.string().optional(),
+    [createInstitute.city]: z.string().optional(),
+    [createInstitute.websiteUrl]: z.string().optional(),
+    [createInstitute.author]: z.string().optional(),
+    [createInstitute.instituteLogo]: z.string().optional(),
+    [createInstitute.instituteHeader]: z.string().optional()
 })
 
 export type TInstituteDTO = z.infer<typeof createInstituteSchema>;

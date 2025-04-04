@@ -38,16 +38,21 @@ export class ConfigService {
     }
 
     // Create Institute
-    async createInstitute(institutePayload: TInstituteDTO) {
-        try {
-            const created_date = new Date().toISOString(); // Use ISO format
+    async createInstitute(institutePayload: TInstituteDTO){
+        try{
+            // check if institute with same name exists 
+            const created_date = new Date().toISOString();
             const instituteName = institutePayload.institute_name
 
+            const data = await this.instituteConfigRepository.query(
+                `SELECT * FROM institute_config WHERE institute_name=$1`,
+                [instituteName]
+            )
+            if(data.length){
+                return {message:"Institute With Same Name Already Exists"}
+            }
             // Generate institute ID
             const institute_id = genInstituteId(instituteName, created_date);
-
-            // Generate Institute Abbreviation
-            const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
 
             // Check if institute with the same ID exists
             const existingInstitute = await this.instituteConfigRepository.query(
@@ -58,6 +63,9 @@ export class ConfigService {
                 throw new HttpException("Institute With Same ID Exists", HttpStatus.BAD_REQUEST);
             }
 
+            // Generate Institute Abbreviation
+            const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
+            
             // Prepare final payload with generated fields
             const finalPayload = {
                 ...institutePayload,
@@ -85,14 +93,71 @@ export class ConfigService {
 
             return { statusCode: HttpStatus.CREATED, message: "Institute Created!" };
 
-        } catch (error) {
-            console.error("Error creating institute:", error);
+
+
+        }catch(error){
+            console.error("Error updating institute:", error);
             throw new HttpException(
-                `Error: ${error.message || error} while creating institute.`,
+                `Error: ${error.message || error} while updating institute.`,
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
     }
+    // async createInstitute(institutePayload: TInstituteDTO) {
+    //     try {
+    //         const created_date = new Date().toISOString(); // Use ISO format
+    //         const instituteName = institutePayload.institute_name
+
+    //         // Generate institute ID
+    //         const institute_id = genInstituteId(instituteName, created_date);
+
+    //         // Generate Institute Abbreviation
+    //         const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
+
+    //         // Check if institute with the same ID exists
+    //         const existingInstitute = await this.instituteConfigRepository.query(
+    //             `SELECT * FROM institute_config WHERE institute_id=$1`,
+    //             [institute_id]
+    //         );
+    //         if (existingInstitute.length > 0) {
+    //             throw new HttpException("Institute With Same ID Exists", HttpStatus.BAD_REQUEST);
+    //         }
+
+    //         // Prepare final payload with generated fields
+    //         const finalPayload = {
+    //             ...institutePayload,
+    //             institute_abbr: institute_abbr,
+    //             institute_id: institute_id,
+    //             created_date: created_date,
+    //         };
+
+    //         // Generate query data
+    //         const insertQuery = insertQueryHelper(finalPayload, []);
+
+    //         // Convert objects/arrays to JSON before passing to the query
+    //         const sanitizedValues = insertQuery.values.map((value) =>
+    //             typeof value === "object" ? JSON.stringify(value) : value
+    //         );
+
+    //         // Construct query argument placeholders dynamically ($1, $2, $3...)
+    //         const queryArgs = insertQuery.values.map((_, i) => `$${i + 1}`).join(", ");
+
+    //         // Execute the insert query
+    //         await this.instituteConfigRepository.query(
+    //             `INSERT INTO institute_config (${insertQuery.queryCol}) VALUES (${queryArgs})`,
+    //             sanitizedValues
+    //         );
+
+    //         return { statusCode: HttpStatus.CREATED, message: "Institute Created!" };
+
+    //     } catch (error) {
+    //         console.error("Error creating institute:", error);
+    //         throw new HttpException(
+    //             `Error: ${error.message || error} while creating institute.`,
+    //             HttpStatus.INTERNAL_SERVER_ERROR
+    //         );
+    //     }
+    // }
 
     // Update Institute Info
     async updateInstitute(updateInstitutePayload: TInstituteUpdateDTO) {
