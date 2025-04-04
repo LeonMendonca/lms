@@ -1,3 +1,4 @@
+import { Body, Controller, Get, HttpCode, HttpException, HttpStatus, Param, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ConfigService } from './config.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createInstituteSchema, TInstituteDTO } from './zod-validation/create-institute-zod';
@@ -70,8 +71,14 @@ export class ConfigController {
     //  -------------- LIBRARY CONFIGURATIONS -----------
 
     // Get Library Rules 
+    @Get('get-all-rules')
     async getRule() {
         return this.configService.getRule()
+    }
+
+    @Get('get-rule-by-id')
+    async getRuleById(@Query('rule_id') rule_id: string) {
+      return this.configService.getRuleById(rule_id);
     }
 
     // Create Library Rules

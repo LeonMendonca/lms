@@ -65,6 +65,7 @@ export class ConfigService {
 
             // Generate Institute Abbreviation
             const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
+
             // Prepare final payload with generated fields
             const finalPayload = {
                 ...institutePayload,
@@ -244,14 +245,34 @@ export class ConfigService {
 
     //  -------------- LIBRARY CONFIGURATIONS -----------
 
+    // Get All Library Rules
     async getRule() {
         const result = await this.libraryConfigRepository.query(
             `SELECT * FROM library_config WHERE is_archived=false`
         )
         if (!result.length) {
+            return result
+        }else{
             return { message: "No Rule Found" }
         }
-        return result
+    }
+
+    // Get Library Rule By Id
+    async getRuleById(rule_id: string){
+        // ensure the rule id is passed
+        if(!rule_id.length){
+            return {message:"Enter The Rule Id"}
+        }
+        // check if the rule with the given id exists
+        const data = await this.libraryConfigRepository.query(
+            `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
+            [rule_id]
+        )
+        if(!data.length){
+            return {message: "No Rule With The Given Id Exists"}
+        }else{
+            return data
+        }
     }
 
     // Create Library Rules
@@ -259,8 +280,15 @@ export class ConfigService {
         // Generate institute ID
         const created_at = new Date().toISOString(); // Use ISO format
         const institute_id = rulesPayload.institute_id
+
+
+        const maxIdQuery = await this.libraryConfigRepository.query(
+            `SELECT MAX()`
+        )
+
         const library_rule_id = genRuleId(institute_id, created_at);
         console.log("Generated Library ID:", library_rule_id);
+
         // PAY ATTENTION TO THE ID
 
         // Check if rule with the same ID exists
