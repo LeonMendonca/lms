@@ -950,13 +950,13 @@ export class BooksV2Service {
       bookZodValidatedObject.validated_array,
       'book/book-insert-worker',
     );
-    if (!result.inserted_data) {
-      return result;
-    } else {
+    if (typeof result === 'object') {
       return {
         inserted_data: result.inserted_data,
         invalid_data: bookZodValidatedObject.invalid_data_count,
       };
+    } else {
+      throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
