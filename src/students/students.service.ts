@@ -28,6 +28,7 @@ import {
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 import { VisitLog } from './visitlog.entity';
+import { InquireLogs } from './entities/inquire-logs';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -460,9 +461,9 @@ export class StudentsService {
       const logs = await this.studentsRepository.query(
         `
         SELECT * FROM (
-          SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date FROM visit_log
+          SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date, in_time AS timestamp FROM visit_log
           UNION ALL
-          SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
+          SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date, time AS timestamp FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
         ) AS combined_logs
         ORDER BY log_date DESC
         LIMIT $1 OFFSET $2
@@ -487,7 +488,7 @@ export class StudentsService {
         throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
       }
 
-      console.log({totalCount, logs})
+      console.log({ totalCount, logs });
 
       return {
         data: logs,
@@ -557,6 +558,155 @@ export class StudentsService {
         `Error: ${error.message} - Invalid student_id`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async reportInquiryLog({
+    student,
+    type,
+    inquiryUuid,
+  }: {
+    student: any;
+    type: string;
+    inquiryUuid: string;
+  }): Promise<Data<InquireLogs>> {
+    try {
+      const result: InquireLogs[] = await this.studentsRepository.query(
+        `INSERT INTO inquire_logs (student_uuid, inquiry_type, inquiry_uuid) VALUES ($1, $2, $3) RETURNING *`,
+        [student.student_uuid, type, inquiryUuid],
+      );
+
+      if (!result.length) {
+        throw new HttpException(
+          'Failed to create visit log entry',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return {
+        data: result[0],
+        pagination: null,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while processing visit log entry.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async inquiryLogAction({
+    type,
+    report_uuid,
+  }: {
+    type: string;
+    report_uuid: string;
+  }): Promise<Data<{ success: boolean }>> {
+    try {
+      switch (type) {
+        case 'approve':
+          await this.studentsRepository.query(
+            `UPDATE inquire_logs SET is_resolved = true WHERE report_uuid = $1`,
+            [report_uuid],
+          );
+          break;
+        case 'reject':
+          await this.studentsRepository.query(
+            `UPDATE inquire_logs SET is_archived = true WHERE report_uuid = $1`,
+            [report_uuid],
+          );
+          break;
+      }
+      return {
+        data: { success: true },
+        pagination: null,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while processing visit log entry.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getInquiryLogByStudentUUID({
+    student_uuid,
+    page,
+    limit,
+  }: {
+    student_uuid: string;
+    page: number;
+    limit: number;
+  }) {
+    try {
+      const offset = (page - 1) * limit;
+      const inquiryLogs = await this.studentsRepository.query(
+        `SELECT * FROM inquire_logs WHERE student_uuid = $1 AND is_archived = false ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+        [student_uuid, limit, offset],
+      );
+
+      const total = await this.studentsRepository.query(
+        `SELECT * FROM inquire_logs WHERE student_uuid = $1 AND is_archived = false `,
+        [student_uuid],
+      );
+
+      if (inquiryLogs.length === 0) {
+        throw new HttpException(
+          'No inquiry log data found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        data: inquiryLogs,
+        pagination: {
+          total: total.length,
+          page,
+          limit,
+          totalPages: Math.ceil(total.length / limit),
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllInquiry({
+    page,
+    limit,
+  }: {
+    page: number;
+    limit: number;
+  }) {
+    try {
+      const offset = (page - 1) * limit;
+      const inquiryLogs = await this.studentsRepository.query(
+        `SELECT * FROM inquire_logs WHERE is_archived = false ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+
+      const total = await this.studentsRepository.query(
+        `SELECT * FROM inquire_logs WHERE is_archived = false `
+      );
+
+      if (inquiryLogs.length === 0) {
+        throw new HttpException(
+          'No inquiry log data found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        data: inquiryLogs,
+        pagination: {
+          total: total.length,
+          page,
+          limit,
+          totalPages: Math.ceil(total.length / limit),
+        },
+      };
+    } catch (error) {
+      throw error;
     }
   }
 

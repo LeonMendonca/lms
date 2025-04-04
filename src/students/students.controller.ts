@@ -17,6 +17,7 @@ import {
   Req,
   HttpCode,
   Request,
+  Patch,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -449,6 +450,91 @@ export class StudentsController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Post("report-inquiry")
+  @UseGuards(StudentAuthGuard)
+  async createInquiryLog(
+    @Request() req: AuthenticatedRequest,
+    @Body('inquiry_type') type: string,
+    @Body('inquiry_uuid') inquiryUuid: string,
+  ) {
+    try {
+      const student = await this.studentsService.findStudentBy({
+        student_id: req.user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      return await this.studentsService.reportInquiryLog({
+        student,
+        type,
+        inquiryUuid,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Patch("report-inquiry-action")
+  async inquiryLogAction(
+    @Body('action_type') type: string,
+    @Body('report_uuid') report_uuid: string,
+  ) {
+    try {
+      return await this.studentsService.inquiryLogAction({
+        type,
+        report_uuid,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('get-student-inquiry')
+  @UseGuards(StudentAuthGuard)
+  async getInquiryLogByStudentUUID(
+    @Request() req: AuthenticatedRequest,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+      const student = await this.studentsService.findStudentBy({
+        student_id: req.user.student_id,
+      });
+
+      
+      
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      return await this.studentsService.getInquiryLogByStudentUUID({
+        student_uuid: student.student_uuid,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('get-admin-inquiry')
+  @UseGuards(StudentAuthGuard)
+  async getAllInquiryLog(
+    @Request() req: AuthenticatedRequest,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+      return await this.studentsService.getAllInquiry({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+
 
   // @Post("vistlog_entry")
   //   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
