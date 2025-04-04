@@ -276,22 +276,26 @@ export class StudentsService {
     try {
       console.log('SERVICE calling main worker thread');
 
-      const {
-        inserted_data,
-        duplicate_data_pl,
-        unique_data,
-        duplicate_date_db,
-      } = await CreateWorker<TInsertResult>(
+      const result = await CreateWorker<TInsertResult>(
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
-      return {
-        invalid_data: studentZodValidatedObject.invalid_data_count,
-        inserted_data,
-        duplicate_data_pl,
-        duplicate_date_db,
-        unique_data,
-      };
+      if(typeof result === 'object') {
+        const { inserted_data, duplicate_data_pl, duplicate_date_db, unique_data } = result;
+        return {
+          invalid_data: studentZodValidatedObject.invalid_data_count,
+          inserted_data,
+          duplicate_data_pl,
+          duplicate_date_db,
+          unique_data,
+        };
+      } else {
+        throw new HttpException(
+          result,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      
     } catch (error) {
       throw error;
     }

@@ -118,6 +118,22 @@ export class Students {
   //   visitlog: 'visit_log' = 'visit_log';
 }
 
+export const studentObj = {
+  email: 'email',
+  password: 'password',
+  student_name: 'student_name',
+  date_of_birth: 'date_of_birth',
+  gender: 'gender',
+  roll_no: 'roll_no',
+  institute_name: 'institute_name',
+  phone_no: 'phone_no',
+  address: 'address',
+  department: 'department',
+  institute_uuid: 'institute_uuid',
+  year_of_admission: 'year_of_admission',
+  image_field: 'image_field',
+} as const;
+
 export const student = new Students();
 
 //Type that represents the table Columns
