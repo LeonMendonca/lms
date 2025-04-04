@@ -280,8 +280,13 @@ export class StudentsService {
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
       );
-      if(typeof result === 'object') {
-        const { inserted_data, duplicate_data_pl, duplicate_date_db, unique_data } = result;
+      if (typeof result === 'object') {
+        const {
+          inserted_data,
+          duplicate_data_pl,
+          duplicate_date_db,
+          unique_data,
+        } = result;
         return {
           invalid_data: studentZodValidatedObject.invalid_data_count,
           inserted_data,
@@ -290,12 +295,8 @@ export class StudentsService {
           unique_data,
         };
       } else {
-        throw new HttpException(
-          result,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
       }
-      
     } catch (error) {
       throw error;
     }
@@ -671,13 +672,7 @@ export class StudentsService {
     }
   }
 
-  async getAllInquiry({
-    page,
-    limit,
-  }: {
-    page: number;
-    limit: number;
-  }) {
+  async getAllInquiry({ page, limit }: { page: number; limit: number }) {
     try {
       const offset = (page - 1) * limit;
       const inquiryLogs = await this.studentsRepository.query(
@@ -686,7 +681,7 @@ export class StudentsService {
       );
 
       const total = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE is_archived = false `
+        `SELECT * FROM inquire_logs WHERE is_archived = false `,
       );
 
       if (inquiryLogs.length === 0) {
@@ -880,8 +875,8 @@ export class StudentsService {
           ...jwtPayload[0],
           institute_image:
             'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
-            institute_header:
-              'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+          institute_header:
+            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
         },
       };
     } catch (error) {
@@ -1154,25 +1149,25 @@ export class StudentsService {
           lib_longitude,
           parseFloat(latitude),
           parseFloat(longitude),
-          3000
+          3000,
         )
       ) {
         await this.studentsRepository.query(
           `UPDATE student_visit_key SET is_used = true WHERE student_key_uuid = $1`,
           [studentKeyUUID],
         );
-
-        if (action === 'entry') {
+        try {
           return await this.visitlogentry({ action, student_id });
-        } else if (action === 'exit') {
-          return await this.visitlogexit({ action, student_id });
-        } else {
-          throw new HttpException(
-            'Invalid action type',
-            HttpStatus.BAD_REQUEST,
-          );
+        } catch (error) {
+          if (error?.message.includes('Previous entry not exited')) {
+            return await this.visitlogexit({ action, student_id });
+          } else {
+            throw new HttpException(
+              'Invalid action type',
+              HttpStatus.BAD_REQUEST,
+            );
+          }
         }
-
         // run the entry or exit function based on the action
       } else {
         throw new HttpException(
