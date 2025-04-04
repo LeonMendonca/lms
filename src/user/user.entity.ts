@@ -18,10 +18,9 @@ export class User {
   userUUID: 'user_uuid' = 'user_uuid';
 
   @Column({
-    type: 'varchar',
-    length: 255,
+    type: 'int',
+    generated: true,
     name: 'user_id',
-    default: Date.now(),
   })
   userId: 'user_id' = 'user_id';
 
@@ -34,7 +33,7 @@ export class User {
   @Column({ type: 'enum', enum: DesignationEnum, name: 'designation' })
   designation: 'designation' = 'designation';
 
-  @Column({ type: 'text', name: 'institute_details' })
+  @Column({ type: 'jsonb', name: 'institute_details' })
   institute_details: 'institute_details' = 'institute_details';
 
   @Column({ type: 'varchar', length: 255, name: 'address' })
@@ -45,6 +44,9 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, name: 'password' })
   password: 'password' = 'password';
+
+  @Column({ type: 'boolean', default: false, name: 'is_archived' })
+  is_archived: 'is_archived' = 'is_archived';
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: 'created_at' = 'created_at';
