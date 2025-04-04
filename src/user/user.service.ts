@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TUser, User } from './user.entity';
+import { TUser, user, User } from './user.entity';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { DataWithPagination } from 'src/students/students.service';
 import { TCreateUserDTO } from './zod-validation/create-user-zod';
@@ -16,7 +16,7 @@ export class UserService {
     private userRepository: Repository<User>,
 
     private readonly queryBuilderService: QueryBuilderService,
-  ) { }
+  ) {}
 
   async userLogin(userCredPayload: TUserCredZodType) {
     try {
@@ -32,7 +32,7 @@ export class UserService {
       const jwtPayloadSelective = {
         name: jwtPayload[0].name,
         email: jwtPayload[0].email,
-        designation: jwtPayload[0].designation
+        designation: jwtPayload[0].designation,
       };
 
       delete jwtPayload[0].password;
@@ -50,24 +50,22 @@ export class UserService {
     }
   }
 
-  async findAllUsers(
-    {
-      page,
-      limit,
-      search,
-      asc,
-      dec,
-      filter,
-    }: {
-      page: number;
-      limit: number;
-      asc: string[];
-      dec: string[];
-      filter: { field: string; value: (string | number)[]; operator: string }[];
-      search: { field: string; value: string }[];
-    }
-  ): Promise<DataWithPagination<TUser>> {
-        const offset = (page - 1) * limit;
+  async findAllUsers({
+    page,
+    limit,
+    search,
+    asc,
+    dec,
+    filter,
+  }: {
+    page: number;
+    limit: number;
+    asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
+  }): Promise<DataWithPagination<TUser>> {
+    const offset = (page - 1) * limit;
 
     const params: (string | number)[] = [];
 
@@ -101,21 +99,33 @@ export class UserService {
     };
   }
 
-  async createUser(studentPayload: TCreateUserDTO): Promise<TUser> {
+  async createUser(userPayload: TCreateUserDTO): Promise<TUser> {
     try {
-      let queryData = insertQueryHelper(studentPayload, []);
+      let userInstituteDetailsAsString: string = '';
+      userInstituteDetailsAsString = JSON.stringify(userPayload.institute_details);
+      const { name, email, phone_no, designation, address, password } = userPayload;
+      const modifiedUserPayload = {
+        name,
+        email,
+        phone_no,
+        designation,
+        address,
+        password,
+        institute_details: userInstituteDetailsAsString,
+      }
+      let queryData = insertQueryHelper(modifiedUserPayload, []);
       const result: TUser[] = await this.userRepository.query(
         `INSERT INTO users_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING *`,
         queryData.values,
       );
 
-      const studentUuid = result[0];
-      if (!studentUuid) {
+      const userUUID = result[0];
+      if (!userUUID) {
         throw new HttpException(
           'Failed to create user',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-      } 
+      }
 
       let insertedUser: TUser = result[0];
       delete insertedUser.password;

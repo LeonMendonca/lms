@@ -1,16 +1,29 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export const DesignationEnum = {
   LIBRARIAN: 'librarian',
   ASSISTANT: 'assistant',
-  RECEPTIONIST: 'receptionist'
+  RECEPTIONIST: 'receptionist',
 } as const;
 
-@Entity('users_table')  // You can specify the table name (optional)
+@Entity('users_table') // You can specify the table name (optional)
 export class User {
-  
   @PrimaryGeneratedColumn('uuid', { name: 'user_uuid' })
   userUUID: 'user_uuid' = 'user_uuid';
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    name: 'user_id',
+    default: Date.now(),
+  })
+  userId: 'user_id' = 'user_id';
 
   @Column({ type: 'varchar', length: 255 })
   name: 'name' = 'name';
@@ -20,6 +33,9 @@ export class User {
 
   @Column({ type: 'enum', enum: DesignationEnum, name: 'designation' })
   designation: 'designation' = 'designation';
+
+  @Column({ type: 'text', name: 'institute_details' })
+  institute_details: 'institute_details' = 'institute_details';
 
   @Column({ type: 'varchar', length: 255, name: 'address' })
   address: 'address' = 'address';
@@ -40,5 +56,5 @@ export class User {
 export const user = new User();
 
 export type TUser = {
-  [P in keyof typeof user as typeof user[P]]: any;
-}
+  [P in keyof typeof user as (typeof user)[P]]: any;
+};

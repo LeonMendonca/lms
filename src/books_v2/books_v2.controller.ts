@@ -52,7 +52,7 @@ import type {
   TReturnBookZodReIssue,
 } from './zod/requestbook-zod';
 import { StudentsService } from 'src/students/students.service';
-import { StudentAuthGuard } from 'src/students/student.guard';
+import { TokenAuthGuard } from 'src/guards/token.guard';
 import { RequestBook } from './entity/request-book.entity';
 
 interface AuthenticatedRequest extends Request {
@@ -748,7 +748,7 @@ export class BooksV2Controller {
   }
 
   @Post('request_booklog_issue')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   @UsePipes(new bodyValidationPipe(requestBookZodIssue))
   async createRequestBooklogIssue(
     @Body() requestBookIssuePayload: TRequestBookZodIssue,
