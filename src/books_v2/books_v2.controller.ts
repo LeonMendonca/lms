@@ -54,6 +54,10 @@ import type {
 import { StudentsService } from 'src/students/students.service';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { RequestBook } from './entity/request-book.entity';
+import {
+  PaginationParserType,
+  ParsePaginationPipe,
+} from 'src/pipes/pagination-parser.pipe';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -92,15 +96,13 @@ export class BooksV2Controller {
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ) {
     return this.booksService.getBookCopiesByTitle({
       book_uuid,
       isbn,
       titlename,
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
+      ...query,
     });
   }
 

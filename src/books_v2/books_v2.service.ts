@@ -45,6 +45,7 @@ import {
 import { RequestBook, TRequestBook } from './entity/request-book.entity';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { TInsertResult } from 'src/worker-threads/worker-types/book-insert.type';
+import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 
 export interface Data<T> {
   data: T;
@@ -71,6 +72,9 @@ export class BooksV2Service {
 
     @InjectRepository(RequestBook)
     private readonly requestBooklogRepository: Repository<RequestBook>,
+  
+  
+    private readonly queryBuilderService: QueryBuilderService,
   ) {}
 
   async getBooks(
@@ -208,12 +212,19 @@ export class BooksV2Service {
     titlename,
     page,
     limit,
+    search,
+    asc,
+    dec,
+    filter,
   }: {
     book_uuid: string;
     isbn: string;
     titlename: string;
     page: number;
-    limit: number;
+    limit: number;asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
   }) {
     try {
       const offset = (page - 1) * limit;
@@ -242,6 +253,21 @@ export class BooksV2Service {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
 
+      const params: (string | number)[] = [];
+
+      filter.push({field: "book_copies.is_archived", value:['false'], operator:"="})
+      filter.push({field: "book_copies.book_title_uuid", value:[book[0].book_uuid], operator:"="})
+      dec.push("book_copies.created_at")
+      console.log({filter, asc, dec})
+      const whereClauses = this.queryBuilderService.buildWhereClauses(
+        filter,
+        search,
+        params,
+      );
+      const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
+
+      console.log({whereClauses, orderByQuery, params});
+
       const books = await this.bookcopyRepository.query(
         `   SELECT 
     book_titles.book_title, 
@@ -269,9 +295,8 @@ export class BooksV2Service {
     book_copies.inventory_number,
     book_copies.accession_number
     FROM book_titles
-    INNER JOIN book_copies ON book_copies.book_title_uuid = book_titles.book_uuid where 
-    book_copies.is_archived=false and book_copies.book_title_uuid = $1  OFFSET $2 LIMIT $3 `,
-        [book[0].book_uuid, offset, limit],
+    INNER JOIN book_copies ON book_copies.book_title_uuid = book_titles.book_uuid ${whereClauses} ${orderByQuery}  OFFSET $${params.length + 1} LIMIT $${params.length + 2} `,
+        [...params, offset, limit],
       );
 
       const totalResult = await this.booktitleRepository.query(
@@ -292,7 +317,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      //console.log(error);
+      console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
