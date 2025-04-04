@@ -11,6 +11,12 @@ export const requestBookZodIssue = z.object({
     [createRequestBooklogObject.requestType]: z.literal('issue'),
 });
 
+export const returnBookZodIssue = z.object({
+    // [createRequestBooklogObject.studentId]: z.string(),
+    [createRequestBooklogObject.bookBarcode]: z.string(),
+    [createRequestBooklogObject.requestType]: z.literal('return'),
+});
+
 export const requestBookZodReIssue = z.object({
     [createRequestBooklogObject.studentId]: z.string().nonempty(),
     [createRequestBooklogObject.bookBarcode]: z.string().nonempty(),
@@ -26,6 +32,7 @@ export const requestBookZodIssueReIssueAR = z.object({
 });
 
 export type TRequestBookZodIssue = z.infer<typeof requestBookZodIssue>;
+export type TReturnBookZodReIssue = z.infer<typeof returnBookZodIssue>;
 export type TRequestBookZodReIssue = z.infer<typeof requestBookZodReIssue>;
 
 export type TRequestBookZodIssueReIssueAR = z.infer<typeof requestBookZodIssueReIssueAR>
