@@ -184,6 +184,37 @@ export class BooksV2Controller {
     }
   }
 
+  @Get('get_current_borrower_of_student') // done
+  async getCurrentBorrowedOfStudent(
+    @Query('_student_id') student_id: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+      console.log({student_id})
+      const student = await this.studentService.findStudentBy({
+        student_id: student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      console.log(student);
+      return await this.booksService.getCurrentBorrowedOfStudent({
+        student_id: student.student_uuid,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
   @Get('get_all_available') // working done
   async getAllAvailableBooks(
     @Query('_page') page: string,

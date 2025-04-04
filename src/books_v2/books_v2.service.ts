@@ -112,7 +112,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
-      //console.log(error);
+      console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -151,12 +151,17 @@ export class BooksV2Service {
         queryParams,
       );
 
+      const reviews = await this.booktitleRepository.query(`
+        SELECT re.star_rating, re.review_text, re.created_at, st.student_name, st.student_id FROM reviews re LEFT JOIN students_table st ON re.student_uuid = st.student_uuid WHERE book_uuid = $1 AND is_approved = true`
+      ,[book_uuid])
+
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
 
-      return book; // Return only the first matching book
+      return [{...book[0], reviews}]; 
     } catch (error) {
+      console.log(error)
       throw new HttpException(
         'Error fetching book details',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -785,6 +790,59 @@ export class BooksV2Service {
       );
       const totalCount = await this.booklogRepository.query(
         `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1`,
+        //         `SELECT COUNT(*)
+        //         FROM book_titles
+        //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
+        //         INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
+        //         INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid
+        //         WHERE student_id = $1;
+        // `,
+        [student_id],
+      );
+      if (result.length === 0) {
+        throw new HttpException(
+          'Book log data not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      return {
+        data: result,
+        pagination: {
+          total: parseInt(totalCount[0].count, 10),
+          page,
+          limit,
+          totalPages: Math.ceil(parseInt(totalCount[0].count, 10) / limit),
+        },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getCurrentBorrowedOfStudent({
+    student_id,
+    page,
+    limit,
+  }: {
+    student_id: string;
+    page: number;
+    limit: number;
+  }) {
+    try {
+      const offset = (page - 1) * limit;
+      const result: any[] = await this.booklogRepository.query(
+        `SELECT bt.book_title, bt.book_uuid, bc.barcode, bt.department, fp.created_at FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN 
+        book_titles bt ON bc.book_title_uuid = bt.book_uuid 
+        WHERE fp.created_at < CURRENT_DATE AND fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
+        `,
+        //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
+        //           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid
+        //          INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid  WHERE student_id=$1
+        //  LIMIT $2 OFFSET $3`,
+        [student_id, limit, offset],
+      );
+      const totalCount = await this.booklogRepository.query(
+        `SELECT COUNT(*) FROM fees_penalties WHERE return_date < CURRENT_DATE AND is_completed = false AND borrower_uuid = $1`,
         //         `SELECT COUNT(*)
         //         FROM book_titles
         //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
@@ -2211,7 +2269,7 @@ export class BooksV2Service {
 
       const bookPayloadFromBookCopies: Pick<TBookCopy, 'book_copy_id'>[] =
         await this.bookcopyRepository.query(
-          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = true AND is_archived = false`,
+          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = false AND is_archived = false`,
           [returnBookIssuePayload.barcode],
         );
 

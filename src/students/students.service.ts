@@ -596,10 +596,10 @@ export class StudentsService {
       return {
         data: visitLogs,
         pagination: {
-          total: parseInt(totalResult[0].total, 10),
+          total: parseInt(totalResult[0].count, 10),
           page,
           limit,
-          totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+          totalPages: Math.ceil(parseInt(totalResult[0].count, 10) / limit),
         },
       };
     } catch (error) {
@@ -946,7 +946,7 @@ export class StudentsService {
       //   `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true`,
       // );
       const newBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true AND created_at >= NOW() - INTERVAL '1 month'`,
+        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false AND created_at >= NOW() - INTERVAL '1 month'`,
       );
       const yearlyBorrow = await this.studentsRepository.query(
         `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
