@@ -681,12 +681,12 @@ export class StudentsService {
     try {
       const offset = (page - 1) * limit;
       const inquiryLogs = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE AND is_archived = false ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+        `SELECT * FROM inquire_logs WHERE is_archived = false ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
 
       const total = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE AND is_archived = false `
+        `SELECT * FROM inquire_logs WHERE is_archived = false `
       );
 
       if (inquiryLogs.length === 0) {

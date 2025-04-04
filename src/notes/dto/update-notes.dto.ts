@@ -17,6 +17,10 @@ export const updateNotesSchema = z.object({
   [notesUpdateObject.noteResource]: z.string(),
 
   [notesUpdateObject.noteTitle]: z.string(),
+
+  [notesUpdateObject.category]: z.string(),
+
+  [notesUpdateObject.author]: z.array(z.string()),
 });
 
 export type TUpdateNotesDTO = z.infer<typeof updateNotesSchema>;

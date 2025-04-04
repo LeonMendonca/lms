@@ -99,8 +99,8 @@ export const book_title = new BookTitle();
 
 //Type that represents the table Columns
 export type TBookTitle = {
-  [P in keyof typeof book_title as typeof book_title[P]]: any;
-}
+  [P in keyof typeof book_title as (typeof book_title)[P]]: any;
+};
 
 export const bookTitleObject = {
   book_title: 'book_title_placeholder',

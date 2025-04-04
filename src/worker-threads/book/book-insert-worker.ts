@@ -81,7 +81,7 @@ type QueryReturnType = {
         arrOfIsbnUUID.push(element);
       }
     }
-    console.log('Updated ISBN', updatedISBN.rows);
+    //console.log('Updated ISBN', updatedISBN.rows);
     for (let element of updatedISBN.rows) {
       if (element.isbn in isbnCountObject) {
         //If the ISBN is updated, remove it from the object
@@ -90,7 +90,7 @@ type QueryReturnType = {
       }
     }
 
-    console.log('ISBN COUNT', isbnCountObject);
+    //console.log('ISBN COUNT', isbnCountObject);
 
     for (let isbnTobeInserted in isbnCountObject) {
       bookPayloadArr.forEach((item) => {
@@ -105,7 +105,7 @@ type QueryReturnType = {
                 existingItem.isbn === uniqueArrayOfBookTitleElement.isbn,
             )
           ) {
-            console.log('Now pushing ', uniqueArrayOfBookTitleElement.isbn);
+            //console.log('Now pushing ', uniqueArrayOfBookTitleElement.isbn);
             uniqueArrayOfBookTitleWithCount.push(uniqueArrayOfBookTitleElement);
           }
         }
@@ -114,7 +114,7 @@ type QueryReturnType = {
 
     //If anything is pushed to array, it means that there exists data that needs to be inserted
     if (uniqueArrayOfBookTitleWithCount.length) {
-      const createColumnsFromTitleObject = structuredClone(bookTitleObject);
+      const createColumnsFromTitleObject = bookTitleObject;
       //Object.assign(, { available_count: 0, total_count: 0 });
 
       let bulkQuery1Title = 'INSERT INTO book_titles ';
@@ -159,7 +159,7 @@ type QueryReturnType = {
 
       const finalInsertQueryTitle =
         bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
-      console.log(finalInsertQueryTitle);
+      //console.log(finalInsertQueryTitle);
       const insertedResult = await client.query(finalInsertQueryTitle);
       const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
       if (isbnUUIDInsert.length) {
@@ -168,9 +168,9 @@ type QueryReturnType = {
         }
       }
     }
-    console.log('ISBN with UUID', arrOfIsbnUUID);
+    //console.log('ISBN with UUID', arrOfIsbnUUID);
 
-    const createColumnsFromCopiesObject = structuredClone(bookCopyObject);
+    const createColumnsFromCopiesObject = bookCopyObject;
 
     let bulkQuery1Copies = 'INSERT INTO book_copies ';
     let bulkQuery2Copies = '(';
@@ -200,7 +200,11 @@ type QueryReturnType = {
           if (
             copiesKey === 'copy_images' ||
             copiesKey === 'copy_additional_fields' ||
-            copiesKey === 'copy_description'
+            copiesKey === 'copy_description' ||
+            copiesKey === 'remarks' ||
+            copiesKey === 'institute_uuid' ||
+            copiesKey === 'created_by' ||
+            copiesKey === 'inventory_number'
           ) {
             bulkQuery3Copies += `NULL,`;
           } else if (copiesKey === 'book_title_uuid') {
@@ -219,12 +223,13 @@ type QueryReturnType = {
 
     const finalInsertQueryCopies =
       bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies;
-    //console.log(finalInsertQueryCopies);
+    // console.log(finalInsertQueryCopies);
 
     const insertedCopies = await client.query(finalInsertQueryCopies);
     parentPort?.postMessage({
       inserted_data: insertedCopies.rowCount ?? 0,
     } as TInsertResult) ?? 'Parent port is null';
+    // parentPort?.postMessage({ inserted_data: 'x' }) ?? 'Parent port is null';
   } catch (error) {
     let errorMessage = 'Something went wrong while bulk inserting';
     if (error instanceof Error) {

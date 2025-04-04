@@ -17,6 +17,10 @@ export const createNotesSchema = z.object({
   [notesCreateObject.noteResource]: z.string(),
 
   [notesCreateObject.noteTitle]: z.string(),
+
+  [notesCreateObject.category]: z.string(),
+
+  [notesCreateObject.author]: z.array(z.string()),
 });
 
 export type TCreateNotesDTO = z.infer<typeof createNotesSchema>;
