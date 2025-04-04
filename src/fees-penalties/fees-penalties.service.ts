@@ -330,7 +330,7 @@ export class FeesPenaltiesService {
                 [
                     updateFeesPayload.payment_method,
                     accumulatedPaidAmount,
-                    isPenalised,
+                    true,
                     isCompleted,
                     record.student_uuid,
                     record.book_copy_uuid
@@ -405,7 +405,7 @@ export class FeesPenaltiesService {
                 [
                     feesPayload.payment_method,
                     accumulatedPaidAmount,
-                    isPenalised,
+                    true,
                     isCompleted,
                     record.student_uuid,
                     record.journal_copy_id
