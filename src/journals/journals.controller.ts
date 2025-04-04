@@ -38,13 +38,12 @@ import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
 import { issueLogSchema, TIssueLogDTO } from './zod-validation/issue-zod';
 import { BooksService } from 'src/books/books.service';
-import { BooksV2Service } from 'src/books_v2/books_v2.service';
 
 @Controller('journals')
 export class JournalsController {
   constructor(
     private journalsService: JournalsService,
-    private booksService: BooksV2Service
+    // private booksService: BooksV2Service
   ) {}
 
   // --------------- JOURNAL TITLE -------------------------

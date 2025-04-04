@@ -18,6 +18,12 @@ export class ConfigController {
         return this.configService.getInstitute()
     }
 
+    //  Get Institute Detail For user (admin)
+    @Get('get-institute-names')
+    async getInstituteName(){
+        return this.configService.getInstituteName()
+    }
+
     // Create Institute
     @Post('create-institute')
     @UsePipes(new bodyValidationPipe(createInstituteSchema))

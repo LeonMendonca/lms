@@ -37,6 +37,19 @@ export class ConfigService {
         return result
     }
 
+    //  Get Institute Detail For user (admin)
+    async getInstituteName(){
+        const insts = await this.instituteConfigRepository.query(
+            `SELECT institute_name, institute_uuid FROM institute_config WHERE is_archived=false`
+        )
+        if(!insts.length){
+            return {message : "No Institutes Exists"}
+        }else{
+            return insts
+        }
+
+    }
+
     // Create Institute
     async createInstitute(institutePayload: TInstituteDTO){
         try{
