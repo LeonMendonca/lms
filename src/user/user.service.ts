@@ -5,9 +5,14 @@ import { TUser, user, User } from './user.entity';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { DataWithPagination } from 'src/students/students.service';
 import { TCreateUserDTO } from './zod-validation/create-user-zod';
-import { insertQueryHelper } from 'src/misc/custom-query-helper';
+import {
+  insertQueryHelper,
+  updateQueryHelper,
+} from 'src/misc/custom-query-helper';
 import { TUserCredZodType } from './zod-validation/user-cred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
+import { TokenAuthGuard } from 'src/guards/token.guard';
+import { TEditUserDTO } from './zod-validation/edit-user-zod';
 
 @Injectable()
 export class UserService {
@@ -49,7 +54,6 @@ export class UserService {
       throw error;
     }
   }
-
   async findAllUsers({
     page,
     limit,
@@ -69,17 +73,17 @@ export class UserService {
 
     const params: (string | number)[] = [];
 
-    //const whereClauses = this.queryBuilderService.buildWhereClauses(
-    //  filter,
-    //  search,
-    //  params,
-    //);
+    const whereClauses = this.queryBuilderService.buildWhereClauses(
+      filter,
+      search,
+      params,
+    );
     const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
 
     console.log({ params });
 
     const user = await this.userRepository.query(
-      `SELECT * FROM users_table ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      `SELECT * FROM users_table WHERE is_archived = FALSE ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, limit, offset],
     );
 
@@ -102,8 +106,11 @@ export class UserService {
   async createUser(userPayload: TCreateUserDTO): Promise<TUser> {
     try {
       let userInstituteDetailsAsString: string = '';
-      userInstituteDetailsAsString = JSON.stringify(userPayload.institute_details);
-      const { name, email, phone_no, designation, address, password } = userPayload;
+      userInstituteDetailsAsString = JSON.stringify(
+        userPayload.institute_details,
+      );
+      const { name, email, phone_no, designation, address, password } =
+        userPayload;
       const modifiedUserPayload = {
         name,
         email,
@@ -112,7 +119,7 @@ export class UserService {
         address,
         password,
         institute_details: userInstituteDetailsAsString,
-      }
+      };
       let queryData = insertQueryHelper(modifiedUserPayload, []);
       const result: TUser[] = await this.userRepository.query(
         `INSERT INTO users_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING *`,
@@ -131,6 +138,39 @@ export class UserService {
       delete insertedUser.password;
 
       return insertedUser;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async editUser(
+    userId: string,
+    editUserPayload: TEditUserDTO,
+  ): Promise<TUser> {
+    try {
+      const userExists: TUser[] = await this.userRepository.query(
+        `SELECT * FROM users_table WHERE user_id = $1 AND is_archived = FALSE`,
+        [userId],
+      );
+
+      if (!userExists) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return userExists[0];
+
+      // let queryData = updateQueryHelper<TEditUserDTO>(editUserPayload, []);
+      // const result = await this.userRepository.query(
+      //   `UPDATE users_table SET ${queryData.queryCol} WHERE user_id = '${userId}' AND is_archived = false RETURNING *`,
+      //   queryData.values,
+      // );
+      // if (!result.length) {
+      //   throw new HttpException(
+      //     'Student not found after update',
+      //     HttpStatus.NOT_FOUND,
+      //   );
+      // }
+      // return result[0];
     } catch (error) {
       throw error;
     }

@@ -18,6 +18,12 @@ export class ConfigController {
         return this.configService.getInstitute()
     }
 
+    // Get Institute by id
+    @Get('get-institutebyid')
+    async getInstituteById(@Query('institute_id') institute_id:string){
+        return this.configService.getInstituteById(institute_id)
+    }
+
     //  Get Institute Detail For user (admin)
     @Get('get-institute-names')
     async getInstituteName(){

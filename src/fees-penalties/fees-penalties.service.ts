@@ -421,4 +421,44 @@ export class FeesPenaltiesService {
             return { error: error }
         }
     }
+
+
+    // -------- FILTER ROUTES -----------
+
+    // Get penalties which are yet to be paid
+    async getPenaltiesToBePaid() {
+        const result = await this.feesPenaltiesRepository.query(
+            `SELECT *, (penalty_amount - paid_amount) AS remaining_penalty
+            FROM fees_penalties
+            WHERE (penalty_amount - paid_amount) > 0 
+            AND is_completed=false`
+        );
+        if(!result.length){
+            return {message : "No Penalties To Be Paid"}
+        }else{
+            return result
+        }
+    }
+
+    // Get penalties that are paid
+    async getCompletedPenalties(){
+        const result = await this.feesPenaltiesRepository.query(
+            `SELECT *, (penalty_amount - paid_amount) AS remaining_penalty
+            FROM fees_penalties
+            WHERE (penalty_amount - paid_amount) = 0 
+            AND is_completed=true`
+        );
+        if(!result.length){
+            return {message : "No Penalties Found"}
+        }else{
+            return result
+        }
+    }
+    
+
+
+
+
+
+
 }
