@@ -460,7 +460,7 @@ export class StudentsService {
           UNION ALL
           SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
         ) AS combined_logs
-        ORDER BY created_at DESC
+        ORDER BY log_date DESC
         LIMIT $1 OFFSET $2
         `,
         [limit, offset],
@@ -482,6 +482,8 @@ export class StudentsService {
       if (logs.length === 0) {
         throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
       }
+
+      console.log({totalCount, logs})
 
       return {
         data: logs,

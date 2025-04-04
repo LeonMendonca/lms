@@ -373,7 +373,7 @@ export class StudentsController {
 
   @Get('alllog')
   async getAllLog(
-    @Request() req: AuthenticatedRequest,
+    // @Request() req: AuthenticatedRequest,
     @Query('_page') page: string,
     @Query('_limit') limit: string,
   ) {
@@ -383,7 +383,7 @@ export class StudentsController {
         limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
-      //nsole.log(error);
+      console.log(error);
     }
   }
   //   @Get('visitlog_by_id')
