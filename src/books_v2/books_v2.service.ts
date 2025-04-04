@@ -2030,8 +2030,9 @@ export class BooksV2Service {
       const offset = (page - 1) * limit;
       const requests = await this.requestBooklogRepository.query(
         `
-        SELECT bc.book_copy_id, bt.book_title, bt.book_author, bt.edition, rb.request_id, rb.request_created_at 
-        FROM request_book_log rb LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
+        SELECT bc.book_copy_id, bt.book_title, bt.book_author, bt.edition, rb.request_id, rb.request_created_at, rb.student_id, rb.is_completed
+        FROM request_book_log rb 
+        LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
         LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
         WHERE rb.is_archived = false  LIMIT $1 OFFSET $2`,
         [limit, offset],
