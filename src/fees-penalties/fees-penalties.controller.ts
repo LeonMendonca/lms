@@ -19,7 +19,7 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { FeesPenaltiesService } from './fees-penalties.service';
 import { createPenaltyZod, TCreatePenaltyZod } from './zod/create-penalty-zod';
 import { student } from 'src/students/students.entity';
-import { StudentAuthGuard } from 'src/students/student.guard';
+import { TokenAuthGuard } from 'src/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
 
 interface AuthenticatedRequest extends Request {
@@ -61,7 +61,7 @@ export class FeesPenaltiesController {
   }
 
   @Get('get-student-fee') // done
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   async getStudentFeeHistory(
     @Request() req: AuthenticatedRequest,
     @Query('_student_id') studentId: string,

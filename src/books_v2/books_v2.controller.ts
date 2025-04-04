@@ -785,7 +785,7 @@ export class BooksV2Controller {
   }
 
   @Post('request_booklog_return')
-  @UseGuards(StudentAuthGuard)
+  @UseGuards(TokenAuthGuard)
   @UsePipes(new bodyValidationPipe(returnBookZodIssue))
   async createReturnBooklogIssue(
     @Body() requestBookIssuePayload: TReturnBookZodReIssue,
