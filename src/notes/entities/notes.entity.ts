@@ -19,6 +19,12 @@ export class Notes {
 
   @Column({ name: 'note_title', type: 'text' })
   noteTitle: 'note_title' = 'note_title';
+  
+  @Column({ name: 'category', type: 'text' })
+  category: 'category' = 'category';
+  
+  @Column({ name: 'author', type: 'simple-array' })
+  author: 'author' = 'author';
 
   @Column({ name: 'note_description', type: 'text' })
   noteDescription: 'note_description' = 'note_description';

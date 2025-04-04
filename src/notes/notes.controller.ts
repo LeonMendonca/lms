@@ -48,7 +48,11 @@ export class NotesController {
       const student = await this.studentService.findStudentBy({
         student_id: req.user.student_id,
       });
-      console.log(student)
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      if (!createNotesDto.author.includes(student.student_name))
+        createNotesDto.author.push(student.student_name);
       const { data } = await this.notesService.create(student, createNotesDto);
       return {
         success: true,

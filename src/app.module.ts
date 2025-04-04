@@ -38,6 +38,7 @@ import { UserModule } from './user/user.module';
 import { User } from './user/user.entity';
 import { Notes } from './notes/entities/notes.entity';
 import { NotesModule } from './notes/notes.module';
+import { InquireLogs } from './students/entities/inquire-logs';
 
 config({ path: '.env' });
 @Module({
@@ -64,6 +65,7 @@ config({ path: '.env' });
         JournalTitle,
         Calendar,
         Notes,
+        InquireLogs
       ],
       ssl: true,
       synchronize: true,

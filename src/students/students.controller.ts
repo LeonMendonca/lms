@@ -501,6 +501,8 @@ export class StudentsController {
       const student = await this.studentsService.findStudentBy({
         student_id: req.user.student_id,
       });
+
+      
       
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
