@@ -65,7 +65,6 @@ export class ConfigService {
 
             // Generate Institute Abbreviation
             const institute_abbr = instituteName.split(" ").map((item)=>(item[0] === item[0].toUpperCase()) ? item[0]:"").join("")
-            
             // Prepare final payload with generated fields
             const finalPayload = {
                 ...institutePayload,
@@ -245,7 +244,6 @@ export class ConfigService {
 
     //  -------------- LIBRARY CONFIGURATIONS -----------
 
-    // Get Library Rules Info
     async getRule() {
         const result = await this.libraryConfigRepository.query(
             `SELECT * FROM library_config WHERE is_archived=false`
@@ -273,7 +271,6 @@ export class ConfigService {
         if (existingRule.length > 0) {
             throw new HttpException("Rule With Same ID Exists", HttpStatus.BAD_REQUEST);
         }
-
         // Prepare final payload with generated fields
         const finalPayload = {
             ...rulesPayload,
