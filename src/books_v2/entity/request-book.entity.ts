@@ -45,6 +45,9 @@ export class RequestBook {
     @Column({ name: 'is_completed', type: 'bool', default: false })
     isCompleted: 'is_completed' = 'is_completed';
 
+    @Column({ name: 'request_created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    requestCreatedAt: 'request_created_at' = 'request_created_at';
+
     @Column({ name: 'extended_period', type: 'int' ,nullable:true})
     extendePeriod: 'extended_period' = 'extended_period';
 }
