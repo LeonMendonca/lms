@@ -43,11 +43,13 @@ import {
   requestBookZodIssue,
   requestBookZodIssueReIssueAR,
   requestBookZodReIssue,
+  returnBookZodIssue,
 } from './zod/requestbook-zod';
 import type {
   TRequestBookZodIssue,
   TRequestBookZodIssueReIssueAR,
   TRequestBookZodReIssue,
+  TReturnBookZodReIssue,
 } from './zod/requestbook-zod';
 import { StudentsService } from 'src/students/students.service';
 import { StudentAuthGuard } from 'src/students/student.guard';
@@ -771,6 +773,62 @@ export class BooksV2Controller {
         pagination: null,
         success: true,
       };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Post('request_booklog_return')
+  @UseGuards(StudentAuthGuard)
+  @UsePipes(new bodyValidationPipe(returnBookZodIssue))
+  async createReturnBooklogIssue(
+    @Body() requestBookIssuePayload: TReturnBookZodReIssue,
+    @Req() request: AuthenticatedRequest, // Ensure the request object has the correct type
+  ): Promise<ApiResponse<RequestBook>> {
+    try {
+      if (!request.ip) {
+        throw new HttpException(
+          'Unable to get IP address of the Client',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      const user = request.user;
+      //Adding IP address, since required for issuing
+      const { data } = await this.booksService.createReturnBooklogIssue(
+        user.student_id,
+        requestBookIssuePayload,
+        request.ip,
+      );
+      return {
+        data,
+        pagination: null,
+        success: true,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Post('request_booklog_return_ar')
+  async createReturnBooklogIssueAR(
+    @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
+  ) {
+    try {
+      return await this.booksService.createReturnBooklogIssueAR(
+        requestBookIssueARPayload,
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
