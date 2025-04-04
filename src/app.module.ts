@@ -59,6 +59,7 @@ config({ path: '.env' });
         Booklog_v2,
         StudentsVisitKey,
         Review,
+        JournalLogs, JournalCopy, JournalTitle, Calendar, LibraryConfig, InstituteConfig],
         JournalLogs,
         JournalCopy,
         JournalTitle,
