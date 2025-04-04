@@ -37,10 +37,15 @@ import {
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
 import { issueLogSchema, TIssueLogDTO } from './zod-validation/issue-zod';
+import { BooksService } from 'src/books/books.service';
+import { BooksV2Service } from 'src/books_v2/books_v2.service';
 
 @Controller('journals')
 export class JournalsController {
-  constructor(private journalsService: JournalsService) {}
+  constructor(
+    private journalsService: JournalsService,
+    private booksService: BooksV2Service
+  ) {}
 
   // --------------- JOURNAL TITLE -------------------------
 
@@ -574,28 +579,21 @@ export class JournalsController {
       } else if (/^[A-Z]+\d/.test(issuePayload.copy_id)) {
         category = 'book';
       } else {
-        // throw "No Book/Periodical With This Id Found";
         return { message: 'Invalid ID' };
       }
 
       if (category === 'book' && issuePayload.action === 'borrow') {
-        return 'all book borrowed from booksServices';
+        return "all book borrowed from bookServices"
       } else if (category === 'book' && issuePayload.action === 'return') {
         return 'all book returned from booksServices';
-      } else if (
-        category === 'periodical' &&
-        issuePayload.action === 'borrow'
-      ) {
+      } else if (category === 'periodical' && issuePayload.action === 'borrow' ) {
         return await this.journalsService.periodicalBorrowed(
           issuePayload,
           request,
           (status = 'borrowed'),
           (category = category),
         );
-      } else if (
-        category === 'periodical' &&
-        issuePayload.action === 'return'
-      ) {
+      } else if (category === 'periodical' && issuePayload.action === 'return') {
         return await this.journalsService.periodicalReturned(
           issuePayload,
           request,
@@ -603,27 +601,6 @@ export class JournalsController {
           (category = category),
         );
       }
-
-      // if (category === "book" && issuePayload.action === "borrow") {
-      //   return "book borrow"
-      // } else if (category === "book" && issuePayload.action === "return") {
-      //   return "book return"
-      // }
-      // else if (category === "periodical" && issuePayload.action === "borrow") {
-      //   return await this.journalsService.borrow(
-      //     issuePayload,
-      //     request,
-      //     (status = "borrowed"),
-      //     (category = category)
-      //   )
-      // } else if (category === "periodical" && issuePayload.action === "return") {
-      //   return await this.journalsService.borrow(
-      //     issuePayload,
-      //     request,
-      //     (status = "returned"),
-      //     category
-      //   )
-      // }
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
