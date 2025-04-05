@@ -17,7 +17,9 @@ import { TCreateNotesDTO } from './dto/create-notes.dto';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
-import { Notes } from './entities/notes.entity';
+import { Notes, TNotes } from './entities/notes.entity';
+import { StudentNotifyService } from 'src/student-notify/student-notify.service';
+import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -35,6 +37,7 @@ export class NotesController {
   constructor(
     private readonly notesService: NotesService,
     private readonly studentService: StudentsService,
+    private readonly notifyService: StudentNotifyService,
   ) {}
 
   @Post()
@@ -54,6 +57,13 @@ export class NotesController {
       if (!createNotesDto.author.includes(student.student_name))
         createNotesDto.author.push(student.student_name);
       const { data } = await this.notesService.create(student, createNotesDto);
+      const notification = await this.notifyService.createNotification(
+        student.student_uuid,
+        NotificationType.NOTES_REQUESTED,
+        {
+          courseName: data.noteTitle,
+        },
+      );
       return {
         success: true,
         data,
@@ -122,9 +132,19 @@ export class NotesController {
   @Patch()
   async approveNotes(
     @Query('_notes_uuid') notes_uuid: string,
-  ): Promise<ApiResponse<Notes>> {
+  ): Promise<ApiResponse<TNotes>> {
     try {
       const { data } = await this.notesService.approveByAdmin(notes_uuid);
+      const student = await this.studentService.findStudentBy({
+        student_uuid: data.student_uuid,
+      });
+      await this.notifyService.createNotification(
+        student!.student_uuid,
+        NotificationType.NOTES_APPROVED,
+        {
+          courseName: data.note_title,
+        },
+      )
       return {
         success: true,
         data,
@@ -145,9 +165,19 @@ export class NotesController {
   @Delete()
   async deleteNotes(
     @Query('_notes_uuid') notes_uuid: string,
-  ): Promise<ApiResponse<Notes>> {
+  ): Promise<ApiResponse<TNotes>> {
     try {
       const { data } = await this.notesService.rejectByAdmin(notes_uuid);
+      const student = await this.studentService.findStudentBy({
+        student_uuid: data.student_uuid,
+      });
+      await this.notifyService.createNotification(
+        student!.student_uuid,
+        NotificationType.NOTES_APPROVED,
+        {
+          courseName: data.note_title,
+        },
+      )
       return {
         success: true,
         data,

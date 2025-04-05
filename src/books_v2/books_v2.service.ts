@@ -49,6 +49,7 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 
 export interface Data<T> {
   data: T;
+  meta?: any;
   pagination: null;
 }
 
@@ -1626,11 +1627,11 @@ export class BooksV2Service {
         );
       }
 
-      await this.booklogRepository.query(
+      const data = await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
           old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
         [
           studentExists[0].student_uuid,
           bookCopyUUID,
@@ -1649,6 +1650,7 @@ export class BooksV2Service {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Book returned successfully',
+        meta: data[0]
       };
     } catch (error) {
       throw error;
@@ -1796,11 +1798,11 @@ export class BooksV2Service {
         ],
       );
 
-      await this.booklogRepository.query(
+      const data = await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
           old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
         [
           studentExists[0].student_uuid,
           bookCopyUUID,
@@ -1819,6 +1821,7 @@ export class BooksV2Service {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Book borrowed successfully',
+        meta: data[0]
       };
     } catch (error) {
       throw error;
@@ -2237,9 +2240,11 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
 
-      const bookPayloadFromBookCopies: Pick<TBookCopy, 'book_copy_id'>[] =
+      const bookPayloadFromBookCopies =
         await this.bookcopyRepository.query(
-          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = true AND is_archived = false`,
+          `SELECT book_copies.book_copy_id, book_titles.book_title FROM book_copies 
+          LEFT JOIN book_titles ON book_titles.book_uuid = book_copies.book_title_uuid
+          WHERE book_copies.barcode = $1 AND book_copies.is_available = true AND book_copies.is_archived = false`,
           [requestBookIssuePayload.barcode],
         );
 
@@ -2270,6 +2275,7 @@ export class BooksV2Service {
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
+      console.log(queryData)
       const result: RequestBook[] = await this.requestBooklogRepository.query(
         `
         INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
@@ -2277,6 +2283,7 @@ export class BooksV2Service {
       );
       return {
         data: result[0],
+        meta: {bookTitle: bookPayloadFromBookCopies[0].book_title},
         pagination: null,
       };
     } catch (error) {
@@ -2327,9 +2334,15 @@ export class BooksV2Service {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
+      const student = await this.studentRepository.query(
+        `SELECT st.student_uuid, bt.book_title FROM request_book_log rl LEFT JOIN students_table st ON st.student_id = rl.student_id 
+        LEFT JOIN book_copies bc ON bc.book_copy_id = rl.book_copy_id
+        LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid
+        WHERE request_id = $1 `, [requestBookIssueARPayload.request_id])
       return {
         statusCode: HttpStatus.OK,
         message: 'Request has been updated!',
+        meta: student[0]
       };
     } catch (error) {
       throw error;
@@ -2466,9 +2479,9 @@ export class BooksV2Service {
           HttpStatus.BAD_REQUEST,
         );
       }
-      const barcode: { book_copy_id: string; book_copy_uuid: string }[] =
+      const barcode =
         await this.booktitleRepository.query(
-          `SELECT book_copy_id, book_copy_uuid FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,
+          `SELECT * FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,
           [requestBookReIssuePayload.barcode],
         );
       if (!barcode.length) {
@@ -2520,14 +2533,16 @@ export class BooksV2Service {
       const queryData = insertQueryHelper(insertObject, []);
 
       const insert = await this.booklogRepository.query(
-        `INSERT INTO request_book_log(${queryData.queryCol}) VALUES (${queryData.queryArg}) RETURNING request_id`,
+        `INSERT INTO request_book_log(${queryData.queryCol}) VALUES (${queryData.queryArg}) RETURNING *`,
         queryData.values,
       );
-
-      throw new HttpException(
-        'Student inserted sucessfully ',
-        HttpStatus.ACCEPTED,
-      );
+      
+      return {
+        data: insert[0],
+        meta: {bookTitle: barcode[0].book_title},
+        pagination: null,
+        success: true,
+      };
     } catch (error) {
       throw error;
     }
@@ -2598,11 +2613,6 @@ export class BooksV2Service {
         } else {
           console.error('Invalid date format:', date[0].return_date);
         }
-
-        throw new HttpException(
-          'Status updated Sucessfully!!',
-          HttpStatus.ACCEPTED,
-        );
       } else if (requestBookIssueARPayload.status === 'rejected') {
         const isCompleted = false;
         const update = await this.booktitleRepository.query(
@@ -2614,12 +2624,17 @@ export class BooksV2Service {
             requestBookIssueARPayload.request_id,
           ],
         );
-        throw new HttpException(
-          'Status updated Sucessfully!!',
-          HttpStatus.ACCEPTED,
-        );
       }
-      throw new HttpException('Invalid Status !!', HttpStatus.BAD_REQUEST);
+      const student = await this.studentRepository.query(
+        `SELECT st.student_uuid, bt.book_title FROM request_book_log rl LEFT JOIN students_table st ON st.student_id = rl.student_id 
+        LEFT JOIN book_copies bc ON bc.book_copy_id = rl.book_copy_id
+        LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid
+        WHERE request_id = $1 `, [requestBookIssueARPayload.request_id])
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Request has been updated!',
+        meta: student[0]
+      }
     } catch (error) {
       throw error;
     }

@@ -51,6 +51,8 @@ import {
   PaginationParserType,
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
+import { StudentNotifyService } from 'src/student-notify/student-notify.service';
+import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -65,7 +67,10 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('student')
 export class StudentsController {
-  constructor(private studentsService: StudentsService) {}
+  constructor(
+    private studentsService: StudentsService,
+    private readonly notifyService: StudentNotifyService,
+  ) {}
 
   @Get('all')
   @UseGuards(TokenAuthGuard)
@@ -481,11 +486,19 @@ export class StudentsController {
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
-      return await this.studentsService.reportInquiryLog({
+      const data = await this.studentsService.reportInquiryLog({
         student,
         type,
         inquiryUuid,
       });
+      await this.notifyService.createNotification(
+        student!.student_uuid,
+        NotificationType.ACTIVITY_REPORTED,
+        {
+          activityDescription: type,
+        },
+      );
+      return data;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -497,10 +510,21 @@ export class StudentsController {
     @Body('report_uuid') report_uuid: string,
   ) {
     try {
-      return await this.studentsService.inquiryLogAction({
+      const data =  await this.studentsService.inquiryLogAction({
         type,
         report_uuid,
       });
+      const student = await this.studentsService.findStudentBy({
+        student_uuid: data.meta.student_uuid,
+      });
+      await this.notifyService.createNotification(
+        student!.student_uuid,
+        NotificationType.ACTIVITY_RESOLVED,
+        {
+          courseName: data.meta.inquiry_type,
+        },
+      )
+      return data
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -568,10 +592,29 @@ export class StudentsController {
   @Post('visitlog')
   async visitlog(@Body() createvlogpayload: TVisit_log) {
     try {
+      const student = await this.studentsService.findStudentBy({
+        student_id: createvlogpayload.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       if (createvlogpayload.action === 'entry') {
-        return await this.studentsService.visitlogentry(createvlogpayload);
+        const data =
+          await this.studentsService.visitlogentry(createvlogpayload);
+        // await this.notifyService.createNotification(
+        //   student.student_uuid,
+        //   NotificationType.LIBRARY_ENTRY,
+        //   {}
+        // );
+        return data;
       } else if (createvlogpayload.action === 'exit') {
-        return await this.studentsService.visitlogexit(createvlogpayload);
+        const data = await this.studentsService.visitlogexit(createvlogpayload);
+        // await this.notifyService.createNotification(
+        //   student.student_uuid,
+        //   NotificationType.LIBRARY_EXIT,
+        //   {}
+        // );
+        return data;
       } else {
         throw new HttpException(
           "Invalid action. Use 'entry' or 'exit'.",
@@ -649,16 +692,16 @@ export class StudentsController {
   @UseGuards(TokenAuthGuard)
   async studentVisitKey(
     @Request() req: AuthenticatedRequest,
-    @Body('longitude') longitude: number,
-    @Body('latitude') latitude: number,
+    @Body('longitude') longitude: string,
+    @Body('latitude') latitude: string,
     @Body('action') action: string,
   ): Promise<ApiResponse<StudentsVisitKey>> {
     try {
       const user = req.user;
       const createKey = await this.studentsService.createStudentVisitKey(
         user,
-        latitude,
-        longitude,
+        parseFloat(latitude),
+        parseFloat(longitude),
         action,
       );
       return {
@@ -684,6 +727,11 @@ export class StudentsController {
     try {
       const visitKey =
         await this.studentsService.verifyStudentVisitKey(student_key_uuid);
+      await this.notifyService.createNotification(
+        visitKey.meta.student_uuid,
+        NotificationType.LIBRARY_EXIT,
+        {},
+      );
       return visitKey;
     } catch (error) {
       if (!(error instanceof HttpException)) {
