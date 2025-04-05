@@ -47,7 +47,7 @@ export const generateNotificationContent = (
     case NotificationType.BOOK_BORROWED:
       return {
         title: 'Book Borrowed Successfully',
-        message: `You have borrowed "${data.bookTitle}". Please return it by ${data.returnDate}.`,
+        message: `You have borrowed "${data.bookTitle}"`,
       };
 
     case NotificationType.BOOK_RETURNED:
@@ -148,7 +148,7 @@ export const generateNotificationContent = (
 
 
 
-      
+
 
     case NotificationType.NOTES_REQUESTED:
       return {
