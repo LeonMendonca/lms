@@ -12,7 +12,7 @@ export class InstituteConfig {
     @Column({ name: 'institute_name', type: 'varchar',  length: 255 })
     instituteName: "institute_name" = "institute_name"
     
-    @Column({name:'institute_abbr', type:'varchar', length:255,  nullable:true})
+    @Column({name:'institute_abbr', type:'varchar', length:255, unique:true, nullable:true})
     instituteAbbr: "institute_abbr" = "institute_abbr"
     
     @Column({name:'institute_contact_person', type:'varchar', length:255,  nullable:true})

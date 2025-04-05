@@ -36,6 +36,7 @@ import { BookCopy } from 'src/books_v2/entity/books_v2.copies.entity';
 import { BookTitle } from 'src/books_v2/entity/books_v2.title.entity';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 import { ConfigController } from 'src/config/config.controller';
+import { InstituteConfig } from 'src/config/entity/institute_config.entity';
 
 @Injectable()
 export class JournalsService {
@@ -68,6 +69,9 @@ export class JournalsService {
     @InjectRepository(Booklog_v2)
     private bookLogRepository: Repository<Booklog_v2>,
 
+    @InjectRepository(InstituteConfig)
+    private instituteConfigRepository: Repository<InstituteConfig>,
+
     private readonly dataSource: DataSource,
   ) { }
 
@@ -85,9 +89,30 @@ export class JournalsService {
       const offset = (page - 1) * limit;
       const searchQuery = search ? `${search}%` : '%';
 
+      const institutes = ['a0e08cc6-c7e4-4e6a-b98e-38e8cef99b7c']
+
+      // const journals = await this.journalsTitleRepository.query(
+      //   `SELECT * FROM journal_copy WHERE is_archived=false AND institute_uuid= ANY($1)`, 
+      //   [institutes]
+      // );
+
       const journals = await this.journalsTitleRepository.query(
-        `SELECT * FROM journal_titles WHERE is_archived=false AND available_count>0`,
-      );
+        `
+        SELECT
+    jt.journal_title_id,
+    jt.name_of_publisher,
+    jt.total_count,
+    jt.volume_no,
+    jt.subscription_start_date,
+    jt.subscription_end_date
+  FROM journal_titles jt
+  INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
+  WHERE jt.is_archived = false
+    AND jc.is_archived = false
+    AND jc.institute_uuid = ANY($1)
+  GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
+  [institutes]
+      )
       console.log(journals);
       const total = await this.journalsTitleRepository.query(
         `SELECT COUNT(*) AS count FROM journal_titles WHERE is_archived=false AND available_count>0`,

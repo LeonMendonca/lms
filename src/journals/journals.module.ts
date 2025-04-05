@@ -13,9 +13,10 @@ import { BookTitle } from 'src/books_v2/entity/books_v2.title.entity';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 import { BooksV2Module } from 'src/books_v2/books_v2.module';
 import { BooksV2Service } from 'src/books_v2/books_v2.service';
+import { InstituteConfig } from 'src/config/entity/institute_config.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([JournalLogs, JournalCopy, JournalTitle, Students, FeesPenalties, BookTitle, BookCopy, Booklog_v2, BooksV2Module])],
+  imports: [TypeOrmModule.forFeature([JournalLogs, JournalCopy, JournalTitle, Students, FeesPenalties, BookTitle, BookCopy, Booklog_v2, BooksV2Module, InstituteConfig])],
   controllers: [JournalsController],
   providers: [JournalsService]
 })
