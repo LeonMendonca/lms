@@ -17,13 +17,9 @@ export class FeesPenalties {
     @Column({ name: "category", type: "enum", enum: CATEGORY })
     category: 'category' = 'category';
 
-    // @ManyToOne(() => Students, (student) => student.studentUUID)
-    // @JoinColumn({ name: 'borrower_uuid' })
     @Column({ name: 'borrower_uuid', type: 'uuid' })
     borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
 
-    // @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
-    // @JoinColumn({ name: 'book_copy_uuid' })
     @Column({ name: 'copy_uuid', type: 'uuid' })
     CopyUUID: 'copy_uuid' = 'copy_uuid';
 
@@ -56,6 +52,15 @@ export class FeesPenalties {
 
     @Column({ name: 'is_completed', type: 'bool', default: false })
     isCompleted: 'is_completed' = 'is_completed';
+
+    @Column({name:'receipt_number', type:'varchar', length: 255, nullable:true})
+    receiptNumber: "receipt_number" = "receipt_number"
+
+    @Column({name:'paid_at', nullable:true})
+    paidAt : "paid_at" = "paid_at"
+
+    @Column({name:"remarks", type: 'text', nullable:true})
+    remarks: "remarks" = "remarks"
 }
 
 export const fees_penalties = new FeesPenalties();

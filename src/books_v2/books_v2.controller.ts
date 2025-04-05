@@ -94,6 +94,31 @@ export class BooksV2Controller {
     });
   }
 
+  // {
+  //   page: page ? parseInt(page, 10) : 1,
+  //   limit: limit ? parseInt(limit, 10) : 10,
+  //   search: search ?? undefined,
+  // }
+
+  @Get('book-journal')
+  async getBookJournal(
+    @Query('_page') page: string,
+    @Query('_limit') limit: string,
+    @Query('_search') search: string,
+  ) {
+    try {
+      return await this.booksService.getBookJournal();
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
   @Get('get_copies_with_title') // done
   async getBookCopiesByTitle(
     @Query('_book_uuid') book_uuid: string,

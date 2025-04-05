@@ -1074,12 +1074,11 @@ async periodicalReturned(
             fp_uuid,
           ],
         );
-
-        return {
-          message: 'Periodical Borrowed Successfully',
-          statusCode: HttpStatus.CREATED,
-        };
       });
+      return {
+        message: 'Periodical Borrowed Successfully',
+        statusCode: HttpStatus.CREATED,
+      };
     } catch (error) {
       console.log(error);
       throw new HttpException(

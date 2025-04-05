@@ -5,7 +5,8 @@ import { LibraryConfig } from "../entity/library_config.entity"
 const updateLibraryRules = createObjectOmitProperties(new LibraryConfig(), ['createdAt'])
 
 export const updateLibraryRuleSchema = z.object({
-    [updateLibraryRules.instituteUUID] : z.string(),
+    // [updateLibraryRules.instituteUUID] : z.string(),
+    institute_uuid : z.string().uuid(),
     [updateLibraryRules.libraryRuleId]: z.string(),
     [updateLibraryRules.createdByUUID]: z.string().uuid().optional(),
     // [updateLibraryRules.enableEmail]: z.boolean().optional(),
@@ -28,7 +29,7 @@ export const updateLibraryRuleSchema = z.object({
         checkout_student: z.boolean().optional(),
         penalties_admin: z.boolean().default(true).optional(),
         penalties_student: z.boolean().default(true).optional()
-    })
+    }).optional()
 })
 
 export type TLibraryUpdateDTO = z.infer<typeof updateLibraryRuleSchema>

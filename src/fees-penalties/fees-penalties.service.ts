@@ -8,6 +8,7 @@ import { JournalLogs } from 'src/journals/entity/journals_log.entity';
 import { JournalTitle } from 'src/journals/entity/journals_title.entity';
 import { student, Students } from 'src/students/students.entity';
 import { TCreatePenaltyZod } from './zod/create-penalty-zod';
+import { chownSync } from 'fs';
 
 @Injectable()
 export class FeesPenaltiesService {
@@ -164,7 +165,7 @@ export class FeesPenaltiesService {
         }
     }
 
-    async getFullFeeListStudent(student_id: string) {
+    async getFullFeeListStudentBooks(student_id: string) {
         try {
             if (!student_id) {
                 return { message: "Enter Student Id" }
@@ -192,7 +193,6 @@ export class FeesPenaltiesService {
                 WHERE students_table.student_id = $1`,
                 [student_id]
             );
-
             if (result.length === 0) {
                 throw new HttpException(
                     { message: 'No data found!!' },
@@ -203,9 +203,48 @@ export class FeesPenaltiesService {
         } catch (error) {
             return { error: error }
         }
+    }
 
 
-
+    async getFullFeeListStudentPeriodicals(student_id: string) {
+        try {
+            if (!student_id) {
+                return { message: "Enter Student Id" }
+            }
+            if (student_id.length === 0) {
+                return { message: "Enter Student Id" }
+            }
+            // journal_titles.return_date,
+            // journal_titles.subject, 
+            const result = await this.journalsTitleRepository.query(
+               `SELECT 
+                    students_table.student_id,
+                    journal_copy.journal_copy_id,
+                    students_table.student_name, 
+                    students_table.department,
+                    fees_penalties.return_date, 
+                    fees_penalties.created_at, 
+                    fees_penalties.penalty_amount 
+                FROM fees_penalties
+                INNER JOIN students_table 
+                    ON fees_penalties.borrower_uuid = students_table.student_uuid 
+                INNER JOIN journal_copy 
+                    ON fees_penalties.copy_uuid = journal_copy.journal_copy_uuid
+                INNER JOIN journal_titles 
+                    ON journal_titles.journal_uuid = journal_copy.journal_title_uuid
+                WHERE students_table.student_id = $1`,
+                [student_id]
+            )
+            if (result.length === 0) {
+                throw new HttpException(
+                    { message: 'No data found!!' },
+                    HttpStatus.ACCEPTED,
+                );
+            }
+            return result;
+        } catch (error) {
+            throw error
+        }
     }
 
 
@@ -256,7 +295,6 @@ export class FeesPenaltiesService {
                 );
 
             }
-
             return {
                 data: result,
                 pagination: {
@@ -293,7 +331,7 @@ export class FeesPenaltiesService {
                 is_completed 
                 FROM fees_penalties 
                 INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
-                INNER JOIN book_copies ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid 
+                INNER JOIN book_copies ON fees_penalties.copy_uuid = book_copies.book_copy_uuid 
                 WHERE students_table.is_archived = FALSE
                 AND students_table.student_id = $1 
                 AND book_copies.is_archived = FALSE
@@ -302,7 +340,7 @@ export class FeesPenaltiesService {
                 AND is_completed = FALSE
                 AND is_penalised = TRUE
                 AND returned_at IS NOT NULL`,
-                [updateFeesPayload.student_id, updateFeesPayload.book_copy_id],
+                [updateFeesPayload.student_id, updateFeesPayload.copy_id],
             );
 
             if (!studentAndBookCopiesPayloadWithFeesPenalties.length) {
@@ -347,70 +385,166 @@ export class FeesPenaltiesService {
     }
 
 
+    // async payStudentFee(updateFeesPayload: TUpdateFeesPenaltiesZod){
+    //     try{
+
+    //         const data = await this.journalsCopyRepository.query(
+    //             `SELECT journal_copy_uuid FROM journal_copy WHERE journal_copy_id = $1`,
+    //         [updateFeesPayload.copy_id]
+    //         )
+    //         const journal_copy_uuid = data[0].journal_copy_uuid
+
+    //         const studentAndJournalCopiesPayloadWithFeesPenalties:{
+    //             student_uuid: string;
+    //             copy_uuid: string;
+    //             penalty_amount: number;
+    //             return_date: Date;
+    //             returned_at: Date;
+    //             paid_amount: number;
+    //             is_penalised: boolean;
+    //             is_completed: boolean;
+    //         }[] = await this.studentsRepository.query(
+    //             `SELECT student_uuid, 
+    //             journal_copy.journal_copy_uuid, 
+    //             penalty_amount, return_date, 
+    //             returned_at, paid_amount, 
+    //             is_penalised, 
+    //             is_completed 
+    //             FROM fees_penalties 
+    //             INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
+    //             INNER JOIN journal_copy ON fees_penalties.copy_uuid = journal_copy.journal_copy_uuid 
+    //             WHERE students_table.is_archived = FALSE
+    //             AND students_table.student_id = $1 
+    //             AND journal_copy.is_archived = FALSE
+    //             AND journal_copy.journal_copy_id = $2 
+    //             AND penalty_amount > paid_amount
+    //             AND is_completed = FALSE
+    //             AND is_penalised = TRUE
+    //             AND returned_at IS NOT NULL`,
+    //             [updateFeesPayload.student_id, updateFeesPayload.copy_id],
+    //         )
+
+    //         if (!studentAndJournalCopiesPayloadWithFeesPenalties.length) {
+    //             throw new HttpException(
+    //                 'Cannot find Student or Book, maybe archived or No penalty or Not returned',
+    //                 HttpStatus.BAD_REQUEST,
+    //             );
+    //         }
+
+    //         // Extract necessary values
+    //         const record = studentAndJournalCopiesPayloadWithFeesPenalties[0];
+
+    //         // Accumulate total paid amount
+    //         const accumulatedPaidAmount = updateFeesPayload.paid_amount + record.paid_amount;
+
+    //         // Determine if penalty is cleared
+    //         const isPenalised = accumulatedPaidAmount < record.penalty_amount; // True if penalty remains
+    //         const isCompleted = !isPenalised; // True if penalty is fully paid
+
+    //         // FIX: Add WHERE clause to prevent updating all records
+    //         await this.feesPenaltiesRepository.query(
+    //             `UPDATE fees_penalties 
+    //              SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
+    //              WHERE student_uuid = $5 AND copy_uuid = $6`,
+    //             [
+    //                 updateFeesPayload.payment_method,
+    //                 accumulatedPaidAmount,
+    //                 true,
+    //                 isCompleted,
+    //                 record.student_uuid,
+    //                 record.copy_uuid
+    //             ],
+    //         );
+
+    //         return {
+    //             statusCode: HttpStatus.OK,
+    //             message: 'Penalty paid successfully!',
+    //         };
+    //     }catch(error){
+    //         throw error
+    //     }
+    // }
+
+
+
+
 
     async payStudentFeeForPeriodicals(feesPayload: TCreatePenaltyZod) {
         try {
-            const penaltyPayload: {
-                student_uuid: string;
-                journal_copy_id: string;
-                penalty_amount: number,
-                return_date: Date,
-                paid_amount: number,
-                is_penalied: boolean,
-                is_completed: boolean
+            console.log(feesPayload.journal_copy_id)
 
-            }[] = await this.studentsRepository.query(
-                `SELECT student_uuid,
-                journal_copy.journal_copy_uuid,
-                penalty_amount,
-                return_Date,
-                paid_amount,
-                is_penalized,
-                is_completed
-                FROM fees_penalties
-                INNER JOIN student_table ON fees_penalties.borrower_uuid = students_table.student_uuid
-                WHERE students_table.is_archived=FALSE
-                AND students_table.student_id = $1
-                AND journal_copy.is_archived = FALSE
-                AND journal_copy.journal_copy_id = $2
-                AND penalty_amount > paid_amount
-                AND is_completed = FALSE
-                AND is_penalized = TRUE
-                AND returned_At IS NOT NULL
-                `,
-                [feesPayload.student_id, feesPayload.journal_copy_id]
+            const data = await this.journalsCopyRepository.query(
+                `SELECT journal_copy_uuid FROM journal_copy WHERE journal_copy_id = $1`,
+                [feesPayload.journal_copy_id]
             )
+            const student = await this.studentsRepository.query(
+                `SELECT student_uuid FROM students_table WHERE student_id = $1`,
+                [feesPayload.student_id]
+            )
+            console.log(student)
+            console.log(data)
 
-            if (!penaltyPayload.length) {
-                throw new HttpException(
-                    'Cannot find Student or Book, maybe archived or No penalty or Not returned',
-                    HttpStatus.BAD_REQUEST,
-                );
-            }
+            // const penaltyPayload: {
+            //     student_id: string;
+            //     journal_copy_id: string;
+            //     penalty_amount: number,
+            //     return_date: Date,
+            //     paid_amount: number,
+            //     is_penalied: boolean,
+            //     is_completed: boolean
 
-            const record = penaltyPayload[0];
+            // }[] = await this.studentsRepository.query(
+            //     `SELECT student_uuid,
+            //     journal_copy.journal_copy_uuid,
+            //     penalty_amount,
+            //     return_Date,
+            //     paid_amount,
+            //     is_penalized,
+            //     is_completed
+            //     FROM fees_penalties
+            //     INNER JOIN student_table ON fees_penalties.borrower_uuid = students_table.student_uuid
+            //     WHERE students_table.is_archived=FALSE
+            //     AND students_table.student_id = $1
+            //     AND journal_copy.is_archived = FALSE
+            //     AND journal_copy.journal_copy_id = $2
+            //     AND penalty_amount > paid_amount
+            //     AND is_completed = FALSE
+            //     AND is_penalized = TRUE
+            //     AND returned_At IS NOT NULL
+            //     `,
+            //     [feesPayload.student_id, feesPayload.journal_copy_id]
+            // )
+
+            // if (!penaltyPayload.length) {
+            //     throw new HttpException(
+            //         'Cannot find Student or Book, maybe archived or No penalty or Not returned',
+            //         HttpStatus.BAD_REQUEST,
+            //     );
+            // }
+
+            // const record = penaltyPayload[0];
 
             // Accumulate total paid amount
-            const accumulatedPaidAmount = feesPayload.paid_amount + record.paid_amount;
+            // const accumulatedPaidAmount = feesPayload.paid_amount + record.paid_amount;
 
-            // Determine if penalty is cleared
-            const isPenalised = accumulatedPaidAmount < record.penalty_amount; // True if penalty remains
-            const isCompleted = !isPenalised; // True if penalty is fully paid
+            // // Determine if penalty is cleared
+            // const isPenalised = accumulatedPaidAmount < record.penalty_amount; // True if penalty remains
+            // const isCompleted = !isPenalised; // True if penalty is fully paid
 
-            // FIX: Add WHERE clause to prevent updating all records
-            await this.feesPenaltiesRepository.query(
-                `UPDATE fees_penalties 
-                 SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
-                 WHERE student_uuid = $5 AND book_copy_uuid = $6`,
-                [
-                    feesPayload.payment_method,
-                    accumulatedPaidAmount,
-                    true,
-                    isCompleted,
-                    record.student_uuid,
-                    record.journal_copy_id
-                ],
-            );
+            // // FIX: Add WHERE clause to prevent updating all records
+            // await this.feesPenaltiesRepository.query(
+            //     `UPDATE fees_penalties 
+            //      SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
+            //      WHERE student_uuid = $5 AND book_copy_uuid = $6`,
+            //     [
+            //         feesPayload.payment_method,
+            //         accumulatedPaidAmount,
+            //         true,
+            //         isCompleted,
+            //         record.student_uuid,
+            //         record.journal_copy_id
+            //     ],
+            // );
 
             return {
                 statusCode: HttpStatus.OK,
@@ -433,28 +567,27 @@ export class FeesPenaltiesService {
             WHERE (penalty_amount - paid_amount) > 0 
             AND is_completed=false`
         );
-        if(!result.length){
-            return {message : "No Penalties To Be Paid"}
-        }else{
+        if (!result.length) {
+            return { message: "No Penalties To Be Paid" }
+        } else {
             return result
         }
     }
 
     // Get penalties that are paid
-    async getCompletedPenalties(){
+    async getCompletedPenalties() {
         const result = await this.feesPenaltiesRepository.query(
             `SELECT *, (penalty_amount - paid_amount) AS remaining_penalty
             FROM fees_penalties
             WHERE (penalty_amount - paid_amount) = 0 
             AND is_completed=true`
         );
-        if(!result.length){
-            return {message : "No Penalties Found"}
-        }else{
+        if (!result.length) {
+            return { message: "No Penalties Found" }
+        } else {
             return result
         }
     }
-    
 
 
 
