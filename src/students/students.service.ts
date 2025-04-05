@@ -43,7 +43,7 @@ export interface DataWithPagination<T> {
 export interface Data<T> {
   data: T;
   pagination: null;
-  meta?: any
+  meta?: any;
 }
 
 @Injectable()
@@ -668,12 +668,13 @@ export class StudentsService {
           break;
       }
       const meta: TStudents[] = await this.studentsRepository.query(
-        `SELECT inquiry_type, student_uuid FROM inquire_logs  WHERE report_uuid = $1`, [report_uuid]
-      )
+        `SELECT inquiry_type, student_uuid FROM inquire_logs  WHERE report_uuid = $1`,
+        [report_uuid],
+      );
       return {
         data: { success: true },
         pagination: null,
-        meta: meta[0]
+        meta: meta[0],
       };
     } catch (error) {
       throw new HttpException(
@@ -811,7 +812,7 @@ export class StudentsService {
         message: 'Visit log entry created successfully',
         student_id: createvisitpayload.student_id,
         timestamp: new Date().toISOString(),
-        meta: result[0]
+        meta: result[0],
       };
     } catch (error) {
       throw new HttpException(
@@ -972,97 +973,115 @@ export class StudentsService {
     }
   }
 
-  async adminDashboard(instituteUUID: string | null) {
+  async adminDashboard(instituteUUIDs: string | null) {
     try {
-      // Adjust the query for totalBooks
+      // Uncomment after completion of phase 1
+      // if (!instituteUUIDs) {
+      //   throw new HttpException(
+      //     'Please Provide atleast one Institute Identifier',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
+
+      const instituteUUIDsJSON = JSON.parse(instituteUUIDs || "[]");
+
+      const useInstituteFilter =
+        Array.isArray(instituteUUIDsJSON) && instituteUUIDsJSON.length > 0;
+
+      const whereInstituteClause = useInstituteFilter
+        ? `AND institute_uuid = ANY($1)`
+        : '';
+
+      const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
+
       const totalBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false
-        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-      `;
-      const totalBooks = await this.studentsRepository.query(
-        totalBooksQuery,
-        instituteUUID ? [instituteUUID] : [],
-      );
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false
+      ${whereInstituteClause}
+    `;
+      const totalBooks: { count: string }[] =
+        await this.studentsRepository.query(totalBooksQuery, instituteParams);
 
       // Adjust the query for totalBorrowedBooks
       const totalBorrowedBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
-        WHERE book_copies.is_archived = false
-        ${instituteUUID ? 'AND book_copies.institute_uuid = $1' : ''}
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
+      WHERE book_copies.is_archived = false
+      ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
+    `;
       const totalBorrowedBooks = await this.studentsRepository.query(
         totalBorrowedBooksQuery,
-        instituteUUID ? [instituteUUID] : [],
+        instituteParams,
       );
 
-      // Adjust the query for totalMembers
       const totalMembersQuery = `
-        SELECT COUNT(*) 
-        FROM students_table 
-        WHERE is_archived = false
-        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-      `;
+      SELECT COUNT(*) 
+      FROM students_table 
+      WHERE is_archived = false
+      ${whereInstituteClause}
+    `;
       const totalMembers = await this.studentsRepository.query(
         totalMembersQuery,
-        instituteUUID ? [instituteUUID] : [],
+        instituteParams,
       );
 
-      // Adjust the query for newBooks (not filtered by instituteUUID as there's no filter for it)
       const newBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
-      `;
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false 
+        AND is_available = true 
+        AND created_at >= NOW() - INTERVAL '1 month'
+    `;
       const newBooks = await this.studentsRepository.query(newBooksQuery);
 
       const todayIssuesQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        WHERE date >= CURRENT_DATE AND action = 'borrowed'
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      WHERE date >= CURRENT_DATE AND action = 'borrowed'
+    `;
       const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
 
       const todayReturnedQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        WHERE date >= CURRENT_DATE AND action = 'returned'
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      WHERE date >= CURRENT_DATE AND action = 'returned'
+    `;
       const todayReturned =
         await this.studentsRepository.query(todayReturnedQuery);
 
       const overdueQuery = `
-        SELECT COUNT(*) 
-        FROM fees_penalties 
-        WHERE penalty_amount > 0
-      `;
+      SELECT COUNT(*) 
+      FROM fees_penalties 
+      WHERE penalty_amount > 0
+    `;
       const overdues = await this.studentsRepository.query(overdueQuery);
 
       const trendingQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
-      `;
-      const trending = await this.studentsRepository.query(newBooksQuery);
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false 
+        AND is_available = true 
+        AND created_at >= NOW() - INTERVAL '1 month'
+    `;
+      const trending = await this.studentsRepository.query(trendingQuery);
+
+      const parseCount = (result: { count: string }[]) =>
+        parseInt(result?.[0]?.count || '0', 10);
 
       return {
-        totalBooks: totalBooks[0].count,
-        totalBorrowedBooks: totalBorrowedBooks[0].count,
-        totalMembers: totalMembers[0].count,
-        newBooks: newBooks[0].count,
-        todayIssues: todayIssues[0].count,
-        todayReturned: todayReturned[0].count,
-        overdue: overdues[0].count,
-        trending: trending[0].count,
+        totalBooks: parseCount(totalBooks),
+        totalBorrowedBooks: parseCount(totalBorrowedBooks),
+        totalMembers: parseCount(totalMembers),
+        newBooks: parseCount(newBooks),
+        todayIssues: parseCount(todayIssues),
+        todayReturned: parseCount(todayReturned),
+        overdue: parseCount(overdues),
+        trending: parseCount(trending),
       };
     } catch (error) {
+      console.error('Error in adminDashboard:', error);
       throw error;
     }
   }

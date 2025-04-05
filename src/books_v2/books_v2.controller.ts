@@ -620,7 +620,7 @@ export class BooksV2Controller {
   async updateBookLog(
     @Body() booklogPayload: TCreateBooklogV2DTO,
     @Req() request: Request,
-  ) {
+  ): Promise<ApiResponse<any>> {
     try {
       if (!request.ip) {
         throw new HttpException(
@@ -656,6 +656,15 @@ export class BooksV2Controller {
           request.ip,
           (status = 'returned'),
         );
+        console.log({result})
+        console.log(result.meta.borrower_uuid, result.meta.new_book_title.book_title)
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_RETURNED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
+        )
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
@@ -673,10 +682,6 @@ export class BooksV2Controller {
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,

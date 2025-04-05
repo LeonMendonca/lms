@@ -2516,7 +2516,6 @@ export class BooksV2Service {
         extended_period: requestBookReIssuePayload.extended_period,
         student_id: requestBookReIssuePayload.student_id,
       });
-
       const result = await this.booktitleRepository.query(
         `SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
         [
