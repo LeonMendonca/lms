@@ -827,14 +827,10 @@ export class BooksV2Controller {
 
   @Get('request_booklog')
   async getRequestBooklog(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ) {
     try {
-      return await this.booksService.getRequestBookLogs({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      });
+      return await this.booksService.getRequestBookLogs(query);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

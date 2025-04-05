@@ -1650,7 +1650,7 @@ export class BooksV2Service {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Book returned successfully',
-        meta: data[0]
+        meta: data[0],
       };
     } catch (error) {
       throw error;
@@ -1821,7 +1821,7 @@ export class BooksV2Service {
       return {
         statusCode: HttpStatus.CREATED,
         message: 'Book borrowed successfully',
-        meta: data[0]
+        meta: data[0],
       };
     } catch (error) {
       throw error;
@@ -2195,21 +2195,59 @@ export class BooksV2Service {
     }
   }
 
-  async getRequestBookLogs({ page, limit }: { page: number; limit: number }) {
+  async getRequestBookLogs({
+    page,
+    limit,
+    search,
+    asc,
+    dec,
+    filter,
+  }: {
+    page: number;
+    limit: number;
+    asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
+  }) {
     try {
       const offset = (page - 1) * limit;
+
+      const params: (string | number)[] = [];
+
+      filter.push({ field: 'rb.is_archived', value: ['false'], operator: '=' });
+      filter.push({
+        field: 'rb.is_completed',
+        value: ['false'],
+        operator: '=',
+      });
+
+      const whereClauses = this.queryBuilderService.buildWhereClauses(
+        filter,
+        search,
+        params,
+      );
+      console.log(asc, dec)
+      const orderByQuery = this.queryBuilderService.buildOrderByClauses(
+        asc,
+        dec.length > 0 ? dec : ["rb.request_created_at"],
+      );
+
       const requests = await this.requestBooklogRepository.query(
         `
         SELECT rb.request_type, bc.book_copy_id, bt.book_title, bt.book_author, bt.edition, rb.request_id, rb.request_created_at, rb.student_id, rb.is_completed
         FROM request_book_log rb 
         LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
         LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-        WHERE rb.is_archived = false AND rb.is_completed = false  LIMIT $1 OFFSET $2`,
-        [limit, offset],
+        ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        [...params, limit, offset],
       );
+      console.log({requests})
+      console.log({whereClauses})
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT COUNT(*) FROM request_book_log WHERE is_archived = false AND is_completed = false`,
+        SELECT COUNT(*) FROM request_book_log rb LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id  ${whereClauses}`,
+        params,
       );
       return {
         data: requests,
@@ -2240,13 +2278,12 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
 
-      const bookPayloadFromBookCopies =
-        await this.bookcopyRepository.query(
-          `SELECT book_copies.book_copy_id, book_titles.book_title FROM book_copies 
+      const bookPayloadFromBookCopies = await this.bookcopyRepository.query(
+        `SELECT book_copies.book_copy_id, book_titles.book_title FROM book_copies 
           LEFT JOIN book_titles ON book_titles.book_uuid = book_copies.book_title_uuid
           WHERE book_copies.barcode = $1 AND book_copies.is_available = true AND book_copies.is_archived = false`,
-          [requestBookIssuePayload.barcode],
-        );
+        [requestBookIssuePayload.barcode],
+      );
 
       if (!bookPayloadFromBookCopies.length) {
         throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
@@ -2275,7 +2312,7 @@ export class BooksV2Service {
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
-      console.log(queryData)
+      console.log(queryData);
       const result: RequestBook[] = await this.requestBooklogRepository.query(
         `
         INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
@@ -2283,7 +2320,7 @@ export class BooksV2Service {
       );
       return {
         data: result[0],
-        meta: {bookTitle: bookPayloadFromBookCopies[0].book_title},
+        meta: { bookTitle: bookPayloadFromBookCopies[0].book_title },
         pagination: null,
       };
     } catch (error) {
@@ -2338,11 +2375,13 @@ export class BooksV2Service {
         `SELECT st.student_uuid, bt.book_title FROM request_book_log rl LEFT JOIN students_table st ON st.student_id = rl.student_id 
         LEFT JOIN book_copies bc ON bc.book_copy_id = rl.book_copy_id
         LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid
-        WHERE request_id = $1 `, [requestBookIssueARPayload.request_id])
+        WHERE request_id = $1 `,
+        [requestBookIssueARPayload.request_id],
+      );
       return {
         statusCode: HttpStatus.OK,
         message: 'Request has been updated!',
-        meta: student[0]
+        meta: student[0],
       };
     } catch (error) {
       throw error;
@@ -2479,11 +2518,10 @@ export class BooksV2Service {
           HttpStatus.BAD_REQUEST,
         );
       }
-      const barcode =
-        await this.booktitleRepository.query(
-          `SELECT * FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,
-          [requestBookReIssuePayload.barcode],
-        );
+      const barcode = await this.booktitleRepository.query(
+        `SELECT * FROM book_copies WHERE barcode= $1 AND is_archived=false AND is_available=false`,
+        [requestBookReIssuePayload.barcode],
+      );
       if (!barcode.length) {
         throw new HttpException(' Invalid barcode !!', HttpStatus.BAD_REQUEST);
       }
@@ -2535,10 +2573,10 @@ export class BooksV2Service {
         `INSERT INTO request_book_log(${queryData.queryCol}) VALUES (${queryData.queryArg}) RETURNING *`,
         queryData.values,
       );
-      
+
       return {
         data: insert[0],
-        meta: {bookTitle: barcode[0].book_title},
+        meta: { bookTitle: barcode[0].book_title },
         pagination: null,
         success: true,
       };
@@ -2628,12 +2666,14 @@ export class BooksV2Service {
         `SELECT st.student_uuid, bt.book_title FROM request_book_log rl LEFT JOIN students_table st ON st.student_id = rl.student_id 
         LEFT JOIN book_copies bc ON bc.book_copy_id = rl.book_copy_id
         LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid
-        WHERE request_id = $1 `, [requestBookIssueARPayload.request_id])
+        WHERE request_id = $1 `,
+        [requestBookIssueARPayload.request_id],
+      );
       return {
         statusCode: HttpStatus.OK,
         message: 'Request has been updated!',
-        meta: student[0]
-      }
+        meta: student[0],
+      };
     } catch (error) {
       throw error;
     }
