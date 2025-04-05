@@ -43,6 +43,7 @@ export interface DataWithPagination<T> {
 export interface Data<T> {
   data: T;
   pagination: null;
+  meta?: any
 }
 
 @Injectable()
@@ -666,9 +667,13 @@ export class StudentsService {
           );
           break;
       }
+      const meta: TStudents[] = await this.studentsRepository.query(
+        `SELECT inquiry_type, student_uuid FROM inquire_logs  WHERE report_uuid = $1`, [report_uuid]
+      )
       return {
         data: { success: true },
         pagination: null,
+        meta: meta[0]
       };
     } catch (error) {
       throw new HttpException(
@@ -756,14 +761,8 @@ export class StudentsService {
   async visitlogentry(createvisitpayload: TVisit_log) {
     try {
       // 1. Validate if student exists
-      const result: {
-        student_uuid: string;
-        department: string;
-        student_name: string;
-      }[] = await this.studentsRepository.query(
-        `SELECT student_uuid, department, student_name 
-                 FROM STUDENTS_TABLE 
-                 WHERE STUDENT_ID=$1`,
+      const result: TStudents[] = await this.studentsRepository.query(
+        `SELECT * FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,
         [createvisitpayload.student_id],
       );
 
@@ -812,6 +811,7 @@ export class StudentsService {
         message: 'Visit log entry created successfully',
         student_id: createvisitpayload.student_id,
         timestamp: new Date().toISOString(),
+        meta: result[0]
       };
     } catch (error) {
       throw new HttpException(
@@ -868,6 +868,7 @@ export class StudentsService {
         message: 'Exit log updated successfully',
         student_id: createvlogpayload.student_id,
         timestamp: new Date().toISOString(),
+        meta: studentExists[0],
       };
     } catch (error) {
       throw new HttpException(

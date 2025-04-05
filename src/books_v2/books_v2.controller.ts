@@ -58,6 +58,8 @@ import {
   PaginationParserType,
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
+import { StudentNotifyService } from 'src/student-notify/student-notify.service';
+import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -74,6 +76,7 @@ export class BooksV2Controller {
   constructor(
     private readonly booksService: BooksV2Service,
     private readonly studentService: StudentsService,
+    private readonly notifyService: StudentNotifyService,
   ) {}
 
   // Get all books
@@ -191,7 +194,7 @@ export class BooksV2Controller {
     @Query('_limit') limit: string = '10',
   ) {
     try {
-      console.log({student_id})
+      console.log({ student_id });
       const student = await this.studentService.findStudentBy({
         student_id: student_id,
       });
@@ -795,11 +798,22 @@ export class BooksV2Controller {
         );
       }
       const user = request.user;
+      const student = await this.studentService.findStudentBy({
+        student_id: user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       //Adding IP address, since required for issuing
-      const { data } = await this.booksService.createRequestBooklogIssue(
-        user.student_id,
+      const { data, meta } = await this.booksService.createRequestBooklogIssue(
+        student.student_id,
         requestBookIssuePayload,
         request.ip,
+      );
+      const notify = await this.notifyService.createNotification(
+        student.student_uuid,
+        NotificationType.BOOK_REQUESTED,
+        meta,
       );
       return {
         data,

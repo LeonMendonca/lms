@@ -49,6 +49,7 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 
 export interface Data<T> {
   data: T;
+  meta?: any;
   pagination: null;
 }
 
@@ -2153,9 +2154,11 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
 
-      const bookPayloadFromBookCopies: Pick<TBookCopy, 'book_copy_id'>[] =
+      const bookPayloadFromBookCopies =
         await this.bookcopyRepository.query(
-          `SELECT book_copy_id FROM book_copies WHERE barcode = $1 AND is_available = true AND is_archived = false`,
+          `SELECT book_copies.book_copy_id, book_titles.book_title FROM book_copies 
+          LEFT JOIN book_titles ON book_titles.book_uuid = book_copies.book_title_uuid
+          WHERE book_copies.barcode = $1 AND book_copies.is_available = true AND book_copies.is_archived = false`,
           [requestBookIssuePayload.barcode],
         );
 
@@ -2186,6 +2189,7 @@ export class BooksV2Service {
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
+      console.log(queryData)
       const result: RequestBook[] = await this.requestBooklogRepository.query(
         `
         INSERT INTO request_book_log(${queryData.queryCol}) values(${queryData.queryArg}) RETURNING request_id`,
@@ -2193,6 +2197,7 @@ export class BooksV2Service {
       );
       return {
         data: result[0],
+        meta: {bookTitle: bookPayloadFromBookCopies[0].book_title},
         pagination: null,
       };
     } catch (error) {
