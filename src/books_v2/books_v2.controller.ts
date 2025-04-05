@@ -99,12 +99,31 @@ export class BooksV2Controller {
 
   @Get('book-journal')
   async getBookJournal(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
-    @Query('_search') search: string,
+    @Query('_book_journal_page') book_journal_page: string,
+    @Query('_book_journal_limit') book_journal_limit: string,
+    @Query('_book_journal_search') book_journal_search: string,
+
+    @Query('_note_page') note_page: string,
+    @Query('_note_limit') note_limit: string,
+    @Query('_note_search') note_search: string,
   ) {
     try {
-      return await this.booksService.getBookJournal();
+      return await this.booksService.getBookJournal(
+        {
+          book_journal_page: book_journal_page
+            ? parseInt(book_journal_page, 10)
+            : 1,
+          book_journal_limit: book_journal_limit
+            ? parseInt(book_journal_limit, 10)
+            : 1,
+          book_journal_search,
+        },
+        {
+          note_page: note_page ? parseInt(note_page, 10) : 1,
+          note_limit: note_limit ? parseInt(note_limit, 10) : 1,
+          note_search,
+        },
+      );
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

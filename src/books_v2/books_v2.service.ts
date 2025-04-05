@@ -119,15 +119,72 @@ export class BooksV2Service {
     }
   }
 
-  async getBookJournal() {
+  async getBookJournal(
+    {
+      book_journal_page,
+      book_journal_limit,
+      book_journal_search,
+    }: {
+      book_journal_page: number;
+      book_journal_limit: number;
+      book_journal_search: string;
+    } = {
+      book_journal_page: 1,
+      book_journal_limit: 10,
+      book_journal_search: '',
+    },
+    {
+      note_page,
+      note_limit,
+      note_search,
+    }: { note_page: number; note_limit: number; note_search: string } = {
+      note_page: 1,
+      note_limit: 10,
+      note_search: '',
+    },
+  ) {
     try {
-      const books = await this.booktitleRepository.query(
-        `SELECT book_title_id AS id, book_title AS title, book_author AS author, name_of_publisher AS publisher, available_count AS count, isbn AS isbn_issn, year_of_publication FROM book_titles WHERE is_archived = false AND available_count > 0 AND total_count > 0`,
+      const book_journal_searchQuery = book_journal_search
+        ? `${book_journal_search}%`
+        : '%';
+      const book_journal_pageQuery =
+        (book_journal_page - 1) * book_journal_limit;
+      const book_journal_limitQuery = book_journal_limit;
+
+      const books: any[] = await this.booktitleRepository.query(
+        `SELECT book_title_id AS id, book_title AS title, book_author AS author, name_of_publisher AS publisher, available_count AS count, isbn AS isbn_issn, year_of_publication 
+        FROM book_titles WHERE book_title ILIKE $1 AND is_archived = false AND available_count > 0 AND total_count > 0 LIMIT $2 OFFSET $3`,
+        [
+          book_journal_searchQuery,
+          book_journal_limitQuery,
+          book_journal_pageQuery,
+        ],
       );
-      if (books.length === 0) {
-        throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
-      }
-      return books;
+      console.log('working');
+
+      const notes: any[] = await this.booktitleRepository.query(
+        `SELECT * FROM notes WHERE is_archived = false AND is_approved = true`,
+      );
+
+      const totalBooks = await this.booktitleRepository.query(
+        `SELECT COUNT(*) as count FROM book_titles 
+        WHERE is_archived = false AND available_count > 0 AND total_count > 0`,
+      );
+      const totalNotes = await this.booktitleRepository.query(
+        `SELECT COUNT(*) as count FROM notes WHERE is_archived = FALSE AND is_approved = TRUE`,
+      );
+      console.log(totalNotes, totalBooks);
+      return {
+        book_journal: books,
+        book_journal_pagination: {
+          total: parseInt(totalBooks[0].count, 10),
+          book_journal_page,
+          book_journal_limit,
+          totalPages: Math.ceil(
+            parseInt(totalBooks[0].count, 10) / book_journal_limit,
+          ),
+        },
+      };
     } catch (error) {
       throw error;
     }
