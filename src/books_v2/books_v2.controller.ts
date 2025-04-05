@@ -612,13 +612,20 @@ export class BooksV2Controller {
 
       let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
         undefined;
-      let result: Record<string, string | number> = {};
+      let result: any = {};
       if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
           request.ip,
           (status = 'borrowed'),
         );
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_BORROWED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
+        )
         // result = await this.booksService.bookBorrowed(
         //   booklogPayload,
         //   request,
@@ -636,6 +643,13 @@ export class BooksV2Controller {
           request.ip,
           (status = 'in_library_borrowed'),
         );
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_RETURNED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
+        )
       }
       return result;
     } catch (error) {
@@ -919,9 +933,18 @@ export class BooksV2Controller {
     @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
   ) {
     try {
-      return await this.booksService.createRequestBooklogIssueAR(
+      const data = await this.booksService.createRequestBooklogIssueAR(
         requestBookIssueARPayload,
       );
+
+      const notify = await this.notifyService.createNotification(
+        data.meta.student_uuid,
+        requestBookIssueARPayload.status === 'approved'
+          ? NotificationType.BOOK_REQUEST_APPROVED
+          : NotificationType.BOOK_REQUEST_REJECTED,
+        data.meta,
+      );
+      return data;
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -934,10 +957,11 @@ export class BooksV2Controller {
   }
 
   @Post('request_booklog_reissue')
+  @UseGuards(TokenAuthGuard)
   @UsePipes(new bodyValidationPipe(requestBookZodReIssue))
   async createRequestBooklogReIssue(
     @Body() requestBookReIssuePayload: TRequestBookZodReIssue,
-    @Req() request: Request,
+    @Req() request: AuthenticatedRequest,
   ) {
     try {
       if (!request.ip) {
@@ -946,9 +970,22 @@ export class BooksV2Controller {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      return await this.booksService.createBooklogReissue(
+      const user = request.user;
+      const student = await this.studentService.findStudentBy({
+        student_id: user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      const data =  await this.booksService.createBooklogReissue(
         requestBookReIssuePayload,
         request.ip,
+      );
+
+      const notify = await this.notifyService.createNotification(
+        student.student_uuid,
+        NotificationType.BOOK_REISSUE_REQUESTED,
+        data.meta,
       );
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -968,9 +1005,17 @@ export class BooksV2Controller {
     @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
   ) {
     try {
-      return await this.booksService.requestBooklogReissuear(
+      const data =  await this.booksService.requestBooklogReissuear(
         requestBookIssueARPayload,
       );
+      const notify = await this.notifyService.createNotification(
+        data.meta.student_uuid,
+        requestBookIssueARPayload.status === 'approved'
+          ? NotificationType.BOOK_REISSUE_APPROVED
+          : NotificationType.BOOK_REISSUE_REJECTED,
+        data.meta,
+      )
+      return data;
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
