@@ -72,8 +72,7 @@ export class BooksV2Service {
 
     @InjectRepository(RequestBook)
     private readonly requestBooklogRepository: Repository<RequestBook>,
-  
-  
+
     private readonly queryBuilderService: QueryBuilderService,
   ) {}
 
@@ -90,7 +89,7 @@ export class BooksV2Service {
       const searchQuery = search ? `${search}%` : '%';
 
       const books = await this.booktitleRepository.query(
-        `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false AND available_count >0 AND total_count >0  LIMIT $2 OFFSET $3;`,
+        `SELECT * FROM book_titles WHERE book_title LIKE $1 AND is_archived = false AND available_count > 0 AND total_count > 0  LIMIT $2 OFFSET $3;`,
         [searchQuery, limit, offset],
       );
       if (books.length === 0) {
@@ -117,6 +116,20 @@ export class BooksV2Service {
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  async getBookJournal() {
+    try {
+      const books = await this.booktitleRepository.query(
+        `SELECT book_title_id AS id, book_title AS title, book_author AS author, name_of_publisher AS publisher, available_count AS count, isbn AS isbn_issn, year_of_publication FROM book_titles WHERE is_archived = false AND available_count > 0 AND total_count > 0`,
+      );
+      if (books.length === 0) {
+        throw new HttpException('Book data not found', HttpStatus.NOT_FOUND);
+      }
+      return books;
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -151,17 +164,19 @@ export class BooksV2Service {
         queryParams,
       );
 
-      const reviews = await this.booktitleRepository.query(`
-        SELECT re.star_rating, re.review_text, re.created_at, st.student_name, st.student_id FROM reviews re LEFT JOIN students_table st ON re.student_uuid = st.student_uuid WHERE book_uuid = $1 AND is_approved = true`
-      ,[book_uuid])
+      const reviews = await this.booktitleRepository.query(
+        `
+        SELECT re.star_rating, re.review_text, re.created_at, st.student_name, st.student_id FROM reviews re LEFT JOIN students_table st ON re.student_uuid = st.student_uuid WHERE book_uuid = $1 AND is_approved = true`,
+        [book_uuid],
+      );
 
       if (book.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
       }
 
-      return [{...book[0], reviews}]; 
+      return [{ ...book[0], reviews }];
     } catch (error) {
-      console.log(error)
+      console.log(error);
       throw new HttpException(
         'Error fetching book details',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -226,7 +241,8 @@ export class BooksV2Service {
     isbn: string;
     titlename: string;
     page: number;
-    limit: number;asc: string[];
+    limit: number;
+    asc: string[];
     dec: string[];
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
@@ -260,18 +276,29 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
-      filter.push({field: "book_copies.is_archived", value:['false'], operator:"="})
-      filter.push({field: "book_copies.book_title_uuid", value:[book[0].book_uuid], operator:"="})
-      dec.push("book_copies.created_at")
-      console.log({filter, asc, dec})
+      filter.push({
+        field: 'book_copies.is_archived',
+        value: ['false'],
+        operator: '=',
+      });
+      filter.push({
+        field: 'book_copies.book_title_uuid',
+        value: [book[0].book_uuid],
+        operator: '=',
+      });
+      dec.push('book_copies.created_at');
+      console.log({ filter, asc, dec });
       const whereClauses = this.queryBuilderService.buildWhereClauses(
         filter,
         search,
         params,
       );
-      const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
+      const orderByQuery = this.queryBuilderService.buildOrderByClauses(
+        asc,
+        dec,
+      );
 
-      console.log({whereClauses, orderByQuery, params});
+      console.log({ whereClauses, orderByQuery, params });
 
       const books = await this.bookcopyRepository.query(
         `   SELECT 
@@ -2282,7 +2309,7 @@ export class BooksV2Service {
           `
         SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
           [student_id, returnBookIssuePayload.barcode],
-        ); 
+        );
 
       if (requestExists.length) {
         throw new HttpException(
@@ -2365,7 +2392,6 @@ export class BooksV2Service {
       throw error;
     }
   }
-
 
   async createBooklogReissue(
     requestBookReIssuePayload: TRequestBookZodReIssue,
