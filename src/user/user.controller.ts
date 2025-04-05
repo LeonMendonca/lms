@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpException,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -30,7 +32,10 @@ import {
   userCredZodSchema,
 } from './zod-validation/user-cred-zod';
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
-import { editUserSchemaZod, TEditUserDTO } from './zod-validation/edit-user-zod';
+import {
+  editUserSchemaZod,
+  TEditUserDTO,
+} from './zod-validation/edit-user-zod';
 
 @Controller('user')
 export class UserController {
@@ -56,7 +61,25 @@ export class UserController {
         );
       } else {
         throw error;
-      } 
+      }
+    }
+  }
+
+  @Get('details/:_user_id')
+  // @UseGuards(TokenAuthGuard)
+  async getUserById(@Param('_user_id') userId: string): Promise<TUser> {
+    try {
+      const data = await this.userService.findUserById(userId);
+      return data;
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -102,6 +125,7 @@ export class UserController {
   }
 
   @Put('edit/:_user_id')
+  // @UseGuards(TokenAuthGuard)
   @UsePipes(new putBodyValidationPipe(editUserSchemaZod))
   async editStudent(
     @Param('_user_id') userId: string,
@@ -111,9 +135,26 @@ export class UserController {
       const data = await this.userService.editUser(userId, userPayload);
       return {
         success: true,
-        // data,
+        data,
         pagination: null,
       };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  @Delete('delete/:_user_id')
+  // @UseGuards(TokenAuthGuard)
+  async deleteStudent(@Param('_user_id') userId: string) {
+    try {
+      return await this.userService.deleteUser(userId);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
