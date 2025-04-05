@@ -596,10 +596,10 @@ export class StudentsService {
       return {
         data: visitLogs,
         pagination: {
-          total: parseInt(totalResult[0].total, 10),
+          total: parseInt(totalResult[0].count, 10),
           page,
           limit,
-          totalPages: Math.ceil(parseInt(totalResult[0].total, 10) / limit),
+          totalPages: Math.ceil(parseInt(totalResult[0].count, 10) / limit),
         },
       };
     } catch (error) {
