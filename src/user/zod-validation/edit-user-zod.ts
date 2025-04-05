@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { user } from '../user.entity';
+import { user, DesignationEnum } from '../user.entity';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 
 let userUpdateObject = createObjectOmitProperties(user, [
@@ -13,6 +13,13 @@ export const editUserSchemaZod = z.object({
   [userUpdateObject.email]: z.string().email().max(255).optional(),
   [userUpdateObject.phone_no]: z.string().nonempty().optional(),
   [userUpdateObject.address]: z.string().nonempty().optional(),
+  [userUpdateObject.designation]: z
+    .enum([
+      DesignationEnum.LIBRARIAN,
+      DesignationEnum.ASSISTANT,
+      DesignationEnum.RECEPTIONIST,
+    ])
+    .optional(),
   [userUpdateObject.institute_details]: z
     .object({
       institute_uuid: z.string().uuid().nonempty(),

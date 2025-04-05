@@ -13,6 +13,7 @@ import { TUserCredZodType } from './zod-validation/user-cred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { TEditUserDTO } from './zod-validation/edit-user-zod';
+import { unknown } from 'zod';
 
 @Injectable()
 export class UserService {
@@ -44,11 +45,7 @@ export class UserService {
 
       return {
         token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
-        user: {
-          ...jwtPayload[0],
-          institute_image:
-            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
-        },
+        user: jwtPayload[0],
       };
     } catch (error) {
       throw error;
@@ -103,6 +100,28 @@ export class UserService {
     };
   }
 
+  async findUserById(userId: string): Promise<TUser> {
+    try {
+      const user: TUser[] = await this.userRepository.query(
+        `SELECT name, email, designation, address, phone_no, institute_details FROM users_table WHERE user_id = $1 AND is_archived = FALSE`,
+        [userId],
+      );
+
+      if (!user.length) {
+        throw new HttpException(
+          'User not found or archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      delete user[0].password;
+
+      return user[0];
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async createUser(userPayload: TCreateUserDTO): Promise<TUser> {
     try {
       let userInstituteDetailsAsString: string = '';
@@ -153,24 +172,70 @@ export class UserService {
         [userId],
       );
 
-      if (!userExists) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      if (!userExists.length) {
+        throw new HttpException(
+          'User not found or archived',
+          HttpStatus.NOT_FOUND,
+        );
       }
 
-      return userExists[0];
+      let newUpdateUserPayload = editUserPayload as {
+        [P in keyof TEditUserDTO]: TEditUserDTO[P] extends object | undefined
+          ? string
+          : TEditUserDTO[P];
+      };
 
-      // let queryData = updateQueryHelper<TEditUserDTO>(editUserPayload, []);
-      // const result = await this.userRepository.query(
-      //   `UPDATE users_table SET ${queryData.queryCol} WHERE user_id = '${userId}' AND is_archived = false RETURNING *`,
-      //   queryData.values,
-      // );
-      // if (!result.length) {
-      //   throw new HttpException(
-      //     'Student not found after update',
-      //     HttpStatus.NOT_FOUND,
-      //   );
-      // }
-      // return result[0];
+      if (editUserPayload.institute_details) {
+        editUserPayload['institute_details'] =
+          editUserPayload.institute_details.concat(
+            userExists[0].institute_details,
+          );
+        newUpdateUserPayload['institute_details'] = JSON.stringify(
+          newUpdateUserPayload['institute_details'],
+        );
+      }
+
+      let queryData = updateQueryHelper(newUpdateUserPayload, []);
+      const result: [TUser[], 0 | 1] = await this.userRepository.query(
+        `UPDATE users_table SET ${queryData.queryCol} WHERE user_id = '${userId}' AND is_archived = false RETURNING *`,
+        queryData.values,
+      );
+
+      const updateStatus = result[1];
+      if (!updateStatus) {
+        throw new HttpException(
+          'Failed to update user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      const updatedUser: TUser = result[0][0];
+      delete updatedUser.password;
+
+      return updatedUser;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteUser(userId: string) {
+    try {
+      const result: [[], 0 | 1] = await this.userRepository.query(
+        `UPDATE users_table SET is_archived = TRUE WHERE user_id = '${userId}' AND is_archived = FALSE`,
+      );
+
+      const updateStatus = result[1];
+      if (!updateStatus) {
+        throw new HttpException(
+          `User with id ${userId} not found or archived`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return {
+        statusCode: HttpStatus.OK,
+        message: `User id ${userId} archived successfully!`,
+      };
     } catch (error) {
       throw error;
     }
