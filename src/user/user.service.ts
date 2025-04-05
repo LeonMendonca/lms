@@ -13,7 +13,7 @@ import { TUserCredZodType } from './zod-validation/user-cred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { TEditUserDTO } from './zod-validation/edit-user-zod';
-import { unknown } from 'zod';
+import { LibraryConfig } from 'src/config/entity/library_config.entity';
 
 @Injectable()
 export class UserService {
@@ -22,7 +22,28 @@ export class UserService {
     private userRepository: Repository<User>,
 
     private readonly queryBuilderService: QueryBuilderService,
+
+    @InjectRepository(LibraryConfig)
+    private libraryRepository: Repository<LibraryConfig>,
   ) {}
+
+  async getRulesFromLibraryConfig(instituteUUID: string[]) {
+    try {
+      console.log('in getRulesFromLibraryConfig', instituteUUID);
+      let uuids = '';
+      for (let element of instituteUUID) {
+        uuids += `'${element}',`;
+      }
+      uuids = uuids.slice(0, -1);
+      console.log('in getRulesFromLibraryConfig', uuids);
+      const result = this.libraryRepository.query(
+        `SELECT * FROM library_config WHERE institute_uuid IN (${uuids})`,
+      );
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async userLogin(userCredPayload: TUserCredZodType) {
     try {
@@ -42,6 +63,15 @@ export class UserService {
       };
 
       delete jwtPayload[0].password;
+
+      const arrOfInstituteUUID = jwtPayload[0].institute_details.map(
+        (institute) => institute.institute_uuid,
+      ) as string[];
+
+      const libraryConfig =
+        await this.getRulesFromLibraryConfig(arrOfInstituteUUID);
+
+      jwtPayload[0]['rules'] = libraryConfig;
 
       return {
         token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
