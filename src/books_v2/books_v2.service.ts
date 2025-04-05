@@ -2209,7 +2209,7 @@ export class BooksV2Service {
       );
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT COUNT(*) FROM request_book_log WHERE is_archived = false`,
+        SELECT COUNT(*) FROM request_book_log WHERE is_archived = false AND is_completed = false`,
       );
       return {
         data: requests,
