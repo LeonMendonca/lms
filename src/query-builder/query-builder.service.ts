@@ -7,7 +7,7 @@ export class QueryBuilderService {
     search: { field: string; value: string }[],
     params: (string | number)[]
   ): string {
-    const clauses = ['is_archived = false'];
+    const clauses = filter.length > 0 ? [] : ['is_archived = false'];
 
     search.forEach((s) => {
       clauses.push(`${s.field} ILIKE $${params.length + 1}`);
@@ -21,10 +21,10 @@ export class QueryBuilderService {
         clauses.push(`${f.field} IN (${placeholders})`);
         params.push(...f.value);
       } 
-    //   else {
-    //     clauses.push(`${f.field} ${operator} $${params.length + 1}`);
-    //     params.push(f.value);
-    //   }
+      else {
+        clauses.push(`${f.field} ${operator} $${params.length + 1}`);
+        params.push(f.value[0]);
+      }
     });
 
     return clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';

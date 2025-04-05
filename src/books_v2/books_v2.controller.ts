@@ -54,6 +54,10 @@ import type {
 import { StudentsService } from 'src/students/students.service';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { RequestBook } from './entity/request-book.entity';
+import {
+  PaginationParserType,
+  ParsePaginationPipe,
+} from 'src/pipes/pagination-parser.pipe';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -92,15 +96,13 @@ export class BooksV2Controller {
     @Query('_book_uuid') book_uuid: string,
     @Query('_isbn') isbn: string,
     @Query('_titlename') titlename: string,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ) {
     return this.booksService.getBookCopiesByTitle({
       book_uuid,
       isbn,
       titlename,
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
+      ...query,
     });
   }
 
@@ -167,6 +169,37 @@ export class BooksV2Controller {
       }
       console.log(student);
       return await this.booksService.getLogDetailsOfStudent({
+        student_id: student.student_uuid,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 10,
+      });
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('get_current_borrower_of_student') // done
+  async getCurrentBorrowedOfStudent(
+    @Query('_student_id') student_id: string,
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+  ) {
+    try {
+      console.log({student_id})
+      const student = await this.studentService.findStudentBy({
+        student_id: student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      console.log(student);
+      return await this.booksService.getCurrentBorrowedOfStudent({
         student_id: student.student_uuid,
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,

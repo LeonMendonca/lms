@@ -278,11 +278,9 @@ export class JournalsService {
         query,
         queryParams,
       );
-
       if (journal.length === 0) {
         throw new HttpException('Periodical not found', HttpStatus.NOT_FOUND);
       }
-
       const journals = await this.journalsCopyRepository.query(
         `SELECT * FROM journal_copy WHERE is_archived = false AND is_available=true AND journal_title_uuid = $1`,
         [journal[0].journal_uuid],
@@ -292,8 +290,7 @@ export class JournalsService {
         `SELECT COUNT(*) as count FROM journal_titles WHERE is_archived = false AND available_count>0 AND subscription_id ILIKE $1`,
         [searchQuery],
       );
-
-      return journal;
+      return journals;
     } catch (error) {
       throw new HttpException(
         'Error fetching Periodicals',
@@ -301,6 +298,7 @@ export class JournalsService {
       );
     }
   }
+    
 
   // working
   async getJournalLogDetailsByTitle({

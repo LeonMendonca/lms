@@ -210,7 +210,11 @@ export class ConfigService {
                 [...queryData.values, updateInstitutePayload.institute_id] // Add institute_id at the end
             );
 
-            return { statusCode: HttpStatus.OK, message: "Institute Updated Successfully!" };
+            return { 
+                result : existingInstitute,
+                statusCode: HttpStatus.OK, 
+                message: "Institute Updated Successfully!" 
+            };
 
         } catch (error) {
             console.error("Error updating institute:", error);
