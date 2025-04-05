@@ -2204,7 +2204,7 @@ export class BooksV2Service {
         FROM request_book_log rb 
         LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
         LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-        WHERE rb.is_archived = false  LIMIT $1 OFFSET $2`,
+        WHERE rb.is_archived = false AND rb.is_completed = false  LIMIT $1 OFFSET $2`,
         [limit, offset],
       );
       const total = await this.requestBooklogRepository.query(
