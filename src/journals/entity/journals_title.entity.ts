@@ -98,3 +98,4 @@ const journal_title = new JournalTitle();
 export type TJournalTitle = {
     [P in keyof typeof journal_title as typeof journal_title[P]]: any;
 }
+

@@ -154,6 +154,47 @@ FOR EACH ROW
 EXECUTE PROCEDURE create_book_titles_id()
 `
 
+const createJournalTitleIdFunction  = `
+CREATE OR REPLACE FUNCTION generate_journal_title_id()
+RETURNS trigger AS $$
+
+  var abbrevQuery = plv8.prepare(
+    "SELECT institute_abbr FROM institute_config WHERE institute_uuid = $1",
+    ["uuid"]
+  );
+  var abbrevResult = abbrevQuery.execute([NEW.institute_uuid]);
+  abbrevQuery.free();
+
+  if (abbrevResult.length === 0) {
+    throw "Institute not found for UUID: " + NEW.institute_uuid;
+  }
+
+  var abbreviation = abbrevResult[0].institute_abbr;
+
+  var countQuery = plv8.prepare(
+    "SELECT COUNT(*) AS count FROM journal_titles WHERE institute_uuid = $1",
+     ["uuid"]
+  );
+  var countResult = countQuery.execute([NEW.institute_uuid]);
+  countQuery.free();
+
+  var count = parseInt(countResult[0].count) + 1;
+  var paddedCount = count.toString().padStart(3, '0');
+
+  NEW.journal_title_id = 'T/' + abbreviation + '-' + paddedCount;
+  return NEW;
+  $$ LANGUAGE plv8;
+`;
+
+const triggerCreateJournalTitleId = `
+CREATE OR REPLACE TRIGGER trigger_journal_title_id
+BEFORE INSERT ON journal_titles
+FOR EACH ROW
+WHEN (NEW.journal_title_id IS NULL)
+EXECUTE FUNCTION generate_journal_title_id();
+`;
+
+
 export async function pgPLV8() {
   try {
       const clientEnableExt = await pool.connect();
@@ -180,6 +221,12 @@ export async function pgPLV8() {
     await clientTriggerAndFunction.query(triggerCreateBookTitleId);
     await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
     await clientTriggerAndFunction.query(triggerUpdateStudentId);
+
+
+    // periodical id
+    await clientTriggerAndFunction.query(createJournalTitleIdFunction);
+    await clientTriggerAndFunction.query(triggerCreateJournalTitleId);
+
 
     clientTriggerAndFunction.on('error', (err) => {
       console.log(err.message);
