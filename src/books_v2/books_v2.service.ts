@@ -2219,7 +2219,7 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
-      // filter.push({ field: 'institute_uuid', value: institute_uuid, operator: '=' });
+      filter.push({ field: 'cr.institute_uuid', value: institute_uuid, operator: '=' });
       filter.push({ field: 'cr.is_archived', value: ['false'], operator: '=' });
       filter.push({
         field: 'cr.is_completed',
