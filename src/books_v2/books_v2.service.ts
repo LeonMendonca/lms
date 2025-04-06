@@ -2227,6 +2227,12 @@ export class BooksV2Service {
         operator: '=',
       });
 
+      // console.log(await this.requestBooklogRepository.query(`
+      //   SELECT * FROM notes
+      //   `))
+
+        console.log({institute_uuid})
+
       const whereClauses = this.queryBuilderService.buildWhereClauses(
         filter,
         search,
@@ -2238,61 +2244,16 @@ export class BooksV2Service {
         dec.length > 0 ? dec : ['cr.created_at'],
       );
 
-      const q = `
-        SELECT * FROM (
-          SELECT 
-            rb.request_type AS request_type, 
-            bc.book_copy_id AS book_copy_id,         
-            NULL as note_resource,   
-            bt.book_title AS book_title, 
-            bt.book_author AS book_author, 
-            bt.edition AS edition, 
-            rb.request_id AS request_id,            
-            NULL as notes_uuid,   
-            rb.request_created_at AS created_at, 
-            rb.student_id AS student_id, 
-            rb.is_completed AS is_completed, 
-            rb.institute_uuid AS institute_uuid, 
-            rb.is_archived AS is_archived
-          FROM request_book_log rb 
-          LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
-          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-
-          UNION ALL
-
-          SELECT 
-            'notes' as request_type,                     
-            NULL as book_copy_id,                     
-            n.note_resource as note_resource,   
-            n.note_title as book_title,                  
-            n.author  as book_author, 
-            NULL as edition,                             
-            NULL as request_id,                   
-            n.notes_uuid as notes_uuid,                  
-            n.created_at as created_at,  
-            st.student_id as student_id,                
-            n.is_approved as is_completed,
-            n.institute_uuid AS institute_uuid, 
-            n.is_archived AS is_archived            
-          FROM notes n 
-          LEFT JOIN students_table st ON st.student_uuid = n.student_uuid
-        ) as cr
-        ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
-      console.log({ q });
-
       const requests = await this.requestBooklogRepository.query(
         `
         SELECT * FROM (
           SELECT 
             rb.request_type AS request_type, 
-            bc.book_copy_id AS book_copy_id,         
-            NULL as note_resource,   
+            bc.book_copy_id AS book_copy_id, 
             bt.book_title AS book_title, 
             bt.book_author AS book_author, 
             bt.edition AS edition, 
-            rb.request_id AS request_id,            
-            NULL as notes_uuid,   
+            rb.request_id AS request_id,  
             rb.request_created_at AS created_at, 
             rb.student_id AS student_id, 
             rb.is_completed AS is_completed, 
@@ -2306,13 +2267,11 @@ export class BooksV2Service {
 
           SELECT 
             'notes' as request_type,                     
-            NULL as book_copy_id,                     
-            n.note_resource as note_resource,   
+            n.note_resource as book_copy_id,    
             n.note_title as book_title,                  
             n.author  as book_author, 
-            NULL as edition,                             
-            NULL as request_id,                   
-            n.notes_uuid as notes_uuid,                  
+            NULL as edition,                     
+            n.notes_uuid::text as request_id,                  
             n.created_at as created_at,  
             st.student_id as student_id,                
             n.is_approved as is_completed,
@@ -2324,20 +2283,18 @@ export class BooksV2Service {
         ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset],
       );
-      console.log({ requests });
-      console.log({ whereClauses });
+      // console.log({ requests });
+      // console.log({ whereClauses });
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT COUNT(*) FROM (
+        SELECT * FROM (
           SELECT 
             rb.request_type AS request_type, 
-            bc.book_copy_id AS book_copy_id,         
-            NULL as note_resource,   
+            bc.book_copy_id AS book_copy_id, 
             bt.book_title AS book_title, 
             bt.book_author AS book_author, 
             bt.edition AS edition, 
-            rb.request_id AS request_id,            
-            NULL as notes_uuid,   
+            rb.request_id AS request_id,  
             rb.request_created_at AS created_at, 
             rb.student_id AS student_id, 
             rb.is_completed AS is_completed, 
@@ -2351,13 +2308,11 @@ export class BooksV2Service {
 
           SELECT 
             'notes' as request_type,                     
-            NULL as book_copy_id,                     
-            n.note_resource as note_resource,   
+            n.note_resource as book_copy_id,    
             n.note_title as book_title,                  
             n.author  as book_author, 
-            NULL as edition,                             
-            NULL as request_id,                   
-            n.notes_uuid as notes_uuid,                  
+            NULL as edition,                     
+            n.notes_uuid::text as request_id,                  
             n.created_at as created_at,  
             st.student_id as student_id,                
             n.is_approved as is_completed,
@@ -2365,7 +2320,7 @@ export class BooksV2Service {
             n.is_archived AS is_archived            
           FROM notes n 
           LEFT JOIN students_table st ON st.student_uuid = n.student_uuid
-        ) AS cr
+        ) as cr
           ${whereClauses}`,
         params,
       );
