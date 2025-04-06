@@ -2287,7 +2287,7 @@ export class BooksV2Service {
       // console.log({ whereClauses });
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT * FROM (
+        SELECT COUNT(*) FROM (
           SELECT 
             rb.request_type AS request_type, 
             bc.book_copy_id AS book_copy_id, 
