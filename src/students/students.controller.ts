@@ -380,13 +380,14 @@ export class StudentsController {
   @Get('alllog')
   async getAllLog(
     // @Request() req: AuthenticatedRequest,
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
+    @Query('_institute_uuid') institute_uuid: string,
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
+
   ) {
     try {
       return await this.studentsService.getVisitAllLog({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
+        ...query,
+        institute_uuid: JSON.parse(institute_uuid || "[]"),
       });
     } catch (error) {
       console.log(error);
@@ -694,15 +695,22 @@ export class StudentsController {
     @Request() req: AuthenticatedRequest,
     @Body('longitude') longitude: string,
     @Body('latitude') latitude: string,
-    @Body('action') action: string,
+    // @Body('action') action: string, 
   ): Promise<ApiResponse<StudentsVisitKey>> {
     try {
       const user = req.user;
+      const student = await this.studentsService.findStudentBy({
+        student_id: user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+
       const createKey = await this.studentsService.createStudentVisitKey(
-        user,
+        student,
         parseFloat(latitude),
         parseFloat(longitude),
-        action,
+        "entry",
       );
       return {
         success: true,

@@ -21,6 +21,12 @@ export class VisitLog {
   @Column({ name: 'department', type: 'varchar', length: 255 })
   department: 'department'='department';
 
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUuid: 'institute_uuid' = 'institute_uuid';
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: 'institute_name' = 'institute_name';
+
   // @Column({ name: 'computer_temp', type: 'varchar', length: 255 })
   // computer_temp: 'computer_temp'='computer_temp';
 

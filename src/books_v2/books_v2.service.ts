@@ -1456,9 +1456,9 @@ export class BooksV2Service {
     status: 'returned',
   ) {
     try {
-      const studentExists: { student_uuid: string }[] =
+      const studentExists: TStudents[] =
         await this.studentRepository.query(
-          `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+          `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
 
@@ -1630,8 +1630,8 @@ export class BooksV2Service {
       const data = await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid, institute_uuid, institute_name
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
         [
           studentExists[0].student_uuid,
           bookCopyUUID,
@@ -1644,6 +1644,8 @@ export class BooksV2Service {
           newBookTitle,
           ipAddress,
           fpUUID[0][0].fp_uuid,
+          studentExists[0].institute_uuid,
+          studentExists[0].institute_name,
         ],
       );
 
@@ -1663,9 +1665,9 @@ export class BooksV2Service {
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {
-      const studentExists: { student_uuid: string }[] =
+      const studentExists: TStudents[] =
         await this.studentRepository.query(
-          `SELECT student_uuid FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+          `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
           [booklogPayload.student_id],
         );
       if (!studentExists.length) {
@@ -1801,8 +1803,8 @@ export class BooksV2Service {
       const data = await this.booklogRepository.query(
         `INSERT INTO book_logv2 (
           borrower_uuid, book_copy_uuid, action, description, book_title_uuid,
-          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+          old_book_copy, new_book_copy, old_book_title, new_book_title, ip_address, fp_uuid, institute_uuid, institute_name
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
         [
           studentExists[0].student_uuid,
           bookCopyUUID,
@@ -1815,6 +1817,8 @@ export class BooksV2Service {
           newBookTitle,
           ipAddress,
           fpUUID[0].fp_uuid,
+          studentExists[0].institute_uuid,
+          studentExists[0].institute_name,
         ],
       );
 
@@ -2196,6 +2200,7 @@ export class BooksV2Service {
   }
 
   async getRequestBookLogs({
+    institute_uuid,
     page,
     limit,
     search,
@@ -2203,6 +2208,7 @@ export class BooksV2Service {
     dec,
     filter,
   }: {
+    institute_uuid: string[];
     page: number;
     limit: number;
     asc: string[];
@@ -2215,6 +2221,7 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
+      filter.push({ field: 'rb.institute_uuid', value: institute_uuid, operator: '=' });
       filter.push({ field: 'rb.is_archived', value: ['false'], operator: '=' });
       filter.push({
         field: 'rb.is_completed',
@@ -2227,10 +2234,10 @@ export class BooksV2Service {
         search,
         params,
       );
-      console.log(asc, dec)
+      console.log(asc, dec);
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        dec.length > 0 ? dec : ["rb.request_created_at"],
+        dec.length > 0 ? dec : ['rb.request_created_at'],
       );
 
       const requests = await this.requestBooklogRepository.query(
@@ -2242,8 +2249,8 @@ export class BooksV2Service {
         ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset],
       );
-      console.log({requests})
-      console.log({whereClauses})
+      console.log({ requests });
+      console.log({ whereClauses });
       const total = await this.requestBooklogRepository.query(
         `
         SELECT COUNT(*) FROM request_book_log rb LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id  ${whereClauses}`,
@@ -2269,11 +2276,10 @@ export class BooksV2Service {
     ipAddress: string,
   ): Promise<Data<RequestBook>> {
     try {
-      const studentExists: Pick<TStudents, 'student_id'>[] =
-        await this.studentRepository.query(
-          `SELECT student_id FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
-          [student_id],
-        );
+      const studentExists: TStudents[] = await this.studentRepository.query(
+        `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+        [student_id],
+      );
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
@@ -2309,6 +2315,8 @@ export class BooksV2Service {
         ip_address: ipAddress,
         student_id: student_id,
         book_copy_id: bookPayloadFromBookCopies[0].book_copy_id,
+        institute_uuid: studentExists[0].institute_uuid,
+        institute_name: studentExists[0].institute_name,
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
@@ -2394,11 +2402,10 @@ export class BooksV2Service {
     ipAddress: string,
   ): Promise<Data<RequestBook>> {
     try {
-      const studentExists: Pick<TStudents, 'student_id'>[] =
-        await this.studentRepository.query(
-          `SELECT student_id FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
-          [student_id],
-        );
+      const studentExists: TStudents[] = await this.studentRepository.query(
+        `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+        [student_id],
+      );
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
@@ -2433,6 +2440,8 @@ export class BooksV2Service {
         ip_address: ipAddress,
         student_id: student_id,
         book_copy_id: bookPayloadFromBookCopies[0].book_copy_id,
+        institute_uuid: studentExists[0].institute_uuid,
+        institute_name: studentExists[0].institute_name,
       }) as TRequestBook;
 
       const queryData = insertQueryHelper(insertObject, []);
@@ -2507,11 +2516,15 @@ export class BooksV2Service {
     ip_address: string,
   ) {
     try {
-      const student: { student_id: string; student_uuid: string }[] =
-        await this.booktitleRepository.query(
-          `SELECT student_uuid, student_id FROM students_table WHERE student_id= $1`,
-          [requestBookReIssuePayload.student_id],
-        );
+      const student: {
+        student_id: string;
+        student_uuid: string;
+        institute_uuid: string;
+        institute_name: string;
+      }[] = await this.booktitleRepository.query(
+        `SELECT student_uuid, student_id, institute_uuid, institute_name FROM students_table WHERE student_id= $1`,
+        [requestBookReIssuePayload.student_id],
+      );
       if (!student.length) {
         throw new HttpException(
           ' Invalid StudentId !!',
@@ -2553,6 +2566,8 @@ export class BooksV2Service {
         request_type: requestBookReIssuePayload.request_type,
         extended_period: requestBookReIssuePayload.extended_period,
         student_id: requestBookReIssuePayload.student_id,
+        institute_uuid: student[0].institute_uuid,
+        institute_name: student[0].institute_name,
       });
       const result = await this.booktitleRepository.query(
         `SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,

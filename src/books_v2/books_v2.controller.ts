@@ -644,7 +644,7 @@ export class BooksV2Controller {
           {
             bookTitle: result.meta.new_book_title.book_title,
           },
-        )
+        );
         // result = await this.booksService.bookBorrowed(
         //   booklogPayload,
         //   request,
@@ -656,15 +656,18 @@ export class BooksV2Controller {
           request.ip,
           (status = 'returned'),
         );
-        console.log({result})
-        console.log(result.meta.borrower_uuid, result.meta.new_book_title.book_title)
+        console.log({ result });
+        console.log(
+          result.meta.borrower_uuid,
+          result.meta.new_book_title.book_title,
+        );
         await this.notifyService.createNotification(
           result.meta.borrower_uuid,
           NotificationType.BOOK_RETURNED,
           {
             bookTitle: result.meta.new_book_title.book_title,
           },
-        )
+        );
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
@@ -677,7 +680,7 @@ export class BooksV2Controller {
           {
             bookTitle: result.meta.new_book_title.book_title,
           },
-        )
+        );
       }
       return result;
     } catch (error) {
@@ -827,10 +830,14 @@ export class BooksV2Controller {
 
   @Get('request_booklog')
   async getRequestBooklog(
+    @Query('_institute_uuid') institute_uuid: string,
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ) {
     try {
-      return await this.booksService.getRequestBookLogs(query);
+      return await this.booksService.getRequestBookLogs({
+        ...query,
+        institute_uuid: JSON.parse(institute_uuid || "[]"),
+      });
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -997,7 +1004,7 @@ export class BooksV2Controller {
       if (!student) {
         throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
-      const data =  await this.booksService.createBooklogReissue(
+      const data = await this.booksService.createBooklogReissue(
         requestBookReIssuePayload,
         request.ip,
       );
@@ -1025,7 +1032,7 @@ export class BooksV2Controller {
     @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
   ) {
     try {
-      const data =  await this.booksService.requestBooklogReissuear(
+      const data = await this.booksService.requestBooklogReissuear(
         requestBookIssueARPayload,
       );
       const notify = await this.notifyService.createNotification(
@@ -1034,7 +1041,7 @@ export class BooksV2Controller {
           ? NotificationType.BOOK_REISSUE_APPROVED
           : NotificationType.BOOK_REISSUE_REJECTED,
         data.meta,
-      )
+      );
       return data;
     } catch (error) {
       if (!(error instanceof HttpException)) {

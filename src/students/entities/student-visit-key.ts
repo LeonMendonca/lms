@@ -40,6 +40,12 @@ export class StudentsVisitKey {
 
   @Column({ name: 'action', type: 'enum', enum: Action, nullable: true })
   action: 'action' = 'action';
+  
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUuid: 'institute_uuid' = 'institute_uuid';
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: 'institute_name' = 'institute_name';
 }
 
 export const student = new StudentsVisitKey();
