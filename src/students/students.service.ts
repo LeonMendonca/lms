@@ -62,6 +62,7 @@ export class StudentsService {
     asc,
     dec,
     filter,
+    institute_uuid,
   }: {
     page: number;
     limit: number;
@@ -69,10 +70,17 @@ export class StudentsService {
     dec: string[];
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
+    institute_uuid: string[];
   }): Promise<DataWithPagination<Students>> {
     const offset = (page - 1) * limit;
 
     const params: (string | number)[] = [];
+
+    filter.push({
+      field: 'institute_uuid',
+      value: institute_uuid,
+      operator: '=',
+    });
 
     const whereClauses = this.queryBuilderService.buildWhereClauses(
       filter,
@@ -536,7 +544,7 @@ export class StudentsService {
       );
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        dec = ["log_date"],
+        (dec = ['log_date']),
       );
 
       // Optimized SQL Query with Pagination at Database Level
@@ -561,7 +569,8 @@ export class StudentsService {
           UNION ALL
           SELECT institute_uuid,  booklog_uuid AS id  FROM book_logv2 
         ) AS combined_logs ${whereClauses}
-        `,params
+        `,
+        params,
       );
 
       const totalCount = parseInt(total[0].total, 10);

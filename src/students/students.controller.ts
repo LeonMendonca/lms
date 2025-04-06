@@ -76,10 +76,13 @@ export class StudentsController {
   @UseGuards(TokenAuthGuard)
   async getAllStudents(
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
+    @Query('_institute_uuid') institute_uuid: string,
   ): Promise<ApiResponse<Students[]>> {
     console.log(query);
-    const { data, pagination } =
-      await this.studentsService.findAllStudents(query);
+    const { data, pagination } = await this.studentsService.findAllStudents({
+      ...query,
+      institute_uuid: JSON.parse(institute_uuid || '[]'),
+    });
     return {
       success: true,
       data,
@@ -382,12 +385,11 @@ export class StudentsController {
     // @Request() req: AuthenticatedRequest,
     @Query('_institute_uuid') institute_uuid: string,
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
-
   ) {
     try {
       return await this.studentsService.getVisitAllLog({
         ...query,
-        institute_uuid: JSON.parse(institute_uuid || "[]"),
+        institute_uuid: JSON.parse(institute_uuid || '[]'),
       });
     } catch (error) {
       console.log(error);
@@ -511,7 +513,7 @@ export class StudentsController {
     @Body('report_uuid') report_uuid: string,
   ) {
     try {
-      const data =  await this.studentsService.inquiryLogAction({
+      const data = await this.studentsService.inquiryLogAction({
         type,
         report_uuid,
       });
@@ -524,8 +526,8 @@ export class StudentsController {
         {
           courseName: data.meta.inquiry_type,
         },
-      )
-      return data
+      );
+      return data;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -695,7 +697,7 @@ export class StudentsController {
     @Request() req: AuthenticatedRequest,
     @Body('longitude') longitude: string,
     @Body('latitude') latitude: string,
-    // @Body('action') action: string, 
+    // @Body('action') action: string,
   ): Promise<ApiResponse<StudentsVisitKey>> {
     try {
       const user = req.user;
@@ -710,7 +712,7 @@ export class StudentsController {
         student,
         parseFloat(latitude),
         parseFloat(longitude),
-        "entry",
+        'entry',
       );
       return {
         success: true,
