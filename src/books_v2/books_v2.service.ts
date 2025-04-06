@@ -1456,11 +1456,10 @@ export class BooksV2Service {
     status: 'returned',
   ) {
     try {
-      const studentExists: TStudents[] =
-        await this.studentRepository.query(
-          `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
-          [booklogPayload.student_id],
-        );
+      const studentExists: TStudents[] = await this.studentRepository.query(
+        `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+        [booklogPayload.student_id],
+      );
 
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
@@ -1665,11 +1664,10 @@ export class BooksV2Service {
     status: 'borrowed' | 'in_library_borrowed',
   ) {
     try {
-      const studentExists: TStudents[] =
-        await this.studentRepository.query(
-          `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
-          [booklogPayload.student_id],
-        );
+      const studentExists: TStudents[] = await this.studentRepository.query(
+        `SELECT * FROM students_table WHERE student_id = $1 AND is_archived = FALSE`,
+        [booklogPayload.student_id],
+      );
       if (!studentExists.length) {
         throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
       }
@@ -2221,10 +2219,10 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
-      filter.push({ field: 'rb.institute_uuid', value: institute_uuid, operator: '=' });
-      filter.push({ field: 'rb.is_archived', value: ['false'], operator: '=' });
+      // filter.push({ field: 'institute_uuid', value: institute_uuid, operator: '=' });
+      filter.push({ field: 'cr.is_archived', value: ['false'], operator: '=' });
       filter.push({
-        field: 'rb.is_completed',
+        field: 'cr.is_completed',
         value: ['false'],
         operator: '=',
       });
@@ -2237,15 +2235,92 @@ export class BooksV2Service {
       console.log(asc, dec);
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        dec.length > 0 ? dec : ['rb.request_created_at'],
+        dec.length > 0 ? dec : ['cr.created_at'],
       );
+
+      const q = `
+        SELECT * FROM (
+          SELECT 
+            rb.request_type AS request_type, 
+            bc.book_copy_id AS book_copy_id,         
+            NULL as note_resource,   
+            bt.book_title AS book_title, 
+            bt.book_author AS book_author, 
+            bt.edition AS edition, 
+            rb.request_id AS request_id,            
+            NULL as notes_uuid,   
+            rb.request_created_at AS created_at, 
+            rb.student_id AS student_id, 
+            rb.is_completed AS is_completed, 
+            rb.institute_uuid AS institute_uuid, 
+            rb.is_archived AS is_archived
+          FROM request_book_log rb 
+          LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+
+          UNION ALL
+
+          SELECT 
+            'notes' as request_type,                     
+            NULL as book_copy_id,                     
+            n.note_resource as note_resource,   
+            n.note_title as book_title,                  
+            n.author  as book_author, 
+            NULL as edition,                             
+            NULL as request_id,                   
+            n.notes_uuid as notes_uuid,                  
+            n.created_at as created_at,  
+            st.student_id as student_id,                
+            n.is_approved as is_completed,
+            n.institute_uuid AS institute_uuid, 
+            n.is_archived AS is_archived            
+          FROM notes n 
+          LEFT JOIN students_table st ON st.student_uuid = n.student_uuid
+        ) as cr
+        ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+      console.log({ q });
 
       const requests = await this.requestBooklogRepository.query(
         `
-        SELECT rb.request_type, bc.book_copy_id, bt.book_title, bt.book_author, bt.edition, rb.request_id, rb.request_created_at, rb.student_id, rb.is_completed
-        FROM request_book_log rb 
-        LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
-        LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+        SELECT * FROM (
+          SELECT 
+            rb.request_type AS request_type, 
+            bc.book_copy_id AS book_copy_id,         
+            NULL as note_resource,   
+            bt.book_title AS book_title, 
+            bt.book_author AS book_author, 
+            bt.edition AS edition, 
+            rb.request_id AS request_id,            
+            NULL as notes_uuid,   
+            rb.request_created_at AS created_at, 
+            rb.student_id AS student_id, 
+            rb.is_completed AS is_completed, 
+            rb.institute_uuid AS institute_uuid, 
+            rb.is_archived AS is_archived
+          FROM request_book_log rb 
+          LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+
+          UNION ALL
+
+          SELECT 
+            'notes' as request_type,                     
+            NULL as book_copy_id,                     
+            n.note_resource as note_resource,   
+            n.note_title as book_title,                  
+            n.author  as book_author, 
+            NULL as edition,                             
+            NULL as request_id,                   
+            n.notes_uuid as notes_uuid,                  
+            n.created_at as created_at,  
+            st.student_id as student_id,                
+            n.is_approved as is_completed,
+            n.institute_uuid AS institute_uuid, 
+            n.is_archived AS is_archived            
+          FROM notes n 
+          LEFT JOIN students_table st ON st.student_uuid = n.student_uuid
+        ) as cr
         ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, limit, offset],
       );
@@ -2253,7 +2328,45 @@ export class BooksV2Service {
       console.log({ whereClauses });
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT COUNT(*) FROM request_book_log rb LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id  ${whereClauses}`,
+        SELECT COUNT(*) FROM (
+          SELECT 
+            rb.request_type AS request_type, 
+            bc.book_copy_id AS book_copy_id,         
+            NULL as note_resource,   
+            bt.book_title AS book_title, 
+            bt.book_author AS book_author, 
+            bt.edition AS edition, 
+            rb.request_id AS request_id,            
+            NULL as notes_uuid,   
+            rb.request_created_at AS created_at, 
+            rb.student_id AS student_id, 
+            rb.is_completed AS is_completed, 
+            rb.institute_uuid AS institute_uuid, 
+            rb.is_archived AS is_archived
+          FROM request_book_log rb 
+          LEFT JOIN book_copies bc ON bc.book_copy_id = rb.book_copy_id
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+
+          UNION ALL
+
+          SELECT 
+            'notes' as request_type,                     
+            NULL as book_copy_id,                     
+            n.note_resource as note_resource,   
+            n.note_title as book_title,                  
+            n.author  as book_author, 
+            NULL as edition,                             
+            NULL as request_id,                   
+            n.notes_uuid as notes_uuid,                  
+            n.created_at as created_at,  
+            st.student_id as student_id,                
+            n.is_approved as is_completed,
+            n.institute_uuid AS institute_uuid, 
+            n.is_archived AS is_archived            
+          FROM notes n 
+          LEFT JOIN students_table st ON st.student_uuid = n.student_uuid
+        ) AS cr
+          ${whereClauses}`,
         params,
       );
       return {

@@ -41,7 +41,7 @@ export class RequestBook {
   })
   status: 'status' = 'status';
 
-  @Column({ name: 'request_type', type: 'enum', enum: EnumRequestType })
+  @Column({ name: 'request_type', type: 'varchar', nullable: true })
   requestType: 'request_type' = 'request_type';
 
   @Column({ name: 'reject_reason', type: 'varchar', nullable: true })

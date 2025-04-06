@@ -28,7 +28,7 @@ export class NotesService {
     try {
       console.log(user)
       let queryData = insertQueryHelper(
-        { ...createNotesDto, student_uuid: user.student_uuid },
+        { ...createNotesDto, student_uuid: user.student_uuid, institute_uuid: user.institute_uuid, institute_name: user.institute_name },
         [],
       );
       const result: Notes[] = await this.notesRepository.query(
