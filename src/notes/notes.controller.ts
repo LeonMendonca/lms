@@ -136,10 +136,13 @@ export class NotesController {
     try {
       const { data } = await this.notesService.approveByAdmin(notes_uuid);
       const student = await this.studentService.findStudentBy({
-        student_uuid: data.student_uuid,
+        student_uuid: data[0].student_uuid,
       });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       await this.notifyService.createNotification(
-        student!.student_uuid,
+        student.student_uuid,
         NotificationType.NOTES_APPROVED,
         {
           courseName: data.note_title,
@@ -201,6 +204,7 @@ export class NotesController {
     @Body() updateNotesDto: TUpdateNotesDTO,
   ): Promise<ApiResponse<Notes>> {
     try {
+      console.log({notes_uuid, updateNotesDto})
       const review = await this.notesService.update(notes_uuid, updateNotesDto);
       return {
         success: true,

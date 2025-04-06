@@ -35,6 +35,7 @@ export class StudentNotifyService {
     data: Record<string, any>,
   ): Promise<Data<StudentNotification>> {
     const { message, title } = generateNotificationContent(type, data);
+    console.log({message, title, studentUuid})
     const notification = await this.notificationRepo.query(
       `INSERT INTO student_notifications (
         student_uuid,
