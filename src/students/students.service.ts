@@ -566,9 +566,9 @@ export class StudentsService {
 
       const totalCount = parseInt(total[0].total, 10);
 
-      if (logs.length === 0) {
-        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
-      }
+      // if (logs.length === 0) {
+      //   throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
+      // }
 
       console.log({ totalCount, logs });
 
