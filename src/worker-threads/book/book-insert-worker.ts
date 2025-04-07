@@ -29,8 +29,13 @@ type QueryReturnType = {
   //An array which has UUIDs and ISBNs after UPDATE and INSERT
   const arrOfIsbnUUID: QueryReturnType[] = [];
 
-  //Create an object of ISBNs along with counts
+  const arrOfUUIDsFromPayload: string[] = [];
+
+  //Create an object of ISBNs along with counts and array of UUIDs from payload
   for (let element of bookPayloadArr) {
+    if(!arrOfUUIDsFromPayload.includes(element.institute_uuid)) {
+      arrOfUUIDsFromPayload.push(element.institute_uuid);
+    }
     if (element.isbn in isbnCountObject) {
       isbnCountObject[element.isbn]++;
     } else {
@@ -47,14 +52,17 @@ type QueryReturnType = {
   let bulkQueryUpdateTitle = `UPDATE book_titles SET `;
   let bulkQueryUpdateAvailableCount = `available_count = CASE `;
   let bulkQueryUpdateTotalCount = `total_count = CASE `;
+  let bulkQueryUpdateInstituteUUID = `institute_uuids = CASE `;
 
   for (let isbnKey in isbnCountObject) {
     bulkQueryUpdateAvailableCount += `WHEN isbn = '${isbnKey}' THEN available_count + ${isbnCountObject[isbnKey]} `;
     bulkQueryUpdateTotalCount += `WHEN isbn = '${isbnKey}' THEN total_count + ${isbnCountObject[isbnKey]} `;
+    bulkQueryUpdateInstituteUUID += `WHEN isbn = '${isbnKey}' THEN array_cat(institute_uuids, '{${arrOfUUIDsFromPayload}}') `;
   }
 
   bulkQueryUpdateAvailableCount += `ELSE available_count END, `;
   bulkQueryUpdateTotalCount += `ELSE total_count END `;
+  bulkQueryUpdateInstituteUUID += `ELSE institute_uuids END `;
 
   let bulkQueryUpdateEnd = `WHERE isbn IN (${isbnList}) RETURNING isbn, book_uuid`;
 
@@ -202,7 +210,6 @@ type QueryReturnType = {
             copiesKey === 'copy_additional_fields' ||
             copiesKey === 'copy_description' ||
             copiesKey === 'remarks' ||
-            copiesKey === 'institute_uuid' ||
             copiesKey === 'created_by' ||
             copiesKey === 'inventory_number'
           ) {

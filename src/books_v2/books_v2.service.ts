@@ -1031,7 +1031,7 @@ export class BooksV2Service {
         //Create the required Columns, Arg, and Values
         //Ignore the Columns that are used by Copy table
         //Here, there is no record of the book already being in existance, hence an array needs to be created for the UUID
-        let createBookPayloadForTitle = Object.assign(createBookpayload, {
+        let createBookPayloadForTitle = Object.assign({}, createBookpayload, {
           institute_uuids: [createBookpayload.institute_uuid],
         });
         const bookTitleQueryData = insertQueryHelper(
@@ -1114,10 +1114,10 @@ export class BooksV2Service {
         }
       });
 
-      // await this.bookcopyRepository.query(
-      //   `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
-      //   bookCopyQueryData.values,
-      // );
+      await this.bookcopyRepository.query(
+        `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
+        bookCopyQueryData.values,
+      );
       return { statusCode: HttpStatus.CREATED, message: 'Book created' };
     } catch (error) {
       throw error;

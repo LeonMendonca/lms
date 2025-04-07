@@ -109,6 +109,7 @@ export const bookTitleObject = {
   book_title: 'book_title_placeholder',
   book_author: 'book_author_placeholder',
   name_of_publisher: 'name_of_publisher_placeholder',
+  institute_uuids: 'institute_uuids_placeholder',
   place_of_publication: 'place_of_publication_placeholder',
   year_of_publication: 'year_of_publication_placeholder',
   edition: 'edition_placeholder',
