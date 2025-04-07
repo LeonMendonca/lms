@@ -581,12 +581,12 @@ export class JournalsController {
       let category = '';
 
       // check the category of the input if exists->category="book/periodical" else->category="does_not_exist"
-      if (/^[A-Z]+\d+-\d+$/.test(issuePayload.copy_id)) {
+      if (/^T\/[A-Z]+-\d+(\/\d+)?$/.test(issuePayload.copy_id)) {
         category = 'periodical';
       } else if (/^[A-Z]+\d/.test(issuePayload.copy_id)) {
         category = 'book';
       } else {
-        return { message: 'Invalid ID' };
+        throw new HttpException("Invalid Id", HttpStatus.NOT_FOUND)
       }
       console.log(category)
 

@@ -208,4 +208,12 @@ export class FeesPenaltiesController {
   }
 
 
+
+  // --------- STUDENT ROUTES ---------------
+
+  // Get Full Feelist for a particular student
+
+  // 
+
+
 }

@@ -158,7 +158,7 @@ export class ConfigController {
 
 
     //  ---------- INSTITUTE AND LIBRARY BASED ROUTES -----------
-    @Get('get-rule-by-institute_id')
+    @Get('get-rule-by-institute_uuid')
     async getRulebyInstituteId(@Query('institute_uuid') institute_uuid: string){
         return this.configService.getRulebyInstituteId(institute_uuid)
 

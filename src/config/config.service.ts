@@ -353,20 +353,21 @@ export class ConfigService {
 
             // Check if the institute exists and is not archived
             const existingRule = await this.libraryConfigRepository.query(
-                `SELECT * FROM library_config WHERE library_rule_id=$1 AND is_archived=false`,
-                [updateLibraryPayload.library_rule_id]
+                `SELECT * FROM library_config WHERE institute_uuid=$1 AND is_archived=false`,
+                [updateLibraryPayload.institute_uuid]
             );
             if (existingRule.length === 0) {
                 throw new HttpException("No Rule Found", HttpStatus.NOT_FOUND);
             }
-
+            console.log(existingRule)
             // Execute the update query with parameterized values
-            await this.libraryConfigRepository.query(
-                `UPDATE library_config SET ${queryData.queryCol} WHERE library_rule_id=$${queryData.values.length + 1} AND is_archived=false`,
-                [...queryData.values, updateLibraryPayload.library_rule_id] // Add institute_id at the end
+            const updated_rule = await this.libraryConfigRepository.query(
+                `UPDATE library_config SET ${queryData.queryCol} WHERE institute_uuid=$${queryData.values.length + 1} AND is_archived=false RETURNING *`,
+                [...queryData.values, updateLibraryPayload.institute_uuid] // Add institute_id at the end
             );
+            console.log(updated_rule)
 
-            return { statusCode: HttpStatus.OK, message: "Rule Updated Successfully!" };
+            return updated_rule[0]
 
 
 
