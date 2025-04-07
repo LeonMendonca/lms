@@ -737,11 +737,20 @@ export class StudentsController {
     try {
       const visitKey =
         await this.studentsService.verifyStudentVisitKey(student_key_uuid);
-      await this.notifyService.createNotification(
-        visitKey.meta.student_uuid,
-        NotificationType.LIBRARY_EXIT,
-        {},
-      );
+      if (visitKey.message.includes('Visit log entry created successfully')) {
+        await this.notifyService.createNotification(
+          visitKey.meta.student_uuid,
+          NotificationType.LIBRARY_ENTRY,
+          {},
+        );
+      } else {
+        await this.notifyService.createNotification(
+          visitKey.meta.student_uuid,
+          NotificationType.LIBRARY_EXIT,
+          {},
+        );
+      }
+
       return visitKey;
     } catch (error) {
       if (!(error instanceof HttpException)) {

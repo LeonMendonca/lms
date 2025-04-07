@@ -68,10 +68,17 @@ export class UserService {
         (institute) => institute.institute_uuid,
       ) as string[];
 
+      console.log(`SELECT * FROM institute_config WHERE institute_uuid IN (${arrOfInstituteUUID.map(inst=> `${inst}`).join(',')})`)
+
+      const completeInstituteDetailsOfUser = await this.userRepository.query(`
+        SELECT * FROM institute_config WHERE institute_uuid IN (${arrOfInstituteUUID.map(inst=> `'${inst}'`).join(',')})
+        `)
+
       const libraryConfig =
         await this.getRulesFromLibraryConfig(arrOfInstituteUUID);
 
       jwtPayload[0]['rules'] = libraryConfig;
+      jwtPayload[0]['institute_details'] = completeInstituteDetailsOfUser;
 
       return {
         token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
