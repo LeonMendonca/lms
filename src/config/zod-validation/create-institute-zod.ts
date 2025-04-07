@@ -17,7 +17,8 @@ export const createInstituteSchema = z.object({
     [createInstitute.websiteUrl]: z.string().optional(),
     [createInstitute.author]: z.string().optional(),
     [createInstitute.instituteLogo]: z.string().optional(),
-    [createInstitute.instituteHeader]: z.string().optional()
+    [createInstitute.instituteHeader]: z.string().optional(),
+    user_uuid: z.string().uuid(),
 })
 
 export type TInstituteDTO = z.infer<typeof createInstituteSchema>;

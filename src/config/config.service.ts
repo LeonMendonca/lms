@@ -122,7 +122,8 @@ export class ConfigService {
             );
 
             const institute_uuid = result[0]?.institute_uuid;
-            const created_by_uuid = "de89b394-a108-4de6-acf1-b8684f4e0917";
+            const created_by_uuid = await  this.instituteConfigRepository.query(`SELECT * FROM users_table WHERE user_uuid = $1 `, [institutePayload.user_uuid])
+            console.log({created_by_uuid})
 
             // Prepare default rule payload
             const defaultRule: TLibraryDTO = {
@@ -134,7 +135,7 @@ export class ConfigService {
                     starting_time: "9:00 am",
                     closing_time: "5:00 pm",
                 },
-                created_by_uuid: created_by_uuid,
+                created_by_uuid: created_by_uuid[0].user_uuid,
                 email_notifications: {
                     borrow_books_admin: false,
                     borrow_books_student: false,
