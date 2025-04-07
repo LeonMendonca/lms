@@ -46,6 +46,14 @@ export class JournalsController {
     // private booksService: BooksV2Service
   ) {}
 
+  // ------------ JOURNAL N BOOKS --------------
+  // all the journal n books
+  @Get('get-books')
+  async getBooks(){
+    return this.journalsService.getBooks()
+  }
+
+
   // --------------- JOURNAL TITLE -------------------------
 
   // GET ALL JOURNALS/MAGAZINES - working

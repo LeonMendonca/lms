@@ -24,8 +24,8 @@ export class JournalCopy {
     @Column({ name: 'editor_name', type: 'varchar', length: 255 })
     editorName: 'editor_name' = 'editor_name';
 
-    @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
-    instituteUUID: "institute_uuid" = "institute_uuid";
+    // @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+    // instituteUUID: "institute_uuid" = "institute_uuid";
 
     @Column({ name: 'is_archived', default: false, type: 'boolean', nullable: true })
     isArchived: "is_archived" = "is_archived";

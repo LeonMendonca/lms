@@ -20,7 +20,7 @@ export const updateJournalSchema = z.object({
     // available_count: z.string().transform((val) => Number(val)).optional(),
     title_images: z.array(z.string()).optional(),
     title_additional_fields: z.record(z.any()).optional(),
-    title_description: z.string().optional()
+    title_description: z.string().optional(),
 })
 
 

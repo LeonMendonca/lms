@@ -33,13 +33,8 @@ export class JournalTitle {
     @Column({ name: 'subscription_end_date', type: 'date' })
     subscriptionEndDate: 'subscription_end_date' = 'subscription_end_date';
 
-    // @Column({ name: 'issn', type: 'varchar', length: 255 })
-    // issn: 'issn' = 'issn';
-
     @Column({ name: "volume_no", type: "varchar", length: 255 })
     volumeNumber: "volume_no" = "volume_no"
-
-    // added
 
     @Column({ name: 'frequency', type: 'varchar', length: 255 })
     frequency: "frequency" = "frequency"
@@ -55,8 +50,6 @@ export class JournalTitle {
 
     @Column({ name: 'library_name', type: 'varchar', length: 255 })
     libraryName: "library_name" = "library_name"
-
-    // --added
 
     @Column({ name: 'classification_number', type: 'varchar', length: 255, nullable: true })
     classificationNumber: 'classification_number' = 'classification_number';
@@ -84,6 +77,9 @@ export class JournalTitle {
 
     @Column({ name: 'title_description', type: 'text', nullable: true })
     titleDescription: 'title_description' = 'title_description';
+
+    @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+    instituteUUID: "institute_uuid" = "institute_uuid";
 
     //Relationships
     @OneToMany(() => JournalCopy, (journalcopy) => journalcopy.journalTitleUUID)
