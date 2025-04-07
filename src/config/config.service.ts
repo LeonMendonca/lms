@@ -458,4 +458,20 @@ export class ConfigService {
         }
     }
 
+    //  ---------- INSTITUTE AND LIBRARY BASED ROUTES -----------
+    async getRulebyInstituteId(institute_uuid: string){
+        if (!institute_uuid || !institute_uuid.trim().length) {
+            return { message: "Enter Institute UUID" };
+          }
+        
+        const data = await this.libraryConfigRepository.query(
+            `SELECT * FROM library_config WHERE institute_uuid = $1`,
+            [institute_uuid]
+        )
+        if(!data.length){
+            throw new HttpException("No Data Found", HttpStatus.NOT_FOUND)
+        }else{
+            return data
+        }
+    }
 }
