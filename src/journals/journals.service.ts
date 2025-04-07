@@ -84,14 +84,57 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
   const offset = (page - 1) * limit;
   const data = await this.journalsTitleRepository.query(
     `
+      -- Books query
       SELECT
-        COALESCE(jt.institute_uuid, b.institute_id) AS institute_uuid,
-        COALESCE(jt.name_of_publisher, b.name_of_publisher) AS publisher,
-        COALESCE(jt.total_count, b.total_count) AS total_count,
-        COALESCE(jt.available_count, b.available_count) AS available_count,
-        COALESCE(jt.is_archived, b.is_archived) AS is_archived,
+        b.institute_uuids AS book_institute_uuids,
+        NULL AS journal_institute_uuid,
+        b.name_of_publisher AS publisher,
+        b.total_count,
+        b.available_count,
+        b.is_archived,
+        NULL AS item_id,  -- journal fields
+        NULL AS category,
+        NULL AS subscription_id,
+        NULL AS subscription_start_date,
+        NULL AS subscription_end_date,
+        NULL AS volume_number,
+        NULL AS frequency,
+        NULL AS issue_number,
+        NULL AS vendor_name,
+        NULL AS subscription_price,
+        NULL AS library_name,
+        NULL AS classification_number,
+        NULL AS journal_created_at,
+        NULL AS journal_updated_at,
+        NULL AS journal_title_images,
+        NULL AS journal_title_description,
+        NULL AS journal_additional_fields,
+        b.book_title,
+        b.book_author,
+        b.year_of_publication,
+        b.edition,
+        b.isbn,
+        b.no_of_pages,
+        b.no_of_preliminary AS no_of_preliminary_pages,
+        b.subject,
+        b.department,
+        b.call_number,
+        b.author_mark,
+        'book' AS item_type
+      FROM book_titles b
+      WHERE b.institute_uuids @> ANY (SELECT jsonb_build_array(unnest($1::uuid[])))
+        AND ($2::text IS NULL OR b.book_title ILIKE '%' || $2 || '%')
 
-        -- Journal-specific fields (from journal_titles only)
+      UNION ALL
+
+      -- Journals query
+      SELECT
+        NULL AS book_institute_uuids,
+        jt.institute_uuid AS journal_institute_uuid,
+        jt.name_of_publisher AS publisher,
+        jt.total_count,
+        jt.available_count,
+        jt.is_archived,
         jt.journal_title_id AS item_id,
         jt.category,
         jt.subscription_id,
@@ -106,45 +149,25 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
         jt.classification_number,
         jt.created_at AS journal_created_at,
         jt.updated_at AS journal_updated_at,
-        jt.title_images,
-        jt.title_description,
-        jt.title_additional_fields,
-
-        -- Book-specific fields
-        b.book_title,
-        b.book_author,
-        b.year_of_publication,
-        b.language,
-        b.edition,
-        b.isbn,
-        b.no_of_pages,
-        b.no_of_preliminary_pages,
-        b.subject,
-        b.department,
-        b.call_number,
-        b.author_mark,
-        b.source_of_acquisition,
-        b.date_of_acquisition,
-        b.bill_no,
-        b.inventory_number,
-        b.accession_number,
-        b.barcode,
-        b.item_type,
-
-        -- Type indicator
-        CASE 
-          WHEN jt.journal_uuid IS NOT NULL THEN 'journal'
-          WHEN b.book_uuid IS NOT NULL THEN 'book'
-        END AS item_type
-
+        jt.title_images AS journal_title_images,
+        jt.title_description AS journal_title_description,
+        jt.title_additional_fields AS journal_additional_fields,
+        NULL AS book_title,
+        NULL AS book_author,
+        NULL AS year_of_publication,
+        NULL AS edition,
+        NULL AS isbn,
+        NULL AS no_of_pages,
+        NULL AS no_of_preliminary_pages,
+        NULL AS subject,
+        NULL AS department,
+        NULL AS call_number,
+        NULL AS author_mark,
+        'journal' AS item_type
       FROM journal_titles jt
-      FULL OUTER JOIN books_table b ON b.institute_id = jt.institute_uuid
-      WHERE COALESCE(jt.institute_uuid, b.institute_id) = ANY($1)
-        AND (
-          $2::text IS NULL 
-          OR jt.title_description ILIKE '%' || $2 || '%' 
-          OR b.book_title ILIKE '%' || $2 || '%'
-        )
+      WHERE jt.institute_uuid = ANY($1)
+        AND ($2::text IS NULL OR jt.title_description ILIKE '%' || $2 || '%')
+
       LIMIT $3 OFFSET $4
     `,
     [instituteUUIDs, search || null, limit, offset]
