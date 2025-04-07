@@ -75,43 +75,83 @@ export class JournalsService {
     private readonly dataSource: DataSource,
   ) { }
 
-  // get all the books and periodicals - i can tmake it
-  async getBooks() {
-    const data = await this.journalsTitleRepository.query(
-      `
+// Get Books and Journals by Institute UUIDs
+async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number, limit: number) {
+  const offset = (page - 1) * limit;
+  const data = await this.journalsTitleRepository.query(
+    `
       SELECT
-  jt.institute_uuid,
-  jt.name_of_publisher AS journal_publisher,
-  jt.total_count AS journal_total_count,
-  jc.journal_copy_id,
-  jc.journal_title,
-  jc.issn,
+        COALESCE(jt.institute_uuid, b.institute_id) AS institute_uuid,
+        COALESCE(jt.name_of_publisher, b.name_of_publisher) AS publisher,
+        COALESCE(jt.total_count, b.total_count) AS total_count,
+        COALESCE(jt.available_count, b.available_count) AS available_count,
+        COALESCE(jt.is_archived, b.is_archived) AS is_archived,
 
-  bc.institute_uuid AS book_institute_uuid,
-  bt.book_title,
-  bt.book_author,
-  bt.name_of_publisher AS book_publisher,
-  bt.total_count AS book_total_count,
-  bt.isbn,
-  bt.year_of_publication
+        -- Journal-specific fields (from journal_titles only)
+        jt.journal_title_id AS item_id,
+        jt.category,
+        jt.subscription_id,
+        jt.subscription_start_date,
+        jt.subscription_end_date,
+        jt.volume_no AS volume_number,
+        jt.frequency,
+        jt.issue_number,
+        jt.vendor_name,
+        jt.subscription_price,
+        jt.library_name,
+        jt.classification_number,
+        jt.created_at AS journal_created_at,
+        jt.updated_at AS journal_updated_at,
+        jt.title_images,
+        jt.title_description,
+        jt.title_additional_fields,
 
-FROM journal_titles jt
-JOIN journal_copy jc ON jt.journal_uuid = jc.journal_title_uuid
+        -- Book-specific fields
+        b.book_title,
+        b.book_author,
+        b.year_of_publication,
+        b.language,
+        b.edition,
+        b.isbn,
+        b.no_of_pages,
+        b.no_of_preliminary_pages,
+        b.subject,
+        b.department,
+        b.call_number,
+        b.author_mark,
+        b.source_of_acquisition,
+        b.date_of_acquisition,
+        b.bill_no,
+        b.inventory_number,
+        b.accession_number,
+        b.barcode,
+        b.item_type,
 
-LEFT JOIN book_copies bc ON bc.institute_uuid = jt.institute_uuid
-LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
+        -- Type indicator
+        CASE 
+          WHEN jt.journal_uuid IS NOT NULL THEN 'journal'
+          WHEN b.book_uuid IS NOT NULL THEN 'book'
+        END AS item_type
 
-        
+      FROM journal_titles jt
+      FULL OUTER JOIN books_table b ON b.institute_id = jt.institute_uuid
+      WHERE COALESCE(jt.institute_uuid, b.institute_id) = ANY($1)
+        AND (
+          $2::text IS NULL 
+          OR jt.title_description ILIKE '%' || $2 || '%' 
+          OR b.book_title ILIKE '%' || $2 || '%'
+        )
+      LIMIT $3 OFFSET $4
+    `,
+    [instituteUUIDs, search || null, limit, offset]
+  );
 
-      `
-    )
-      if(data.length === 0){
-        return{message: "Nothing found"}
-      }else{
-        return data
-      }
+  if (data.length === 0) {
+    return { message: "Nothing found" };
+  } else {
+    return data;
   }
-
+}
   // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
   // working
