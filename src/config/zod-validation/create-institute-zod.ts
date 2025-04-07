@@ -22,7 +22,8 @@ export const createInstituteSchema = z.object({
     [createInstitute.visualization]: z.object({
         dashboard_card: z.boolean().default(false),
         report_cards: z.boolean().default(false)
-    })
+    }),
+    user_uuid: z.string().uuid().optional()
 })
 
 export type TInstituteDTO = z.infer<typeof createInstituteSchema>;
