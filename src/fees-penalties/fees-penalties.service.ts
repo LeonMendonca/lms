@@ -131,40 +131,68 @@ export class FeesPenaltiesService {
     // }
 
 
-    async getFullFeeList({ page,
-        limit }: {
-            page: number,
-            limit: number,
-        }) {
+    async getFullFeeList({ page, limit }: { page: number; limit: number } = {
+        page: 1,
+        limit: 10,
+      }) {
         try {
-            const offset = (page - 1) * limit;
-
-            const result = await this.journalsTitleRepository.query(
-                `SELECT * FROM  fees_penalties LIMIT $1 OFFSET $2`, [limit, offset]
-            ); const total = await this.journalsTitleRepository.query(
-                `SELECT * FROM  fees_penalties LIMIT $1 OFFSET $2`, [limit, offset]
+          const offset = (page - 1) * limit;
+      
+          const result = await this.journalsTitleRepository.query(
+            `
+            SELECT 
+              st.student_id AS "Student ID",
+              st.student_name AS "Student Name",
+              st.department AS "Department",
+              jc.journal_copy_id AS "Book ID",
+              jt.category AS "Book Category",
+              fp.penalty_amount,
+              fp.paid_amount,
+              fp.is_penalised,
+              fp.is_completed,
+              fp.return_date
+            FROM fees_penalties fp
+            INNER JOIN students_table st ON st.student_uuid = fp.borrower_uuid
+            INNER JOIN journal_copy jc ON jc.journal_copy_uuid = fp.copy_uuid
+            INNER JOIN journal_titles jt ON jt.journal_uuid = jc.journal_title_uuid
+            WHERE st.is_archived = false AND jc.is_archived = false
+            LIMIT $1 OFFSET $2
+            `,
+            [limit, offset]
+          );
+      
+          const total = await this.journalsTitleRepository.query(
+            `
+            SELECT COUNT(*) as count
+            FROM fees_penalties fp
+            INNER JOIN students_table st ON st.student_uuid = fp.borrower_uuid
+            INNER JOIN journal_copy jc ON jc.journal_copy_uuid = fp.copy_uuid
+            INNER JOIN journal_titles jt ON jt.journal_uuid = jc.journal_title_uuid
+            WHERE st.is_archived = false AND jc.is_archived = false
+            `
+          );
+      
+          if (result.length === 0) {
+            throw new HttpException(
+              { message: 'No data found!!' },
+              HttpStatus.ACCEPTED,
             );
-            if (result.length === 0) {
-                throw new HttpException(
-                    { message: 'No data found!!' },
-                    HttpStatus.ACCEPTED,
-                );
+          }
+      
+          return {
+            data: result,
+            pagination: {
+              page,
+              limit,
+              total: parseInt(total[0].count, 10),
+              totalPage: Math.ceil(parseInt(total[0].count, 10) / limit)
             }
-            return {
-                data: result,
-                pagination: {
-                    page,
-                    limit,
-                    total: parseInt(total[0].count, 10),
-                    totalPage: Math.ceil(parseInt(total[0].count, 10) / limit)
-                }
-            }
-            result;
+          };
         } catch (error) {
-            throw error;
+          throw error;
         }
-    }
-
+      }
+      
     async getFullFeeListStudentBooks(student_id: string) {
         try {
             if (!student_id) {
@@ -217,7 +245,7 @@ export class FeesPenaltiesService {
             // journal_titles.return_date,
             // journal_titles.subject, 
             const result = await this.journalsTitleRepository.query(
-               `SELECT 
+                `SELECT 
                     students_table.student_id,
                     journal_copy.journal_copy_id,
                     students_table.student_name, 
@@ -590,53 +618,77 @@ export class FeesPenaltiesService {
     }
 
 
+    async getStudentPenalties(student_id: string) {
+        if (!student_id) {
+            throw new HttpException("Student ID is required", HttpStatus.BAD_REQUEST);
+        }
 
-    async getPenalties(student_id:string){
-        
+        // Get all penalties for the student
+        const penalties = await this.feesPenaltiesRepository.query(
+            `SELECT fp.*
+               FROM fees_penalties fp
+               INNER JOIN students_table s ON fp.borrower_uuid = s.student_uuid
+               WHERE s.student_id = $1`,
+            [student_id]
+        );
+
+        if (!penalties.length) {
+            throw new HttpException("No penalty records found", HttpStatus.NOT_FOUND);
+        }
+
+        const completed = penalties.filter(p => p.is_completed === true);
+        const notCompleted = penalties.filter(p => p.is_completed === false);
+
+        return {
+            penalties,   
+            completed,       
+            notCompleted  
+        };
     }
 
+
     // Get pending penalties for a particular sutdent
-    async getPenaltiesToBePaidForStudent(student_id: string){
-        if(!student_id){
+    async getPenaltiesToBePaidForStudent(student_id: string) {
+        if (!student_id) {
             throw new HttpException("Enter Student Id", HttpStatus.NOT_FOUND)
         }
         const student_uuid = await this.studentsRepository.query(
             `SELECT student_uuid FROM students_table WHERE student_id = $1`,
             [student_id]
         )
-        if(!student_id.length){
+        if (!student_id.length) {
             throw new HttpException("Student With Given Id Not Found", HttpStatus.NOT_FOUND)
         }
         const result = await this.feesPenaltiesRepository.query(
             `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND is_completed=false`,
             [student_uuid[0].student_uuid]
         )
-        if(!result.length){
-            return {message: "Student Has No Penalties"}
-        }else{
+        if (!result.length) {
+            return { message: "Student Has No Penalties" }
+        } else {
             return result
         }
     }
 
-     // Get completed penalties for a particular student
-     async getPendingPenaltiesForStudent(student_id : string){
-        if(!student_id){
+    // Get completed penalties for a particular student
+    async getPendingPenaltiesForStudent(student_id: string) {
+        if (!student_id) {
             throw new HttpException("Enter Student Id", HttpStatus.NOT_FOUND)
         }
         const student_uuid = await this.studentsRepository.query(
             `SELECT student_uuid FROM students_table WHERE student_id = $1`,
             [student_id]
         )
-        if(!student_id.length){
+        if (!student_id.length) {
             throw new HttpException("Student With Given Id Not Found", HttpStatus.NOT_FOUND)
         }
         const result = await this.feesPenaltiesRepository.query(
             `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND is_completed=true`,
             [student_uuid[0].student_uuid]
         )
-        if(!result.length){
+        if (!result.length) {
             throw new HttpException("No Data Found", HttpStatus.NOT_FOUND);
-        }else{
+        } else {
             return result
         }
     }

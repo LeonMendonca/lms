@@ -160,7 +160,7 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
 
   // working
   async getJournals(
-    { page, limit, search }: { page: number; limit: number; search: string } = {
+    { page, limit, search }: { page: number; limit: number; search: string, } = {
       page: 1,
       limit: 10,
       search: '',
@@ -180,18 +180,18 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
       const journals = await this.journalsTitleRepository.query(
         `
         SELECT
-    jt.journal_title_id,
-    jt.name_of_publisher,
-    jt.total_count,
-    jt.volume_no,
-    jt.subscription_start_date,
-    jt.subscription_end_date
-  FROM journal_titles jt
-  INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
-  WHERE jt.is_archived = false
-    AND jc.is_archived = false
-    AND jc.institute_uuid = ANY($1)
-  GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
+        jt.journal_title_id,
+        jt.name_of_publisher,
+        jt.total_count,
+        jt.volume_no,
+        jt.subscription_start_date,
+        jt.subscription_end_date
+        FROM journal_titles jt
+        INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
+        WHERE jt.is_archived = false
+          AND jc.is_archived = false
+          AND jc.institute_uuid = ANY($1)
+        GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
         [institutes]
       )
       console.log(journals);

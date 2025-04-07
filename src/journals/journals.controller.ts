@@ -75,6 +75,7 @@ export class JournalsController {
     @Query('_page') page: string,
     @Query('_limit') limit: string,
     @Query('_search') search: string,
+    @Query('_institute_uuid') institute_uuid: string
   ) {
     return this.journalsService.getJournals({
       page: page ? parseInt(page, 10) : 1,
