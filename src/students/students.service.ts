@@ -89,7 +89,7 @@ export class StudentsService {
     );
     const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
 
-    console.log({ params });
+    console.log({ whereClauses, orderByQuery, params });
 
     const students = await this.studentsRepository.query(
       `SELECT * FROM students_table ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
