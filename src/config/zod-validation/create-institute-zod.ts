@@ -20,8 +20,8 @@ export const createInstituteSchema = z.object({
     [createInstitute.instituteLogo]: z.string().optional(),
     [createInstitute.instituteHeader]: z.string().optional(),
     [createInstitute.visualization]: z.object({
-        dashboard_card: z.boolean().default(false),
-        report_cards: z.boolean().default(false)
+        dashboard_card: z.boolean().default(false).optional(),
+        report_cards: z.boolean().default(false).optional()
     }),
     user_uuid: z.string().uuid().optional()
 })

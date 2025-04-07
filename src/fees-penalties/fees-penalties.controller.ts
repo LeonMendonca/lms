@@ -135,21 +135,6 @@ export class FeesPenaltiesController {
     }
   }
 
-  @Get('get-full-feelist-student') // done
-  async getFullFeeListStudent(@Query('student_id') student_id: string) {
-    try {
-      return await this.feesPenaltiesService.getFullFeeListStudentPeriodicals(student_id); // getFullFeeListStudentBooks
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
   @Get('generate-fee-report')
   async generateFeeReport(
     @Query('start') start: string,
@@ -211,9 +196,34 @@ export class FeesPenaltiesController {
 
   // --------- STUDENT ROUTES ---------------
 
-  // Get Full Feelist for a particular student
+  // Get Full Feelist for a particular student - working
+  @Get('get-full-feelist-student')  
+  async getFullFeeListStudent(@Query('student_id') student_id: string) {
+    try {
+      return await this.feesPenaltiesService.getFullFeeListStudentPeriodicals(student_id); // getFullFeeListStudentBooks
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
 
-  // 
+  // Get pending penalties for a particular sutdent  - working
+  @Get('get-pending-penalties-for-student')
+  async getPenaltiesToBePaidForStudent(@Query('student_id') student_id: string) {
+    return await this.feesPenaltiesService.getPenaltiesToBePaidForStudent(student_id)
+  }
+
+
+  // Get completed penalties for a particular sutdent - working
+  @Get('get-completed-penalties-for-student')
+  async getPendingPenaltiesForStudent(@Query('student_id') student_id: string) {
+    return await this.feesPenaltiesService.getPendingPenaltiesForStudent(student_id)
+  }
 
 
 }
