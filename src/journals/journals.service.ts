@@ -75,7 +75,7 @@ export class JournalsService {
     private readonly dataSource: DataSource,
   ) { }
 
-  // get all the books and periodicals
+  // get all the books and periodicals - i can tmake it
   async getBooks() {
     const data = await this.journalsTitleRepository.query(
       `

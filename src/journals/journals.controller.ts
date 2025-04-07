@@ -47,7 +47,7 @@ export class JournalsController {
   ) {}
 
   // ------------ JOURNAL N BOOKS --------------
-  // all the journal n books
+  // all the journal n books - i cant make it
   @Get('get-books')
   async getBooks(){
     return this.journalsService.getBooks()
