@@ -1072,8 +1072,8 @@ export class BooksV2Service {
         }
         const stringyfiedInstituteUUIDS = JSON.stringify(instituteUUIDs);
         await this.booktitleRepository.query(
-          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, institute_uuids = JSONB_ARRAY_APPEND(institute_uuids, $2::jsonb), updated_at = NOW() WHERE isbn = $1`,
-          [createBookpayload.isbn, instituteUUIDs],
+          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, institute_uuids = $2, updated_at = NOW() WHERE isbn = $1`,
+          [createBookpayload.isbn, stringyfiedInstituteUUIDS],
         );
       }
       //Book Copy Table logic
