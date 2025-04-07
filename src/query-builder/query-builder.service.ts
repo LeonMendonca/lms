@@ -17,7 +17,7 @@ export class QueryBuilderService {
     filter.forEach((f) => {
       const operator = f.operator || '=';
       if (operator === 'IN' && Array.isArray(f.value) && f.value.length > 0) {
-        const placeholders = f.value.map(() => `$${params.length + 1}`).join(', ');
+        const placeholders = f.value.map((_, idx) => `$${params.length + 1 + idx}`).join(', ');
         clauses.push(`${f.field} IN (${placeholders})`);
         params.push(...f.value);
       } 

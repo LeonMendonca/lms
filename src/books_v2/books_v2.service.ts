@@ -918,7 +918,7 @@ export class BooksV2Service {
       const result: any[] = await this.booklogRepository.query(
         `SELECT bt.book_title, bt.book_uuid, bc.barcode, bt.department, fp.created_at FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN 
         book_titles bt ON bc.book_title_uuid = bt.book_uuid 
-        WHERE fp.created_at < CURRENT_DATE AND fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
+        WHERE fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
         `,
         //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
         //           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid
@@ -927,7 +927,7 @@ export class BooksV2Service {
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
-        `SELECT COUNT(*) FROM fees_penalties WHERE return_date < CURRENT_DATE AND is_completed = false AND borrower_uuid = $1`,
+        `SELECT COUNT(*) FROM fees_penalties WHERE is_completed = false AND borrower_uuid = $1`,
         //         `SELECT COUNT(*)
         //         FROM book_titles
         //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
@@ -1019,33 +1019,41 @@ export class BooksV2Service {
   async createBook(createBookpayload: TCreateBookZodDTO) {
     try {
       //Check if book exists in BookTitle Table
-      let bookTitleUUID: Pick<TBookTitle, 'book_uuid'>[] =
+      let bookTitleUUID: Pick<TBookTitle, 'book_uuid' | 'institute_uuids'>[] =
         await this.booktitleRepository.query(
-          `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
+          `SELECT book_uuid, institute_uuids FROM book_titles WHERE isbn = $1`,
           [createBookpayload.isbn],
         );
 
       //Book Title Table logic
       if (!bookTitleUUID.length) {
+        // (bookTitleUUID[0].institute_uuids as string[])
         //Create the required Columns, Arg, and Values
         //Ignore the Columns that are used by Copy table
-        const bookTitleQueryData = insertQueryHelper(createBookpayload, [
-          'source_of_acquisition',
-          'date_of_acquisition',
-          'bill_no',
-          'language',
-          'inventory_number',
-          'accession_number',
-          'barcode',
-          'item_type',
-          'institute_name',
-          'institute_uuid',
-          'created_by',
-          'remarks',
-          'copy_images',
-          'copy_description',
-          'copy_additional_fields',
-        ]);
+        //Here, there is no record of the book already being in existance, hence an array needs to be created for the UUID
+        let createBookPayloadForTitle = Object.assign({}, createBookpayload, {
+          institute_uuids: [createBookpayload.institute_uuid],
+        });
+        const bookTitleQueryData = insertQueryHelper(
+          createBookPayloadForTitle,
+          [
+            'source_of_acquisition',
+            'date_of_acquisition',
+            'bill_no',
+            'language',
+            'inventory_number',
+            'accession_number',
+            'barcode',
+            'item_type',
+            'institute_name',
+            'institute_uuid',
+            'created_by',
+            'remarks',
+            'copy_images',
+            'copy_description',
+            'copy_additional_fields',
+          ],
+        );
 
         //Convert some specific fields to string
         bookTitleQueryData.values.forEach((element, idx) => {
@@ -1058,9 +1066,14 @@ export class BooksV2Service {
           bookTitleQueryData.values,
         );
       } else {
+        const instituteUUIDs = bookTitleUUID[0].institute_uuids as string[];
+        if (!instituteUUIDs.includes(createBookpayload.institute_uuid)) {
+          instituteUUIDs.push(createBookpayload.institute_uuid);
+        }
+        const stringyfiedInstituteUUIDS = JSON.stringify(instituteUUIDs);
         await this.booktitleRepository.query(
-          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE isbn = $1`,
-          [createBookpayload.isbn],
+          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, institute_uuids = $2, updated_at = NOW() WHERE isbn = $1`,
+          [createBookpayload.isbn, stringyfiedInstituteUUIDS],
         );
       }
       //Book Copy Table logic
@@ -2219,7 +2232,11 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
-      filter.push({ field: 'cr.institute_uuid', value: institute_uuid, operator: '=' });
+      filter.push({
+        field: 'cr.institute_uuid',
+        value: institute_uuid,
+        operator: '=',
+      });
       filter.push({ field: 'cr.is_archived', value: ['false'], operator: '=' });
       filter.push({
         field: 'cr.is_completed',
@@ -2231,7 +2248,7 @@ export class BooksV2Service {
       //   SELECT * FROM notes
       //   `))
 
-        console.log({institute_uuid})
+      console.log({ institute_uuid });
 
       const whereClauses = this.queryBuilderService.buildWhereClauses(
         filter,

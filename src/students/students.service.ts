@@ -29,6 +29,8 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 import { VisitLog } from './visitlog.entity';
 import { InquireLogs } from './entities/inquire-logs';
+import { validateTime } from 'src/misc/validate-time-format';
+import { DashboardCardtypes } from 'types/dashboard';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -89,7 +91,7 @@ export class StudentsService {
     );
     const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
 
-    console.log({ params });
+    console.log({ whereClauses, orderByQuery, params });
 
     const students = await this.studentsRepository.query(
       `SELECT * FROM students_table ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -100,82 +102,6 @@ export class StudentsService {
       `SELECT COUNT(*) FROM students_table ${whereClauses}`,
       params,
     );
-
-    // let whereClauses: string[] = ['is_archived = false'];
-    // console.log(asc);
-
-    // if (search && search.length > 0) {
-    //   search.forEach((s) => {
-    //     whereClauses.push(`${s.field} ILIKE $${whereClauses.length}`);
-    //   });
-    // }
-
-    // if (filter && filter.length > 0) {
-    //   filter.forEach((f) => {
-    //     // Default operator is '=' if no operator is specified
-    //     const operator = f.operator || '=';
-
-    //     // Handle 'IN' operator for array values in filter
-    //     if (operator === 'IN') {
-    //       // Ensure the value is an array
-    //       if (Array.isArray(f.value) && f.value.length > 0) {
-    //         const placeholders = f.value
-    //           .map((_, idx) => `$${whereClauses.length + idx}`)
-    //           .join(', ');
-    //         whereClauses.push(`${f.field} IN (${placeholders})`);
-    //       }
-    //     }
-    //     // Handle 'ILIKE' operator (e.g., case-insensitive search)
-    //     else if (operator === 'ILIKE') {
-    //       whereClauses.push(`${f.field} ILIKE $${whereClauses.length}`);
-    //     }
-    //     // Handle other operators (>, <, >=, <=, <>, etc.)
-    //     else if (operator === '>') {
-    //       whereClauses.push(`${f.field} > $${whereClauses.length}`);
-    //     } else if (operator === '<') {
-    //       whereClauses.push(`${f.field} < $${whereClauses.length}`);
-    //     } else if (operator === '>=') {
-    //       whereClauses.push(`${f.field} >= $${whereClauses.length}`);
-    //     } else if (operator === '<=') {
-    //       whereClauses.push(`${f.field} <= $${whereClauses.length}`);
-    //     } else if (operator === '<>') {
-    //       whereClauses.push(`${f.field} <> $${whereClauses.length}`);
-    //     } else {
-    //       whereClauses.push(`${f.field} = $${whereClauses.length}`);
-    //     }
-    //   });
-    // }
-
-    // const whereQuery =
-    //   whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // let orderByQuery = 'ORDER BY updated_at DESC'; // default order
-    // if (asc.length > 0 || dec.length > 0) {
-    //   const sortByFields = [
-    //     ...asc.map((field) => `${field} ASC`),
-    //     ...dec.map((field) => `${field} DESC`),
-    //   ];
-    //   orderByQuery = `ORDER BY ${sortByFields.join(', ')}`;
-    // }
-
-    // console.log(whereClauses);
-    // const students = await this.studentsRepository.query(
-    //   `SELECT * from students_table ${whereQuery} ${orderByQuery} LIMIT $${whereClauses.length} OFFSET $${whereClauses.length + 1}`,
-    //   [
-    //     ...search.map((s) => `%${s.value}%`),
-    //     ...filter.flatMap((f) => f.value), // Flatten the filter values array
-    //     limit,
-    //     offset,
-    //   ],
-    // );
-
-    // const total = await this.studentsRepository.query(
-    //   `SELECT COUNT(*) from students_table ${whereQuery}`,
-    //   [
-    //     ...search.map((s) => `%${s.value}%`),
-    //     ...filter.flatMap((f) => f.value), // Flatten the filter values array
-    //   ],
-    // );
 
     return {
       data: students,
@@ -462,15 +388,76 @@ export class StudentsService {
   }
   // visit log
   async getCompleteVisitLog(
-    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
+    {
+      page,
+      limit,
+      fromDate,
+      toDate,
+      fromTime,
+      toTime,
+    }: {
+      page: number;
+      limit: number;
+      fromDate: string | undefined;
+      toDate: string | undefined;
+      fromTime: string | undefined;
+      toTime: string | undefined;
+    } = {
+      page: 1,
+      limit: 10,
+      fromDate: undefined,
+      toDate: undefined,
+      fromTime: undefined,
+      toTime: undefined,
+    },
   ) {
     try {
       const offset = (page - 1) * limit;
 
+      let fromDateObj: Date | undefined = undefined;
+      let toDateObj: Date | undefined = undefined;
+
+      //Mark both time as undefined if either is not valid
+      if (
+        fromTime &&
+        toTime &&
+        (!validateTime(fromTime) || !validateTime(toTime))
+      ) {
+        fromTime = undefined;
+        toTime = undefined;
+      }
+
+      console.log('fromTime', fromTime, 'toTime', toTime);
+
+      if (fromDate && toDate) {
+        fromDateObj = new Date(fromDate);
+        toDateObj = new Date(toDate);
+
+        if (fromDateObj > toDateObj) {
+          throw new HttpException(
+            'From date cannot be greater than To date',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+      console.log(fromDateObj, toDateObj);
+
+      let queryDateAndTime = '';
+
+      if (fromDateObj && toDateObj) {
+        queryDateAndTime += `AND in_time BETWEEN '${fromDateObj.toISOString().split('T')[0]}' AND '${toDateObj.toISOString().split('T')[0]}' `;
+      }
+
+      if (fromTime && toTime) {
+        queryDateAndTime += `
+        AND CAST(in_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}' OR CAST(out_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}'
+        `;
+      }
+
       // Optimized SQL Query with Pagination at Database Level
       const logs = await this.studentsRepository.query(
         `
-        SELECT visitlog_id, department, student_id As student_id, out_time, visitor_name AS visitor, in_time FROM visit_log
+        SELECT visitlog_id, department, student_id, in_time, out_time, visitor_name AS visitor FROM visit_log WHERE 0=0 ${queryDateAndTime}
         ORDER BY in_time DESC
         LIMIT $1 OFFSET $2
         `,
@@ -484,28 +471,21 @@ export class StudentsService {
         `,
       );
 
-      const totalCount = parseInt(total[0].total, 10);
+      const totalCount = parseInt(total[0].count, 10);
 
-      if (logs.length === 0) {
-        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
-      }
-
-      console.log({ totalCount, logs });
+      // console.log({ totalCount, logs });
 
       return {
         data: logs,
         pagination: {
-          total: totalCount,
+          total: totalCount ?? 0,
           page,
           limit,
-          totalPages: Math.ceil(totalCount / limit),
+          totalPages: Math.ceil(totalCount / limit) ?? 0,
         },
       };
     } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -573,13 +553,15 @@ export class StudentsService {
         params,
       );
 
+      console.log('Total is', total);
+
       const totalCount = parseInt(total[0].total, 10);
 
       // if (logs.length === 0) {
       //   throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
       // }
 
-      console.log({ totalCount, logs });
+      // console.log({ totalCount, logs });
 
       return {
         data: logs,
@@ -1016,15 +998,16 @@ export class StudentsService {
     }
   }
 
-  async adminDashboard(instituteUUIDs: string | null) {
+  async adminDashboard(
+    instituteUUIDs: string | null,
+  ): Promise<Data<DashboardCardtypes>> {
     try {
-      // Uncomment after completion of phase 1
-      // if (!instituteUUIDs) {
-      //   throw new HttpException(
-      //     'Please Provide atleast one Institute Identifier',
-      //     HttpStatus.BAD_REQUEST,
-      //   );
-      // }
+      if (!instituteUUIDs) {
+        throw new HttpException(
+          'Please Provide atleast one Institute Identifier',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       const instituteUUIDsJSON = JSON.parse(instituteUUIDs || '[]');
 
@@ -1038,22 +1021,24 @@ export class StudentsService {
       const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
 
       const totalBooksQuery = `
-      SELECT COUNT(*) 
-      FROM book_copies 
-      WHERE is_archived = false
-      ${whereInstituteClause}
-    `;
+        SELECT COUNT(*) 
+          FROM book_copies 
+          WHERE is_archived = false
+          ${whereInstituteClause}
+        `;
+
       const totalBooks: { count: string }[] =
         await this.studentsRepository.query(totalBooksQuery, instituteParams);
 
       // Adjust the query for totalBorrowedBooks
       const totalBorrowedBooksQuery = `
-      SELECT COUNT(*) 
-      FROM book_logv2 
-      LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
-      WHERE book_copies.is_archived = false
-      ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
-    `;
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
+          WHERE book_copies.is_archived = false
+          ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
+        `;
+
       const totalBorrowedBooks = await this.studentsRepository.query(
         totalBorrowedBooksQuery,
         instituteParams,
@@ -1061,67 +1046,71 @@ export class StudentsService {
 
       const totalMembersQuery = `
       SELECT COUNT(*) 
-      FROM students_table 
-      WHERE is_archived = false
-      ${whereInstituteClause}
-    `;
+        FROM students_table 
+        WHERE is_archived = false
+        ${whereInstituteClause}
+      `;
+
       const totalMembers = await this.studentsRepository.query(
         totalMembersQuery,
         instituteParams,
       );
 
       const newBooksQuery = `
-      SELECT COUNT(*) 
-      FROM book_copies 
-      WHERE is_archived = false 
-        AND is_available = true 
-        AND created_at >= NOW() - INTERVAL '1 month'
-    `;
+        SELECT COUNT(*) 
+          FROM book_copies 
+          WHERE is_archived = false 
+            AND is_available = true 
+            AND created_at >= NOW() - INTERVAL '1 month'
+        `;
       const newBooks = await this.studentsRepository.query(newBooksQuery);
 
       const todayIssuesQuery = `
-      SELECT COUNT(*) 
-      FROM book_logv2 
-      WHERE date >= CURRENT_DATE AND action = 'borrowed'
-    `;
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          WHERE date >= CURRENT_DATE AND action = 'borrowed'
+        `;
       const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
 
       const todayReturnedQuery = `
-      SELECT COUNT(*) 
-      FROM book_logv2 
-      WHERE date >= CURRENT_DATE AND action = 'returned'
-    `;
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          WHERE date >= CURRENT_DATE AND action = 'returned'
+        `;
       const todayReturned =
         await this.studentsRepository.query(todayReturnedQuery);
 
       const overdueQuery = `
-      SELECT COUNT(*) 
-      FROM fees_penalties 
-      WHERE penalty_amount > 0
-    `;
+        SELECT COUNT(*) 
+          FROM fees_penalties 
+          WHERE penalty_amount > 0
+        `;
       const overdues = await this.studentsRepository.query(overdueQuery);
 
       const trendingQuery = `
-      SELECT COUNT(*) 
-      FROM book_copies 
-      WHERE is_archived = false 
-        AND is_available = true 
-        AND created_at >= NOW() - INTERVAL '1 month'
-    `;
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
       const trending = await this.studentsRepository.query(trendingQuery);
 
       const parseCount = (result: { count: string }[]) =>
         parseInt(result?.[0]?.count || '0', 10);
 
       return {
-        totalBooks: parseCount(totalBooks),
-        totalBorrowedBooks: parseCount(totalBorrowedBooks),
-        totalMembers: parseCount(totalMembers),
-        newBooks: parseCount(newBooks),
-        todayIssues: parseCount(todayIssues),
-        todayReturned: parseCount(todayReturned),
-        overdue: parseCount(overdues),
-        trending: parseCount(trending),
+        data: {
+          totalBooks: parseCount(totalBooks),
+          totalBorrowedBooks: parseCount(totalBorrowedBooks),
+          totalMembers: parseCount(totalMembers),
+          newBooks: parseCount(newBooks),
+          todayIssues: parseCount(todayIssues),
+          todayReturned: parseCount(todayReturned),
+          overdue: parseCount(overdues),
+          trending: parseCount(trending),
+        },
+        pagination: null,
       };
     } catch (error) {
       console.error('Error in adminDashboard:', error);
@@ -1249,7 +1238,7 @@ export class StudentsService {
       const lib_longitude = 72.8645;
       const lib_latitude = 19.2135;
       const studentKey = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes' AND is_used = false`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes' AND is_used = false`,
         [studentKeyUUID],
       );
 
@@ -1311,7 +1300,7 @@ export class StudentsService {
       );
       console.log(trial);
       const status: TStudentsVisitkey[] = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes'`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes'`,
         [studentKeyUUID],
       );
       if (status.length === 0) {

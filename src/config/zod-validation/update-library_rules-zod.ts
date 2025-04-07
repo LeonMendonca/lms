@@ -2,12 +2,12 @@ import { z } from "zod"
 import { createObjectOmitProperties } from "src/misc/create-object-from-class"
 import { LibraryConfig } from "../entity/library_config.entity"
 
-const updateLibraryRules = createObjectOmitProperties(new LibraryConfig(), ['createdAt'])
+const updateLibraryRules = createObjectOmitProperties(new LibraryConfig(), ['createdAt', 'libraryRuleId'])
 
 export const updateLibraryRuleSchema = z.object({
     // [updateLibraryRules.instituteUUID] : z.string(),
     institute_uuid : z.string().uuid(),
-    [updateLibraryRules.libraryRuleId]: z.string(),
+    // [updateLibraryRules.libraryRuleId]: z.string(),
     [updateLibraryRules.createdByUUID]: z.string().uuid().optional(),
     // [updateLibraryRules.enableEmail]: z.boolean().optional(),
     [updateLibraryRules.isArchived]: z.boolean().optional(),

@@ -14,8 +14,10 @@ export class ConfigController {
 
     // Get Institute Info
     @Get('get-institute')
-    async getInstitute() {
-        return this.configService.getInstitute()
+    async getInstitute(
+        @Query('_user_uuid') institute_id: string,
+    ) {
+        return this.configService.getInstitute(institute_id)
     }
 
     // Get Institute by id
@@ -155,6 +157,14 @@ export class ConfigController {
 
 
     // ---------- INSTITUTE AND USER INTEGRATIONS ROUTES ----------
+
+
+    //  ---------- INSTITUTE AND LIBRARY BASED ROUTES -----------
+    @Get('get-rule-by-institute_uuid')
+    async getRulebyInstituteId(@Query('institute_uuid') institute_uuid: string){
+        return this.configService.getRulebyInstituteId(institute_uuid)
+
+    }
 
 
 }

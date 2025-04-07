@@ -37,6 +37,7 @@ import { BookTitle } from 'src/books_v2/entity/books_v2.title.entity';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 import { ConfigController } from 'src/config/config.controller';
 import { InstituteConfig } from 'src/config/entity/institute_config.entity';
+import { LibraryConfig } from 'src/config/entity/library_config.entity';
 
 @Injectable()
 export class JournalsService {
@@ -72,51 +73,158 @@ export class JournalsService {
     @InjectRepository(InstituteConfig)
     private instituteConfigRepository: Repository<InstituteConfig>,
 
+    @InjectRepository(LibraryConfig)
+    private libraryConfigRepository: Repository<LibraryConfig>,
+
     private readonly dataSource: DataSource,
   ) { }
 
+// Get Books and Journals by Institute UUIDs
+async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number, limit: number) {
+  const offset = (page - 1) * limit;
+  const data = await this.journalsTitleRepository.query(
+    `
+      -- Books query
+      SELECT
+        b.institute_uuids AS book_institute_uuids,
+        NULL AS journal_institute_uuid,
+        b.name_of_publisher AS publisher,
+        b.total_count,
+        b.available_count,
+        b.is_archived,
+        NULL AS item_id,  -- journal fields
+        NULL AS category,
+        NULL AS subscription_id,
+        NULL AS subscription_start_date,
+        NULL AS subscription_end_date,
+        NULL AS volume_number,
+        NULL AS frequency,
+        NULL AS issue_number,
+        NULL AS vendor_name,
+        NULL AS subscription_price,
+        NULL AS library_name,
+        NULL AS classification_number,
+        NULL AS journal_created_at,
+        NULL AS journal_updated_at,
+        NULL AS journal_title_images,
+        NULL AS journal_title_description,
+        NULL AS journal_additional_fields,
+        b.book_title,
+        b.book_author,
+        b.year_of_publication,
+        b.edition,
+        b.isbn,
+        b.no_of_pages,
+        b.no_of_preliminary AS no_of_preliminary_pages,
+        b.subject,
+        b.department,
+        b.call_number,
+        b.author_mark,
+        'book' AS item_type
+      FROM book_titles b
+      WHERE b.institute_uuids @> ANY (SELECT jsonb_build_array(unnest($1::uuid[])))
+        AND ($2::text IS NULL OR b.book_title ILIKE '%' || $2 || '%')
+
+      UNION ALL
+
+      -- Journals query
+      SELECT
+        NULL AS book_institute_uuids,
+        jt.institute_uuid AS journal_institute_uuid,
+        jt.name_of_publisher AS publisher,
+        jt.total_count,
+        jt.available_count,
+        jt.is_archived,
+        jt.journal_title_id AS item_id,
+        jt.category,
+        jt.subscription_id,
+        jt.subscription_start_date,
+        jt.subscription_end_date,
+        jt.volume_no AS volume_number,
+        jt.frequency,
+        jt.issue_number,
+        jt.vendor_name,
+        jt.subscription_price,
+        jt.library_name,
+        jt.classification_number,
+        jt.created_at AS journal_created_at,
+        jt.updated_at AS journal_updated_at,
+        jt.title_images AS journal_title_images,
+        jt.title_description AS journal_title_description,
+        jt.title_additional_fields AS journal_additional_fields,
+        NULL AS book_title,
+        NULL AS book_author,
+        NULL AS year_of_publication,
+        NULL AS edition,
+        NULL AS isbn,
+        NULL AS no_of_pages,
+        NULL AS no_of_preliminary_pages,
+        NULL AS subject,
+        NULL AS department,
+        NULL AS call_number,
+        NULL AS author_mark,
+        'journal' AS item_type
+      FROM journal_titles jt
+      WHERE jt.institute_uuid = ANY($1)
+        AND ($2::text IS NULL OR jt.title_description ILIKE '%' || $2 || '%')
+
+      LIMIT $3 OFFSET $4
+    `,
+    [instituteUUIDs, search || null, limit, offset]
+  );
+
+  if (data.length === 0) {
+    return { message: "Nothing found" };
+  } else {
+    return data;
+  }
+}
   // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
   // working
   async getJournals(
-    { page, limit, search }: { page: number; limit: number; search: string } = {
-      page: 1,
-      limit: 10,
-      search: '',
-    },
+    {
+      page,
+      limit,
+      search,
+      institute_uuid
+    }: {
+      page: number;
+      limit: number;
+      search: string;
+      institute_uuid: string;
+    }
   ) {
     try {
       const offset = (page - 1) * limit;
-      const searchQuery = search ? `${search}%` : '%';
-
-      const institutes = ['a0e08cc6-c7e4-4e6a-b98e-38e8cef99b7c']
-
-      // const journals = await this.journalsTitleRepository.query(
-      //   `SELECT * FROM journal_copy WHERE is_archived=false AND institute_uuid= ANY($1)`, 
-      //   [institutes]
-      // );
-
+      const searchQuery = search ? `%${search}%` : '%';
+      const institutes = [institute_uuid];
+  
       const journals = await this.journalsTitleRepository.query(
         `
-        SELECT
-    jt.journal_title_id,
-    jt.name_of_publisher,
-    jt.total_count,
-    jt.volume_no,
-    jt.subscription_start_date,
-    jt.subscription_end_date
-  FROM journal_titles jt
-  INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
-  WHERE jt.is_archived = false
-    AND jc.is_archived = false
-    AND jc.institute_uuid = ANY($1)
-  GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
-  [institutes]
-      )
-      console.log(journals);
-      const total = await this.journalsTitleRepository.query(
-        `SELECT COUNT(*) AS count FROM journal_titles WHERE is_archived=false AND available_count>0`,
+        SELECT journal_title_id, name_of_publisher, total_count, volume_no, subscription_start_date, subscription_end_date 
+        FROM journal_titles 
+        WHERE available_count > 0 
+          AND is_archived = false 
+          AND institute_uuid = ANY($1)
+          AND name_of_publisher ILIKE $2
+        LIMIT $3 OFFSET $4
+        `,
+        [institutes, searchQuery, limit, offset]
       );
+  
+      const total = await this.journalsTitleRepository.query(
+        `
+        SELECT COUNT(*) AS count 
+        FROM journal_titles 
+        WHERE available_count > 0 
+          AND is_archived = false 
+          AND institute_uuid = ANY($1)
+          AND name_of_publisher ILIKE $2
+        `,
+        [institutes, searchQuery]
+      );
+  
       return {
         data: journals,
         pagination: {
@@ -127,12 +235,14 @@ export class JournalsService {
         },
       };
     } catch (error) {
+      console.error('Error fetching Journals:', error);
       throw new HttpException(
-        'Error fetching Journals',
+        error.message || 'Error fetching Journals',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
+  
 
   async getPeriodicalLogs(
     { page, limit, search }: { page: number; limit: number; search: string } = {
@@ -447,185 +557,6 @@ export class JournalsService {
     }
   }
 
-  // async createJournalLog(journalLogPayload: TCreateJournalLogDTO) {
-  //     try {
-  //         //Check if journal exists in JournalTitle Table
-  //         let journalTitleUUID: [{ journal_uuid: string }] = await this.journalsTitleRepository.query(
-  //             `SELECT journal_uuid FROM journal_titles WHERE issn = $1`,
-  //             [journalLogPayload.issn],
-  //         );
-
-  //         //Book Title Table logic
-  //         if (!journalTitleUUID.length) {
-  //             //Create custom Book Id
-  //             const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_title_id) FROM journal_titles`);
-  //             const journalId = genJournalId(max[0].max, 'BT');
-  //             const journalTitlePayloadWithId = { ...journalLogPayload, journal_title_id: journalId };
-
-  //             //Create the required Columns, Arg, and Values
-  //             //Ignore the Columns that are used by Copy table
-  //             const journalLogQueryData = insertQueryHelper(journalTitlePayloadWithId, [
-  //                 'action','barcode','issn','journal_copy_id','journal_title_id','student_id'
-  //             ]);
-
-  //             //Convert some specific fields to string
-  //             journalLogQueryData.values.forEach((element, idx) => {
-  //                 if (Array.isArray(element) || typeof element === 'object') {
-  //                     journalLogQueryData.values[idx] = JSON.stringify(element);
-  //                 }
-  //             });
-  //             journalTitleUUID = await this.journalsTitleRepository.query
-  //                 (
-  //                     `INSERT INTO journal_logs (${journalLogQueryData.queryCol}) VALUES (${journalLogQueryData.queryArg}) RETURNING journal_copy_uuid`,
-  //                     journalLogQueryData.values
-  //                 );
-  //         } else {
-  //             await this.journalsTitleRepository.query
-  //                 (
-  //                     `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE issn = $1`,
-  //                     [journalLogPayload.issn],
-  //                 );
-  //         }
-  //         //Book Copy Table logic
-
-  //         //Create custom Book Id
-  //         const max: [{ max: null | string }] = await this.journalsTitleRepository.query(`SELECT MAX(journal_copy_id) FROM journal_copy`);
-  //         const journalId = genJournalId(max[0].max, 'BC');
-  //         const journalCopyPayloadWithId = { ...journalLogPayload, journal_copy_id: journalId, journal_title_uuid: journalTitleUUID[0].journal_uuid };
-
-  //         //Create the required Columns, Arg, and Values
-  //         //Ignore the Columns that are used by Title table
-  //         const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, [
-  //             'journal_title', 'journal_author', 'name_of_publisher', 'place_of_publication',
-  //             'year_of_publication', 'edition', 'issn', 'no_of_pages', 'no_of_preliminary', 'subject',
-  //             'department', 'call_number', 'author_mark', 'title_images', 'title_description', 'title_additional_fields'
-  //         ]);
-
-  //         //Convert some specific fields to string
-  //         journalCopyQueryData.values.forEach((element, idx) => {
-  //             if (Array.isArray(element) || typeof element === 'object') {
-  //                 journalCopyQueryData.values[idx] = JSON.stringify(element);
-  //             }
-  //         });
-
-  //         await this.journalsCopyRepository.query
-  //             (
-  //                 `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
-  //                 journalCopyQueryData.values
-  //             );
-  //         return { statusCode: HttpStatus.CREATED, message: "Journal created" }
-  //     } catch (error) {
-  //         throw error
-  //     }
-  // }
-
-  // async journalReturned(
-  //     journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
-  //     request: Request,
-  //     status: 'returned'
-  // ) {
-  //     try {
-  //         if (!request.ip) {
-  //             throw new HttpException("Unable to get IP address of the Client", HttpStatus.INTERNAL_SERVER_ERROR);
-  //         }
-  //         const studentExists: { student_uuid: string }[] = await this.studentsRepository.query(
-  //             `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-  //             [journalLogPayload.student_id],
-  //         );
-
-  //         if (!studentExists.length) {
-  //             throw new HttpException('Cannot find Student ID', HttpStatus.NOT_FOUND);
-  //         }
-
-  //         //Check if Book exists in Book Copies as not available
-  //         //Insert into old_book_copy COLUMN
-  //         const journalPayloadFromJournalCopies: TJournalCopy[] = await this.journalsCopyRepository.query
-  //             (
-  //                 `SELECT * FROM journal_copy WHERE journal_copy_id = $1 AND barcode = $2 AND is_available = FALSE`,
-  //                 [journalLogPayload.journal_copy_id, journalLogPayload.barcode]
-  //             );
-
-  //         if (!journalPayloadFromJournalCopies.length) {
-  //             throw new HttpException("Cannot find Borrowed Journal", HttpStatus.NOT_FOUND);
-  //         }
-
-  //         const journalBorrowedPayload: TJournalLogs[] = await this.journalLogRepository.query(
-  //             `SELECT * FROM journal_logs WHERE borrower_uuid = $1 AND journal_copy_uuid = $2 AND action = 'borrowed'`,
-  //             [studentExists[0].student_uuid, journalPayloadFromJournalCopies[0].journal_copy_uuid]
-  //         );
-
-  //         //if student doesn't exist in Booklog table (it hasn't borrowed), or it isn't the book that it borrowed, but attempting to return it
-  //         if (!journalBorrowedPayload.length) {
-  //             throw new HttpException('Student hasn\'t borrowed at all, or Invalid Journal is being returned', HttpStatus.NOT_FOUND);
-  //         }
-
-  //         //Check if Book hasn't reached its total count in Book Titles through book_title_uuid received from Book Copies via SELECT query
-  //         //Insert into old_book_title COLUMN
-  //         const journalPayloadFromBookTitle: TJournalTitle[] = await this.journalsCopyRepository.query
-  //             (
-  //                 `SELECT * FROM journal_titles WHERE journal_uuid = $1 AND available_count != total_count`,
-  //                 [journalPayloadFromJournalCopies[0].journal_title_uuid]
-  //             )
-
-  //         if (!journalPayloadFromBookTitle.length) {
-  //             throw new HttpException("Seems like Journal is fully returned in Journal Titles, but exists in Journal Log as not returned", HttpStatus.INTERNAL_SERVER_ERROR);
-  //         }
-
-  //         //UPDATING now is safe
-  //         //Insert into new_book_copy
-  //         const updatedJournalCopiesPayload: [TJournalCopy[], 0 | 1] = await this.journalsCopyRepository.query
-  //             (
-  //                 `UPDATE journal_copy SET is_available = TRUE WHERE journal_copy_uuid = $1 AND barcode = $2 AND is_available = FALSE
-  //         RETURNING *`,
-  //                 [journalPayloadFromJournalCopies[0].journal_copy_uuid, journalPayloadFromJournalCopies[0].barcode],
-  //             );
-
-  //         const updateStatus = updatedJournalCopiesPayload[1];
-  //         if (!updateStatus) {
-  //             //if somehow the update fails, even after getting the data through SELECT query
-  //             throw new HttpException("Failed to update Journal", HttpStatus.INTERNAL_SERVER_ERROR);
-  //         }
-
-  //         if (!updatedJournalCopiesPayload[0].length) {
-  //             //if for some reason update array response is empty, then
-  //             throw new HttpException("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-  //         }
-
-  //         const journalTitleUUID = updatedJournalCopiesPayload[0][0].journal_title_uuid;
-  //         const journalCopyUUID = updatedJournalCopiesPayload[0][0].journal_copy_uuid;
-
-  //         //Insert into new_book_copy COLUMN
-  //         const updatedJournalTitlePayload: [TJournalTitle[], 0 | 1] = await this.journalsTitleRepository.query
-  //             (
-  //                 `UPDATE journal_titles SET available_count = available_count + 1 WHERE journal_uuid = $1 RETURNING *`,
-  //                 [journalTitleUUID]
-  //             );
-
-  //         const oldJournalCopy = JSON.stringify(journalPayloadFromJournalCopies[0]);
-  //         const newJournalCopy = JSON.stringify(updatedJournalCopiesPayload[0][0]);
-
-  //         const oldJournalTitle = JSON.stringify(journalPayloadFromBookTitle[0]);
-  //         const newJournalTitle = JSON.stringify(updatedJournalTitlePayload[0][0]);
-
-  //         await this.journalLogRepository.query
-  //             (
-  //                 `INSERT INTO journal_logs (
-  //           borrower_uuid, journal_copy_uuid, action, description, journal_title_uuid,
-  //           old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, ip_address
-  //         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-  //                 [
-  //                     studentExists[0].student_uuid, journalCopyUUID, status, 'Journal has been returned', journalTitleUUID,
-  //                     oldJournalCopy, newJournalCopy, oldJournalTitle, newJournalTitle, request.ip
-  //                 ]
-  //             );
-
-  //         return { statusCode: HttpStatus.CREATED, message: "Journal returned successfully" };
-  //     } catch (error) {
-  //         throw error;
-  //     }
-  // }
-
-  // start
 
   //   use for the issue route
   async periodicalReturned(
@@ -720,36 +651,16 @@ export class JournalsService {
         const journalTitleUUID = oldTitle[0].journal_uuid;
         const journalCopyUUID = journalData[0].journal_copy_uuid;
 
-        // 7. Insert Log Entry
-        await transactionalEntityManager.query(
-          `INSERT INTO journal_logs 
-            (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
-            action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid)  
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
-            JSON.stringify(journalData[0]),
-            JSON.stringify(newCopyData[0]),
-            JSON.stringify(oldTitle[0]),
-            JSON.stringify(newTitle[0]),
-            status, // 'returned'
-            'Book has been returned',
-            journalData[0].issn,
-            request.ip,
-            studentExists[0].student_uuid,
-            journalTitleUUID,
-            journalCopyUUID,
-          ],
-        );
-
+       
         // 8. Insert Into The Fees-n-Penalties Table
         const penaltyData = await this.feesPenaltiesRepository.query(
-          `SELECT return_date FROM fees_penalties WHERE copy_uuid=$1`,
+          `SELECT * FROM fees_penalties WHERE copy_uuid=$1`,
           [journal_copy_uuid],
         );
 
         if (penaltyData.length === 0) {
           throw new HttpException(
-            'Return date record not found for penalty calculation',
+            'Record not found for penalty calculation',
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -762,23 +673,52 @@ export class JournalsService {
         let delayed_days = differenceInDays(returned_date, return_date);
         delayed_days = delayed_days < 0 ? 0 : delayed_days; // Ensure non-negative
 
+        const max_fees_per_day = penaltyData[0].late_fees_per_day
         // Calculate penalty
-        const penalty_amount = delayed_days > 0 ? delayed_days * 50 : 0;
+        const penalty_amount = delayed_days > 0 ? delayed_days * max_fees_per_day : 0;
         const is_penalised = delayed_days > 0;
+        const is_completed = penalty_amount > penaltyData[0].paid_amount
+
+        const fp_uuid = penaltyData[0].fp_uuid
+        console.log("fp_uuid : ", fp_uuid)
 
         // Update penalty table
         await this.feesPenaltiesRepository.query(
           `UPDATE fees_penalties 
-          SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4 
-          WHERE copy_uuid=$5 RETURNING *`,
+          SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4, is_completed=$5 WHERE copy_uuid=$6 RETURNING *`,
           [
             delayed_days,
             penalty_amount,
             is_penalised,
             returned_date,
+            is_completed,
             journal_copy_uuid,
           ],
         );
+
+
+         // 7. Insert Log Entry
+         await transactionalEntityManager.query(
+          `INSERT INTO journal_logs 
+            (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
+            action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid, fp_uuid)  
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            JSON.stringify(journalData[0]),
+            JSON.stringify(newCopyData[0]),
+            JSON.stringify(oldTitle[0]),
+            JSON.stringify(newTitle[0]),
+            status, // 'returned'
+            'Book has been returned',
+            journalData[0].issn,
+            request.ip,
+            studentExists[0].student_uuid,
+            journalTitleUUID,
+            journalCopyUUID,
+            fp_uuid
+          ],
+        );
+
       });
 
       return {
@@ -795,157 +735,6 @@ export class JournalsService {
   }
 
 
-  //   async periodicalReturned(
-  //     journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
-  //     request: Request,
-  //     status: 'returned',
-  //     category,
-  //   ) {
-  //     try {
-  //       if (!request.ip) {
-  //         throw new HttpException(
-  //           'Unable to get IP address of the Student',
-  //           HttpStatus.INTERNAL_SERVER_ERROR,
-  //         );
-  //       }
-
-  //       await this.dataSource.transaction(async (transactionalEntityManager) => {
-  //         // 1. Validate Student ID Exists
-  //         const studentExists = await transactionalEntityManager.query(
-  //           `SELECT * FROM students_table WHERE student_id = $1`,
-  //           [journalLogPayload.student_id],
-  //         );
-
-  //         if (studentExists.length === 0) {
-  //           throw new HttpException('Invalid Student ID', HttpStatus.BAD_REQUEST);
-  //         }
-
-  //         // 2. Check if Journal Copy Exists and is Issued (is_available = false)
-  //         const journalData = await transactionalEntityManager.query(
-  //           `SELECT * FROM journal_copy WHERE journal_copy_id=$1 AND is_available=false`,
-  //           [journalLogPayload.copy_id],
-  //         );
-
-  //         if (journalData.length === 0) {
-  //           throw new HttpException(
-  //             'Periodical is not issued or does not exist',
-  //             HttpStatus.BAD_REQUEST,
-  //           );
-  //         }
-  //         const journal_title_uuid = journalData[0].journal_title_uuid;
-  //         const journal_copy_uuid = journalData[0].journal_copy_uuid;
-
-  //         // 3. Check if Periodical Exists in Titles
-  //         const oldTitle = await transactionalEntityManager.query(
-  //           `SELECT * FROM journal_titles WHERE journal_uuid=$1 AND is_archived=false`,
-  //           [journal_title_uuid],
-  //         );
-
-  //         if (oldTitle.length === 0) {
-  //           throw new HttpException(
-  //             'Periodical title not found or archived',
-  //             HttpStatus.BAD_REQUEST,
-  //           );
-  //         }
-
-  //         // 4. Ensure available_count does not exceed total_count
-  //         if (oldTitle[0].available_count >= oldTitle[0].total_count) {
-  //           throw new HttpException(
-  //             'Cannot return periodical. Available count already at maximum.',
-  //             HttpStatus.BAD_REQUEST,
-  //           );
-  //         }
-
-  //         // 5. Update Available Count in journal_titles
-  //         const newTitle = await transactionalEntityManager.query(
-  //           `UPDATE journal_titles SET available_count = available_count + 1 WHERE journal_uuid=$1 AND available_count<=total_count RETURNING *`,
-  //           [journal_title_uuid],
-  //         );
-
-  //         if (newTitle.length === 0) {
-  //           throw new HttpException(
-  //             'Failed to update available count',
-  //             HttpStatus.INTERNAL_SERVER_ERROR,
-  //           );
-  //         }
-
-  //         // 6. Mark Journal Copy as
-  //         const newCopyData = await transactionalEntityManager.query(
-  //           `UPDATE journal_copy SET is_available=true WHERE journal_copy_id=$1 RETURNING *`,
-  //           [journalLogPayload.copy_id],
-  //         );
-
-  //         if (newCopyData.length === 0) {
-  //           throw new HttpException(
-  //             'Failed to update Journal Copy availability',
-  //             HttpStatus.INTERNAL_SERVER_ERROR,
-  //           );
-  //         }
-
-  //         const journalTitleUUID = oldTitle[0].journal_uuid;
-  //         const journalCopyUUID = journalData[0].journal_copy_uuid;
-
-  //         // 7. Insert Log Entry
-  //         await transactionalEntityManager.query(
-  //           `INSERT INTO journal_logs 
-  //                 (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
-  //                 action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid)  
-  //                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-  //           [
-  //             JSON.stringify(journalData[0]),
-  //             JSON.stringify(newCopyData[0]),
-  //             JSON.stringify(oldTitle[0]),
-  //             JSON.stringify(newTitle[0]),
-  //             status, // 'returned'
-  //             'Book has been returned',
-  //             journalData[0].issn,
-  //             request.ip,
-  //             studentExists[0].student_uuid,
-  //             journalTitleUUID,
-  //             journalCopyUUID,
-  //           ],
-  //         );
-
-  //         // 8. Insert Into The Fees-n-Penalties Table
-  //         // calculate delayed_days
-  //         let return_date = await this.journalLogRepository.query(
-  //           `SELECT return_date FROM fees_penalties WHERE copy_uuid=$1`,
-  //           [journal_copy_uuid],
-  //         );
-
-  //         const returned_date = new Date(); // today
-  //         let delayed_days = differenceInDays(
-  //           startOfDay(return_date),
-  //           startOfDay(returned_date),
-  //         );
-  //         delayed_days = delayed_days > 0 ? 0 : delayed_days;
-  //         const penalty_amount = delayed_days < 0 ? delayed_days * 50 : 0;
-  //         const is_penalised = delayed_days < 0 ? true : false;
-
-  //         const penalty = await this.feesPenaltiesRepository.query(
-  //           `UPDATE fees_penalties SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4 WHERE copy_uuid=$5 RETURNING *`,
-  //           [
-  //             delayed_days,
-  //             penalty_amount,
-  //             is_penalised,
-  //             returned_date,
-  //             journal_copy_uuid,
-  //           ],
-  //         );
-  //       });
-  //       return {
-  //         message: 'Periodical Returned Successfully',
-  //         statusCode: HttpStatus.OK,
-  //       };
-  //     } catch (error) {
-  //       console.error('Error returning Periodical:', error);
-  //       throw new HttpException(
-  //         'Error returning Periodical',
-  //         HttpStatus.INTERNAL_SERVER_ERROR,
-  //       );
-  //     }
-  //   }
-
   // use for the issue route
   async periodicalBorrowed(
     journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
@@ -954,12 +743,6 @@ export class JournalsService {
     category,
   ) {
     try {
-
-      // calculate the return date hence fetch the late_fees_per_day, max_days
-      const late_fees_per_day = await this.feesPenaltiesRepository.query(
-        ``
-      )
-
       if (!request.ip) {
         throw new HttpException(
           'Unable to get IP address of the Student',
@@ -1016,8 +799,33 @@ export class JournalsService {
           );
         }
         // store data for fees_n_penalties - store the return date properly
-        let return_date = new Date();
-        return_date.setDate(return_date.getDate() + 7);
+
+        // calculate the return date hence fetch the late_fees_per_day, max_days
+        let institute_uuid = await this.journalsTitleRepository.query(
+          `SELECT jt.institute_uuid
+           FROM journal_titles jt
+           WHERE jt.journal_uuid = (
+             SELECT jc.journal_title_uuid
+             FROM journal_copy jc
+             WHERE jc.journal_copy_id = $1
+           )`,
+          [journalLogPayload.copy_id]
+        );
+              
+        institute_uuid = institute_uuid[0].institute_uuid
+
+        const data = await this.libraryConfigRepository.query(
+          `SELECT max_days FROM library_config WHERE institute_uuid = $1`,
+          [institute_uuid]
+        )
+        
+        const max_days = data[0].max_days
+        let return_date = new Date()
+        return_date.setDate(return_date.getDate() + max_days);
+        console.log(return_date)
+
+        // let return_date = new Date();
+        // return_date.setDate(return_date.getDate() + 7);
         console.log('OLD PERIODICAL TITLE DATA : ', oldTitle[0]);
 
         const newTitle = await transactionalEntityManager.query(
@@ -1119,95 +927,7 @@ export class JournalsService {
     }
   }
 
-  // here
-
-  // async periodicalBorrowed(
-  //     journalLogPayload: Omit<TCreateJournalLogDTO, 'action'>,
-  //     request: Request,
-  //     status: 'borrowed' | 'in_library_borrowed'
-  // ) {
-  //     try {
-  //         const studentExists = await this.studentsRepository.query(
-  //             `SELECT * FROM students_table WHERE student_id = $1`,
-  //             [journalLogPayload.student_id],
-  //         );
-
-  //         if (studentExists.length === 0) {
-  //             console.error(' Invalid Student ID:', journalLogPayload.student_id);
-  //             throw new HttpException('Invalid Student UUID', HttpStatus.BAD_REQUEST);
-  //         }
-  //         console.log("STUDENT : ", studentExists[0])
-
-  //         const journalData = await this.journalsCopyRepository.query(
-  //             `SELECT * FROM journal_copy WHERE barcode = $1 AND is_available = true AND is_archived=false LIMIT 1`,
-  //             [journalLogPayload.barcode],
-  //         );
-
-  //         if (journalData.length === 0) {
-  //             console.error(' Invalid Journal Copy ID:', journalLogPayload.journal_copy_id);
-  //             throw new HttpException('Invalid Barcode', HttpStatus.BAD_REQUEST);
-  //         }
-  //         console.log("OLD PERIODICAL COPY DATA : ", journalData[0])
-
-  //         const newCopyData = await this.journalsCopyRepository.query(
-  //             `UPDATE journal_copy SET is_available = FALSE WHERE journal_copy_id = $1 AND barcode=$2 RETURNING *`,
-  //             [journalLogPayload.journal_copy_id, journalLogPayload.barcode],
-  //         );
-  //         console.log("NEW PERIODICAL COPY DATA : ", newCopyData[0])
-
-  //         const oldTitle = await this.journalsTitleRepository.query(
-  //             `SELECT * FROM journal_titles WHERE subscription_id=$1 AND is_archived=false AND available_count != total_count`,
-  //             [journalLogPayload.subscription_id]
-  //         )
-  //         console.log("OLD PERIODICAL TITLE DATA : ", oldTitle[0])
-
-  //         const newTitle = await this.journalsTitleRepository.query(
-  //             `UPDATE journal_titles SET available_count = available_count - 1 WHERE subscription_id = $1 RETURNING *`,
-  //             [journalLogPayload.subscription_id],
-  //         );
-  //         console.log("NEW PERIODICAL TITLE DATA : ", newTitle[0])
-
-  //         //  Fetch Old Book Copy Data
-  //         const oldJournalCopy = journalData[0];
-  //         const newJournalCopyData = newCopyData[0];
-
-  //         const oldJournalTitleData = oldTitle[0];
-  //         const newJournalTitleData = newTitle[0];
-
-  //         const journalTitleUUID = newTitle[0].journal_uuid
-  //         const journalCopyUUID = newCopyData[0].journal_copy_uuid
-
-  //         const insertLogQuery = `INSERT INTO journal_logs (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid)  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
-
-  //         const insertLogValues = [
-  //             JSON.stringify(oldJournalCopy),
-  //             JSON.stringify(newJournalCopyData),
-  //             JSON.stringify(oldJournalTitleData),
-  //             JSON.stringify(newJournalTitleData),
-  //             'borrowed',
-  //             'Book has been borrowed',
-  //             journalData[0].issn,
-  //             request.ip,
-  //             studentExists[0].student_uuid,
-  //             journalTitleUUID,
-  //             journalCopyUUID
-  //         ];
-
-  //         await this.journalsTitleRepository.query(insertLogQuery, insertLogValues);
-  //         return { message: 'Periodical Borrowed Successfully' };
-  //     } catch (error) {
-  //         console.error(' Error issuing Periodical:', error);
-  //         throw new HttpException(
-  //             'Error issuing Periodical',
-  //             HttpStatus.INTERNAL_SERVER_ERROR,
-  //         );
-  //     }
-  // }
-
-  // here
-
   // working
-
   async getJournalLogsByJournalUUID(
     {
       page,
@@ -1419,294 +1139,105 @@ export class JournalsService {
     return result[0];
   }
 
-  // working
-
-  // async createJournal(createJournalPayload: TCreateJournalZodDTO) {
-  //   // Create a query runner instance
-  //   const queryRunner = this.dataSource.createQueryRunner();
-
-  //   // Start a transactions
-  //   await queryRunner.startTransaction();
-
-  //   try {
-  //     console.log('Start');
-  //     // Fetch total count
-  //     const totalCountQuery = await queryRunner.query(
-  //       `SELECT COUNT(*)::int AS total_count FROM journal_titles WHERE subscription_id = $1`,
-  //       [createJournalPayload.subscription_id],
-  //     );
-  //     const total_count = totalCountQuery[0]?.total_count || 0;
-
-  //     // Fetch available count
-  //     const availableCountQuery = await queryRunner.query(
-  //       `SELECT COUNT(*)::int AS available_count FROM journal_titles WHERE is_archived = false AND subscription_id = $1`,
-  //       [createJournalPayload.subscription_id],
-  //     );
-  //     const available_count = availableCountQuery[0]?.available_count || 0;
-
-  //     // Check if journal exists in JournalTitle Table
-  //     let journalTitleUUID = await queryRunner.query(
-  //       `SELECT * FROM journal_titles WHERE subscription_id = $1`,
-  //       [createJournalPayload.subscription_id],
-  //     );
-
-  //     const title_id = journalTitleUUID[0].journal_title_id;
-  //     console.log(title_id);
-  //     // if two different journal in the title have the same subscription id then give the user the error to create a new subscription id by padding /01 or -01
-  //     const subs_id_data = await this.journalsTitleRepository.query(
-  //       `SELECT * FROM journal_titles WHERE subscription_id=$1 AND journal_title_id=$2`,
-  //       [createJournalPayload.subscription_id, title_id],
-  //     );
-  //     if (subs_id_data.length > 1) {
-  //       // throw `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`
-  //       return {
-  //         message: `Periodical with the same Subscription Id [${createJournalPayload.subscription_id}] Exists. Add Another Subscription Id`,
-  //       };
-  //     }
-
-  //     // Generate journal_title_id if not exists
-  //     let journal_title_uuid: string;
-  //     if (journalTitleUUID.length === 0) {
-  //       // Create custom Journal Title ID (Ensure max value exists)
-  //       const maxInstituteCountQuery = await queryRunner.query(
-  //         `SELECT MAX(journal_titl) AS max_id FROM journal_titles`,
-  //       );
-
-  //       // console.log("Journal Title maxCount", maxInstituteCountQuery[0].max_id)
-
-  //       const maxInstituteCount = maxInstituteCountQuery[0]?.max_id || '000';
-  //       const instituteName = 'Thakur Institute of Aviation';
-  //       journal_title_uuid = genIdForTitle(maxInstituteCount, instituteName);
-
-  //       const journalTitlePayloadWithId = {
-  //         ...createJournalPayload,
-  //         journal_title_id: journal_title_uuid,
-  //         subscription_id: createJournalPayload.subscription_id,
-  //         total_count: total_count + 1,
-  //         available_count: available_count + 1,
-  //       };
-
-  //       // Generate INSERT query for journal_titles
-  //       const journalTitleQueryData = insertQueryHelper(
-  //         journalTitlePayloadWithId,
-  //         [
-  //           'barcode',
-  //           'item_type',
-  //           'issn',
-  //           'journal_title',
-  //           'editor_name',
-  //           'institute_uuid',
-  //           'created_by',
-  //           'remarks',
-  //           'copy_images',
-  //           'copy_additional_fields',
-  //           'copy_description',
-  //         ],
-  //       );
-
-  //       // Convert arrays/objects to strings for storage
-  //       journalTitleQueryData.values.forEach((element, idx) => {
-  //         if (Array.isArray(element) || typeof element === 'object') {
-  //           journalTitleQueryData.values[idx] = JSON.stringify(element);
-  //         }
-  //       });
-
-  //       // Insert journal title into DB and get the new UUID
-  //       const result = await queryRunner.query(
-  //         `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING *`,
-  //         journalTitleQueryData.values,
-  //       );
-  //       journalTitleUUID = result;
-  //     } else {
-  //       // If journal title already exists, update total_count and available_count
-  //       await queryRunner.query(
-  //         `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
-  //         [createJournalPayload.subscription_id],
-  //       );
-  //       journal_title_uuid = journalTitleUUID[0]?.journal_title_id; // use the existing journal UUID
-  //     }
-
-  //     // console.log("journal_title_uuid : ", journal_title_uuid)
-
-  //     // Generate journal_copy_id
-  //     const maxCopyIdQuery = await queryRunner.query(
-  //       `SELECT MAX(journal_copy_id) AS max_id FROM journal_copy WHERE journal_title_uuid=$1`,
-  //       [journalTitleUUID[0].journal_uuid],
-  //     );
-  //     const maxCopyId = maxCopyIdQuery[0]?.max_id || '000';
-  //     const journalCopyId = genIdForCopies(maxCopyId, journal_title_uuid);
-
-  //     const journalCopyPayloadWithId = {
-  //       ...createJournalPayload,
-  //       journal_copy_id: journalCopyId,
-  //       journal_title_uuid: journalTitleUUID[0].journal_uuid, // use the correct journal title uuid
-  //       subscription_id: createJournalPayload.subscription_id,
-  //       total_count: total_count + 1,
-  //       available_count: available_count + 1,
-  //     };
-
-  //     // Generate INSERT query for journal_copy
-  //     const journalCopyQueryData = insertQueryHelper(journalCopyPayloadWithId, [
-  //       'category',
-  //       'name_of_publisher',
-  //       'place_of_publication',
-  //       'subscription_start_date',
-  //       'subscription_end_date',
-  //       'volume_no',
-  //       'frequency',
-  //       'issue_number',
-  //       'vendor_name',
-  //       'subscription_price',
-  //       'library_name',
-  //       'classification_number',
-  //       'title_images',
-  //       'title_additional_fields',
-  //       'title_description',
-  //       'total_count',
-  //       'available_count',
-  //       'subscription_id',
-  //     ]);
-
-  //     // Convert arrays/objects to strings for storage
-  //     journalCopyQueryData.values.forEach((element, idx) => {
-  //       if (Array.isArray(element) || typeof element === 'object') {
-  //         journalCopyQueryData.values[idx] = JSON.stringify(element);
-  //       }
-  //     });
-
-  //     // Insert journal copy into DB
-  //     await queryRunner.query(
-  //       `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
-  //       journalCopyQueryData.values,
-  //     );
-
-  //     // Commit the transaction if everything is successful
-  //     await queryRunner.commitTransaction();
-
-  //     // Return success response
-  //     return { statusCode: HttpStatus.CREATED, message: 'Periodical Created!' };
-  //   } catch (error) {
-  //     // If anything fails, rollback the transaction
-  //     await queryRunner.rollbackTransaction();
-
-  //     // Log error details
-  //     console.error('Error during journal creation:', error.message);
-  //     console.error('Stack Trace:', error.stack);
-
-  //     return {
-  //       error: error.message || 'An error occurred while creating the journal.',
-  //     };
-  //   } finally {
-  //     // Release the query runner after the transaction is complete (either commit or rollback)
-  //     await queryRunner.release();
-  //   }
-  // }
-
   async createJournal(createJournalPayload: TCreateJournalZodDTO) {
     try {
-
-      const data = await this.journalsTitleRepository.query(
-        `SELECT * FROM journal_titles WHERE subscription_id = $1`,
-        [createJournalPayload.subscription_id]
-      )
-      if (data.length) {
-        throw new HttpException("Journal With The Same Subsciprtion Id Exists ", HttpStatus.NOT_FOUND)
-      }
-
-      // check if periodical exists in journal title table
-      let journalTitleUUID: Pick<TJournalTitle, 'journal_uuid'>[] = await this.journalsTitleRepository.query(
+      // Check if journal title exists
+      const existingTitle: Pick<TJournalTitle, 'journal_uuid'>[] = await this.journalsTitleRepository.query(
         `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
         [createJournalPayload.subscription_id]
-      )
+      );
 
-      if (!journalTitleUUID.length) {
-        //Create the required Columns, Arg, and Values
-        //Ignore the Columns that are used by Copy table
+      let journalTitleUUID: string;
+
+      if (!existingTitle.length) {
+        // Insert into journal_titles
         const journalTitleQueryData = insertQueryHelper(createJournalPayload, [
           'barcode',
           'item_type',
           'issn',
           'journal_title',
           'editor_name',
-          'institute_uuid',
           'created_by',
           'remarks',
           'copy_images',
           'copy_additional_fields',
           'copy_description',
-        ])
+        ]);
 
-        //Convert some specific fields to string
-        journalTitleQueryData.values.forEach((element, idx) => {
-          if (Array.isArray(element) || typeof element === 'object') {
-            journalTitleQueryData.values[idx] = JSON.stringify(element);
-          }
-        });
-        journalTitleUUID = await this.journalsTitleRepository.query(
-          `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
-          journalTitleQueryData.values,
+        journalTitleQueryData.values = journalTitleQueryData.values.map((val) =>
+          Array.isArray(val) || typeof val === 'object' ? JSON.stringify(val) : val
         );
+
+        const inserted = await this.journalsTitleRepository.query(
+          `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
+          journalTitleQueryData.values
+        );
+
+        journalTitleUUID = inserted[0].journal_uuid;
       } else {
+        // Use existing journal_uuid
+        journalTitleUUID = existingTitle[0].journal_uuid;
+
+        // Update count in journal_titles
         await this.journalsTitleRepository.query(
-          `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
-          [createJournalPayload.subscription_id],
+          `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE journal_uuid = $1`,
+          [journalTitleUUID]
         );
       }
 
-      //Journal Copy Table logic
-      //This variable also includes journal title payload
-      const journalCopiesPayloadWithTitleUUID = Object.assign(createJournalPayload, {
-        //journal_copy_id: journalId,
-        journal_title_uuid: journalTitleUUID[0].journal_uuid,
-      }) as TJournalCopy & TJournalTitle;
+      // Prepare copy insert payload
+      const journalCopiesPayloadWithTitleUUID = {
+        ...createJournalPayload,
+        journal_title_uuid: journalTitleUUID,
+      } as TJournalCopy & TJournalTitle;
 
-      //Create the required Columns, Arg, and Values
-      //Ignore the Columns that are used by Title table
-      const journalCopyQueryData = insertQueryHelper(journalCopiesPayloadWithTitleUUID,
-        [
-          'journal_uuid',
-          'journal_title_id',
-          'category',
-          'name_of_publisher',
-          'place_of_publication',
-          'subscription_id',
-          'subscription_start_date',
-          'subscription_end_date',
-          'volume_no',
-          'frequency',
-          'issue_number',
-          'vendor_name',
-          'subscription_price',
-          'library_name',
-          'classification_number',
-          'is_archived',
-          'total_count',
-          'available_count',
-          'created_at',
-          'updated_at',
-          'title_images',
-          'title_additional_fields',
-          'title_description'
-        ]
-      )
+      const journalCopyQueryData = insertQueryHelper(journalCopiesPayloadWithTitleUUID, [
+        'journal_uuid',
+        'journal_title_id',
+        'category',
+        'name_of_publisher',
+        'place_of_publication',
+        'subscription_id',
+        'subscription_start_date',
+        'subscription_end_date',
+        'volume_no',
+        'frequency',
+        'issue_number',
+        'vendor_name',
+        'subscription_price',
+        'library_name',
+        'classification_number',
+        'is_archived',
+        'total_count',
+        'available_count',
+        'created_at',
+        'updated_at',
+        'title_images',
+        'title_additional_fields',
+        'title_description',
+        'institute_uuid'
+      ]);
 
-      //Convert some specific fields to string
-      journalCopyQueryData.values.forEach((element, idx) => {
-        if (Array.isArray(element) || typeof element === 'object') {
-          journalCopyQueryData.values[idx] = JSON.stringify(element);
-        }
-      });
+      journalCopyQueryData.values = journalCopyQueryData.values.map((val) =>
+        Array.isArray(val) || typeof val === 'object' ? JSON.stringify(val) : val
+      );
 
+      // Insert into journal_copy
       await this.journalsCopyRepository.query(
         `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
-        journalCopyQueryData.values,
+        journalCopyQueryData.values
       );
-      return { statusCode: HttpStatus.CREATED, message: 'Periodical created' };
 
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Periodical created successfully',
+      };
     } catch (error) {
-      throw error
+      throw error;
     }
   }
+
+
 
   async updatePeriodicalCopy(updatePeriodicalPayload: TUpdatePeriodicalDTO) {
     try {
@@ -2109,58 +1640,6 @@ export class JournalsService {
     }
   }
 
-  // async getSingleJournalCopyInfo({
-  //     journal_title_uuid = '',
-  //     page = 1,
-  //     limit = 10,
-  //     search = '',
-  // }: {
-  //     journal_title_uuid?: string,
-  //     page?: number;
-  //     limit?: number;
-  //     search?: string;
-  // }) {
-  //     try {
-  //         if (!journal_title_uuid) {
-  //             return { message: "Enter journal_title_uuid" }
-  //         }
-
-  //         const offset = (page - 1) * limit;
-  //         const searchQuery = search ? `${search}%` : '%';
-  //         const periodical_copy = await this.journalsCopyRepository.query(
-  //             `SELECT jc.*, jt.journal_title_id
-  //             FROM journal_copy jc
-  //             JOIN journal_titles jt ON jc.journal_title_uuid = jt.journal_uuid
-  //             WHERE jc.journal_title_uuid = $1
-  //             AND jc.is_archived = false
-  //             AND jc.is_available = true
-  //             AND jt.is_archived = false
-  //             AND jt.available_count > 0
-  //             LIMIT $2 OFFSET $3`,
-  //             [journal_title_uuid, limit, offset]
-  //         );
-  //         if (!periodical_copy.length) {
-  //             return { message: "Periodical Does Not Exist" }
-  //         }
-
-  //         const total = await this.journalsCopyRepository.query(
-  //             `SELECT COUNT(*) AS count FROM journal_copy WHERE is_archived=false AND is_available=true AND journal_title_uuid = $1`,
-  //             [journal_title_uuid]
-  //         )
-
-  //         return {
-  //             data: periodical_copy,
-  //             pagination: {
-  //                 total: parseInt(total[0].count, 10),
-  //                 page,
-  //                 limit,
-  //                 totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-  //             },
-  //         };
-  //     } catch (error) {
-  //         throw new HttpException('Error fetching copy', HttpStatus.INTERNAL_SERVER_ERROR);
-  //     }
-  // }
 
   // working
   async updateJournalTitle(updateJournalPayload: TUpdateJournalTitleDTO) {

@@ -18,6 +18,7 @@ import {
   HttpCode,
   Request,
   Patch,
+  ParseDatePipe,
 } from '@nestjs/common';
 const jwt = require('jsonwebtoken');
 
@@ -53,6 +54,7 @@ import {
 } from 'src/pipes/pagination-parser.pipe';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
+import { DashboardCardtypes } from 'types/dashboard';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -71,6 +73,43 @@ export class StudentsController {
     private studentsService: StudentsService,
     private readonly notifyService: StudentNotifyService,
   ) {}
+
+  protected async fetchData<T>(method: Function, ...args: any[]): Promise<T> {
+    try {
+      const response = await method(...args);
+      return response.data;
+    } catch (error) {
+      // Handle errors appropriately
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  @Get('admin-dashboard')
+  async adminDashboard(
+    @Query('_institute_uuid') institute_uuid: string | null,
+  ): Promise<ApiResponse<DashboardCardtypes>> {
+    // return this.fetchData(this.studentsService.adminDashboard, institute_uuid);
+    try {
+      const { data } =
+        await this.studentsService.adminDashboard(institute_uuid);
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
 
   @Get('all')
   @UseGuards(TokenAuthGuard)
@@ -401,14 +440,31 @@ export class StudentsController {
     // @Request() req: AuthenticatedRequest,
     @Query('_page') page: string,
     @Query('_limit') limit: string,
+
+    @Query('_from_date') fromDate: string,
+    @Query('_to_date') toDate: string,
+
+    @Query('_from_time') fromTime: string,
+    @Query('_to_time') toTime: string,
   ) {
     try {
       return await this.studentsService.getCompleteVisitLog({
         page: page ? parseInt(page, 10) : 1,
         limit: limit ? parseInt(limit, 10) : 10,
+        fromDate: fromDate,
+        toDate: toDate,
+        fromTime: fromTime,
+        toTime: toTime,
       });
     } catch (error) {
-      console.log(error);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
     }
   }
   //   @Get('visitlog_by_id')
@@ -674,23 +730,6 @@ export class StudentsController {
     }
   }
 
-  @Get('admin-dashboard')
-  async adminDashboard(
-    @Query('_institute_uuid') institute_uuid: string | null,
-  ) {
-    try {
-      return await this.studentsService.adminDashboard(institute_uuid);
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
   @Post('student-visit-key')
   @UseGuards(TokenAuthGuard)
   async studentVisitKey(
@@ -737,11 +776,20 @@ export class StudentsController {
     try {
       const visitKey =
         await this.studentsService.verifyStudentVisitKey(student_key_uuid);
-      await this.notifyService.createNotification(
-        visitKey.meta.student_uuid,
-        NotificationType.LIBRARY_EXIT,
-        {},
-      );
+      if (visitKey.message.includes('Visit log entry created successfully')) {
+        await this.notifyService.createNotification(
+          visitKey.meta.student_uuid,
+          NotificationType.LIBRARY_ENTRY,
+          {},
+        );
+      } else {
+        await this.notifyService.createNotification(
+          visitKey.meta.student_uuid,
+          NotificationType.LIBRARY_EXIT,
+          {},
+        );
+      }
+
       return visitKey;
     } catch (error) {
       if (!(error instanceof HttpException)) {

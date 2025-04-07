@@ -39,6 +39,7 @@ export const createJournalSchema = z.object({
     [createJournalTitleObject.titleImages]: z.array(z.string()).optional(),
     [createJournalTitleObject.titleAdditionalFields]: z.record(z.any()).optional(),
     [createJournalTitleObject.titleDescription]: z.record(z.any()).optional(),
+    [createJournalTitleObject.instituteUUID]: z.string().uuid().optional(),
 
     // Journal Copy fields,
 
@@ -46,7 +47,6 @@ export const createJournalSchema = z.object({
     [createJournalCopyObject.editorName]: z.string(),
     [createJournalCopyObject.barcode]: z.string(),
     [createJournalCopyObject.itemType]: z.string(),
-    [createJournalCopyObject.instituteUUID]: z.string().uuid().optional(),
     // [createJournalCopyObject.isArchived]: z.boolean(),
     // [createJournalCopyObject.isAvailable]: z.boolean(), -- default=true
     [createJournalCopyObject.issn]: z.string(),

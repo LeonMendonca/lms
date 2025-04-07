@@ -46,22 +46,44 @@ export class JournalsController {
     // private booksService: BooksV2Service
   ) {}
 
+  // ------------ JOURNAL N BOOKS --------------
+  // GET ALL BOOKS - working
+  @Get('get-books')
+  async getBooks(
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+    @Query('_search') search: string,
+    @Query('_institute_uuid') institute_uuid: string
+  ) {
+    // Split the comma-separated institute_uuid string into an array
+    const instituteUuids = institute_uuid ? institute_uuid.split(',') : [];
+    
+    return this.journalsService.getBooksAndJournals(
+      instituteUuids, // Pass the array of UUIDs
+      search,
+      parseInt(page),
+      parseInt(limit)
+    );
+  }
+
   // --------------- JOURNAL TITLE -------------------------
 
   // GET ALL JOURNALS/MAGAZINES - working
   // Get all journals from titles
   @Get('all-periodicals')
-  async getAllJournals(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
-    @Query('_search') search: string,
-  ) {
-    return this.journalsService.getJournals({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
-      search: search ?? undefined,
-    });
-  }
+async getAllJournals(
+  @Query('_page') page: string,
+  @Query('_limit') limit: string,
+  @Query('_search') search: string,
+  @Query('_institute_uuid') institute_uuid: string
+) {
+  return this.journalsService.getJournals({
+    page: page ? parseInt(page, 10) : 1,
+    limit: limit ? parseInt(limit, 10) : 10,
+    search: search ?? '',
+    institute_uuid
+  });
+}
 
   // CREATE A NEW JOURNAL/MAGAZINE - working
   @Post('create-new-journal')
@@ -262,19 +284,6 @@ export class JournalsController {
       search: search ?? '',
     });
   }
-  // async fetchSingleJournalCopyInfo( //enter journal uuid and get periodical copy information
-  //     @Query('_journal_title_uuid') journal_title_uuid?: string,
-  //     @Query('_page') page?: string,
-  //     @Query('_limit') limit?: string,
-  //     @Query('_search') search?: string
-  // ) {
-  // return this.journalsService.getSingleJournalCopyInfo({
-  //     journal_title_uuid: journal_title_uuid ?? '',
-  //     page: page ? parseInt(page, 10) : 1,
-  //     limit: limit ? parseInt(limit, 10) : 10,
-  //     search: search ?? '',
-  // });
-  // }
 
   // EDIT COPIES
   @Patch('update-periodical-copies')
@@ -361,48 +370,6 @@ export class JournalsController {
     });
   }
 
-  // CREATE PERIODICAL LOGS
-  @Post('create-periodical-log')
-  @UsePipes(new bodyValidationPipe(journalLogsSchema))
-  // async createPeriodicalLog(
-  //   @Body() journalLogPayload: TCreateJournalLogDTO,
-  //   @Req() request: Request,
-  // ) {
-  //   try {
-  //     let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
-  //       undefined;
-  //     let result: Record<string, string | number> = {};
-  //     if (journalLogPayload.action === 'borrow') {
-  //       return await this.journalsService.periodicalBorrowed(
-  //         journalLogPayload,
-  //         request,
-  //         (status = 'borrowed'),
-  //       );
-  //     } else if (journalLogPayload.action === 'return') {
-  //       return await this.journalsService.periodicalReturned(
-  //         journalLogPayload,
-  //         request,
-  //         (status = 'returned'),
-  //       );
-  //     } else {
-  //       return await this.journalsService.periodicalBorrowed(
-  //         journalLogPayload,
-  //         request,
-  //         (status = 'in_library_borrowed'),
-  //       );
-  //     }
-  //     // return result;
-  //   } catch (error) {
-  //     if (!(error instanceof HttpException)) {
-  //       throw new HttpException(
-  //         error.message,
-  //         HttpStatus.INTERNAL_SERVER_ERROR,
-  //       );
-  //     }
-  //     throw error;
-  //   }
-  // }
-
   // BULK DELETE
   @Delete('bulk-delete-for-periodical-copies')
   @UsePipes(
@@ -438,61 +405,6 @@ export class JournalsController {
     }
   }
 
-  // get journal logs from journal_log_uuid or issn number
-  // @Get('get-journal-logs-by-title') --WORKING IN get-periodical-logs
-  // async getJournalLogDetailsByTitle(
-  //     @Query('journal_log_uuid') journal_log_uuid: string,
-  //     @Query('_issn') issn: string,
-  // ) {
-  //     return this.journalsService.getJournalLogDetailsByTitle({
-  //         journal_log_uuid,
-  //         issn,
-  //     });
-  // }
-
-  // @Get('get-logs-by-copy') --NOT NEEDED
-  // async getJournalLogDetailsByCopy(@Query('_barcode') barcode: string) {
-  //     return this.journalsService.getJournalLogDetailsByCopy({
-  //         barcode,
-  //     });
-  // }
-
-  // @Get('get_available_by_issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
-  // async getAvailableJournalByIssn(
-  //     @Query('_issn') issn: string,
-  // ) {
-  //     return this.journalsService.getAvailableJournalByIssn(issn);
-  // }
-
-  // @Get('get_unavailable_by_issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
-  // async getUnavailableJournalByIssn(
-  //     @Query('_issn') issn: string,
-  // ) {
-  //     return this.journalsService.getUnavailableJournalByIssn(issn);
-  // }
-
-  // @Get('issn') -- WORKING IN GET FUNCTION FOR TITLES TABLE
-  // async searchJournalIssn(@Query('_issn') issn: string) {
-  //     try {
-  //         const result = await this.journalsService.searchJournalIssn(issn);
-  //         return result[0];
-  //     } catch (error) {
-  //         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
-  //     }
-  // }
-
-  // @Get('all_archived') -- WORKING IN GET FUNCTION FOR TITLES TABLE
-  // async getAllArchivedJournals(
-  //     @Query('_page') page: string,
-  //     @Query('_limit') limit: string,
-  //     @Query('_search') search: string,
-  // ) {
-  //     return this.journalsService.getArchivedJournals({
-  //         page: page ? parseInt(page, 10) : 1,
-  //         limit: limit ? parseInt(limit, 10) : 10,
-  //         search: search ?? undefined,
-  //     });
-  // }
 
   @Get('get_all_logs')
   async getJournalLogDetails(
@@ -573,12 +485,12 @@ export class JournalsController {
       let category = '';
 
       // check the category of the input if exists->category="book/periodical" else->category="does_not_exist"
-      if (/^[A-Z]+\d+-\d+$/.test(issuePayload.copy_id)) {
+      if (/^T\/[A-Z]+-\d+(\/\d+)?$/.test(issuePayload.copy_id)) {
         category = 'periodical';
       } else if (/^[A-Z]+\d/.test(issuePayload.copy_id)) {
         category = 'book';
       } else {
-        return { message: 'Invalid ID' };
+        throw new HttpException("Invalid Id", HttpStatus.NOT_FOUND)
       }
       console.log(category)
 
