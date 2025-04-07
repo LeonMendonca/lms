@@ -18,7 +18,13 @@ export const updateInstituteSchema = z.object({
     [updateInstitute.websiteUrl]: z.string().optional(),
     [updateInstitute.author]: z.string().optional(),
     [updateInstitute.instituteLogo]: z.string().optional(),
-    [updateInstitute.instituteHeader]: z.string().optional()
+    [updateInstitute.instituteHeader]: z.string().optional(),
+    [updateInstitute.enableTabs]: z.boolean().optional(),
+    [updateInstitute.darkMode]: z.boolean().optional(),
+    [updateInstitute.visualization]: z.object({
+        dashboard_card: z.boolean().optional(),
+        report_cards: z.boolean().optional(),
+    }).optional(),
 })
 
 export type TInstituteUpdateDTO = z.infer<typeof updateInstituteSchema>;

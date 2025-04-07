@@ -56,7 +56,15 @@ export class InstituteConfig {
 
     @Column({ name: "is_archived", type: 'boolean', default: false })
     isArchived: "is_archived" = "is_archived"
+    
+    @Column({name: 'enable_tabs', type:'boolean', default:false})
+    enableTabs: "enable_tabs" = "enable_tabs"
 
+    @Column({name:'dark_mode', type:'boolean', default:false})
+    darkMode: "dark_mode" = "dark_mode"
+
+    @Column({name:'visualization', type:'jsonb'})
+    visualization: "visualization" = "visualization"
 
     // one institute can have one rule
 

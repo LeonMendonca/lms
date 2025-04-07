@@ -78,7 +78,7 @@ export class ConfigService {
                 [instituteName]
             )
             if (data.length) {
-                return { message: "Institute With Same Name Already Exists" }
+                throw new HttpException("Institute With Same Name Already Exists", HttpStatus.BAD_REQUEST);
             }
             // Generate institute ID
             const institute_id = genInstituteId(instituteName, created_date);
@@ -151,7 +151,7 @@ export class ConfigService {
 
             // Call createLibrary with default rule
             await this.createLibrary(defaultRule);
-
+            return{message: "Institute Created Successfully!"}
 
         } catch (error) {
             console.error("Error updating institute:", error);
