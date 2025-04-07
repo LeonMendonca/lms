@@ -34,10 +34,13 @@ type QueryReturnType = {
   for (let element of bookPayloadArr) {
     if (element.isbn in isbnCountObject) {
       isbnCountObject[element.isbn]++;
+      if (!isbnUUIDs[element.isbn].includes(element.institute_uuid)) {
+        isbnUUIDs[element.isbn].push(element.institute_uuid);
+      }
     } else {
       isbnCountObject[element.isbn] = 1;
+      isbnUUIDs[element.isbn] = [element.institute_uuid];
     }
-    isbnUUIDs[element.isbn].push(element.institute_uuid);
   }
 
   console.log('ISBN Count Object', isbnCountObject);
@@ -60,6 +63,7 @@ type QueryReturnType = {
   for (let isbnKey in isbnCountObject) {
     bulkQueryUpdateAvailableCount += `WHEN isbn = '${isbnKey}' THEN available_count + ${isbnCountObject[isbnKey]} `;
     bulkQueryUpdateTotalCount += `WHEN isbn = '${isbnKey}' THEN total_count + ${isbnCountObject[isbnKey]} `;
+    bulkQueryUpdateInstituteUUID += `WHEN isbn = '${isbnKey}' THEN (array_cat(institute_uuids, ${JSON.stringify(isbnUUIDs[isbnKey])}) `;
   }
 
   bulkQueryUpdateAvailableCount += `ELSE available_count END, `;

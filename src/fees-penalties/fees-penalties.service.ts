@@ -141,15 +141,16 @@ export class FeesPenaltiesService {
           const result = await this.journalsTitleRepository.query(
             `
             SELECT 
-              st.student_id AS "Student ID",
-              st.student_name AS "Student Name",
-              st.department AS "Department",
-              jc.journal_copy_id AS "Book ID",
-              jt.category AS "Book Category",
+              st.student_id AS "student_id",
+              st.student_name AS "student_name",
+              st.department AS "department",
+              jc.journal_copy_id AS "id",
+              jt.category AS "category",
               fp.penalty_amount,
               fp.paid_amount,
               fp.is_penalised,
               fp.is_completed,
+              fp.created_at AS "created_id",
               fp.return_date
             FROM fees_penalties fp
             INNER JOIN students_table st ON st.student_uuid = fp.borrower_uuid
