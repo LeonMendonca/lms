@@ -122,7 +122,7 @@ export class FeesPenaltiesController {
     try {
       return await this.feesPenaltiesService.getFullFeeList({
         page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
+      limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -195,6 +195,12 @@ export class FeesPenaltiesController {
 
 
   // --------- STUDENT ROUTES ---------------
+
+
+  @Get('filtered')
+  async getStudentPenalties(@Query('student_id') student_id: string){
+    return this.feesPenaltiesService.getStudentPenalties(student_id)
+  }
 
   // Get Full Feelist for a particular student - working
   @Get('get-full-feelist-student')  
