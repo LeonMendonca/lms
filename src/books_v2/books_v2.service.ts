@@ -2380,19 +2380,19 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
       }
 
-      const requestExists: Pick<TRequestBook, 'request_id'>[] =
-        await this.requestBooklogRepository.query(
-          `
-        SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
-          [student_id, requestBookIssuePayload.barcode],
-        );
+      // const requestExists: Pick<TRequestBook, 'request_id'>[] =
+      //   await this.requestBooklogRepository.query(
+      //     `
+      //   SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
+      //     [student_id, requestBookIssuePayload.barcode],
+      //   );
 
-      if (requestExists.length) {
-        throw new HttpException(
-          'Already been request!',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      // if (requestExists.length) {
+      //   throw new HttpException(
+      //     'Already been request!',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
 
       //Unsafe object, Don't use it!
       const insertObject = Object.assign(requestBookIssuePayload, {
@@ -2505,19 +2505,19 @@ export class BooksV2Service {
         throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
       }
 
-      const requestExists: Pick<TRequestBook, 'request_id'>[] =
-        await this.requestBooklogRepository.query(
-          `
-        SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
-          [student_id, returnBookIssuePayload.barcode],
-        );
+      // const requestExists: Pick<TRequestBook, 'request_id'>[] =
+      //   await this.requestBooklogRepository.query(
+      //     `
+      //   SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = false AND is_completed = false`,
+      //     [student_id, returnBookIssuePayload.barcode],
+      //   );
 
-      if (requestExists.length) {
-        throw new HttpException(
-          'Already been request!',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      // if (requestExists.length) {
+      //   throw new HttpException(
+      //     'Already been request!',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
 
       //Unsafe object, Don't use it!
       const insertObject = Object.assign(returnBookIssuePayload, {
@@ -2654,19 +2654,19 @@ export class BooksV2Service {
         institute_uuid: student[0].institute_uuid,
         institute_name: student[0].institute_name,
       });
-      const result = await this.booktitleRepository.query(
-        `SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
-        [
-          requestBookReIssuePayload.student_id,
-          requestBookReIssuePayload.barcode,
-        ],
-      );
-      if (result.length) {
-        throw new HttpException(
-          'Already been request!',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
+      // const result = await this.booktitleRepository.query(
+      //   `SELECT request_id FROM request_book_log WHERE student_id = $1 AND barcode = $2 AND is_archived = FALSE AND is_completed = FALSE`,
+      //   [
+      //     requestBookReIssuePayload.student_id,
+      //     requestBookReIssuePayload.barcode,
+      //   ],
+      // );
+      // if (result.length) {
+      //   throw new HttpException(
+      //     'Already been request!',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
       const queryData = insertQueryHelper(insertObject, []);
 
       const insert = await this.booklogRepository.query(
