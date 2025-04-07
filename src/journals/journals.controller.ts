@@ -47,12 +47,24 @@ export class JournalsController {
   ) {}
 
   // ------------ JOURNAL N BOOKS --------------
-  // all the journal n books - i cant make it
+  // GET ALL BOOKS - working
   @Get('get-books')
-  async getBooks(){
-    return this.journalsService.getBooks()
+  async getBooks(
+    @Query('_page') page: string = '1',
+    @Query('_limit') limit: string = '10',
+    @Query('_search') search: string,
+    @Query('_institute_uuid') institute_uuid: string
+  ) {
+    // Split the comma-separated institute_uuid string into an array
+    const instituteUuids = institute_uuid ? institute_uuid.split(',') : [];
+    
+    return this.journalsService.getBooksAndJournals(
+      instituteUuids, // Pass the array of UUIDs
+      search,
+      parseInt(page),
+      parseInt(limit)
+    );
   }
-
 
   // --------------- JOURNAL TITLE -------------------------
 
