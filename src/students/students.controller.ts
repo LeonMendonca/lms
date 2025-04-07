@@ -120,7 +120,7 @@ export class StudentsController {
     console.log({institute_uuid});
     const { data, pagination } = await this.studentsService.findAllStudents({
       ...query,
-      institute_uuid: JSON.parse(`${institute_uuid}` || '[]'),
+      institute_uuid: JSON.parse(`["${institute_uuid}"]` || '[]'),
     });
     return {
       success: true,
