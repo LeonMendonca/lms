@@ -54,6 +54,7 @@ import {
 } from 'src/pipes/pagination-parser.pipe';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
+import { DashboardCardtypes } from 'types/dashboard';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -72,6 +73,43 @@ export class StudentsController {
     private studentsService: StudentsService,
     private readonly notifyService: StudentNotifyService,
   ) {}
+
+  protected async fetchData<T>(method: Function, ...args: any[]): Promise<T> {
+    try {
+      const response = await method(...args);
+      return response.data;
+    } catch (error) {
+      // Handle errors appropriately
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      throw error;
+    }
+  }
+
+  @Get('admin-dashboard')
+  async adminDashboard(
+    @Query('_institute_uuid') institute_uuid: string | null,
+  ): Promise<ApiResponse<DashboardCardtypes>> {
+    // return this.fetchData(this.studentsService.adminDashboard, institute_uuid);
+    try {
+      const { data } =
+        await this.studentsService.adminDashboard(institute_uuid);
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
 
   @Get('all')
   @UseGuards(TokenAuthGuard)
@@ -681,23 +719,6 @@ export class StudentsController {
     try {
       const user = req.user;
       return await this.studentsService.studentDashboard(user);
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
-  @Get('admin-dashboard')
-  async adminDashboard(
-    @Query('_institute_uuid') institute_uuid: string | null,
-  ) {
-    try {
-      return await this.studentsService.adminDashboard(institute_uuid);
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
