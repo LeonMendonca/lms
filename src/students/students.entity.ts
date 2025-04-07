@@ -50,7 +50,7 @@ export class Students {
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: 'date_of_birth' = 'date_of_birth';
 
-  @Column({ name: 'gender', type: 'enum', enum: Gender, nullable: true })
+  @Column({ name: 'gender', type: 'varchar', nullable: true })
   gender: 'gender' = 'gender';
 
   @Column({ name: 'roll_no', type: 'int', nullable: true })

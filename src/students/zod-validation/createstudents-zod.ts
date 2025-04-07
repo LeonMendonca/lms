@@ -23,7 +23,7 @@ export const createStudentSchema = z.object({
 
   [studentCreateObject.phoneNo]: z.string(),
 
-  [studentCreateObject.gender]: z.enum([Gender.MALE, Gender.FEMALE]),
+  [studentCreateObject.gender]: z.string(),
 
   [studentCreateObject.instituteName]: z.string(),
 
