@@ -81,38 +81,6 @@ export class FeesPenaltiesController {
     });
   }
 
-  // async getStudentFeeHistory(
-  //     @Query('_student_id') studentId: string,
-  //     @Query('_ispenalised') isPenalty: boolean,
-  //     @Query('_iscompleted') isCompleted: boolean,
-  // ) {
-  //     try {
-  //         if (studentId) {
-  //             return await this.feesPenaltiesService.getStudentFee(
-  //                 studentId,
-  //                 isPenalty,
-  //                 isCompleted,
-  //             );
-  //         } else if (isPenalty) {
-  //             return await this.feesPenaltiesService.getStudentFee(
-  //                 studentId,
-  //                 isPenalty,
-  //                 isCompleted,
-  //             );
-  //         } else if (isCompleted) {
-  //             return await this.feesPenaltiesService.getStudentFee(
-  //                 studentId,
-  //                 isPenalty,
-  //                 isCompleted,
-  //             );
-  //         }
-  //     } catch (error) {
-  //         if (!(error instanceof HttpException)) {
-  //             throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  //         }
-  //         throw error;
-  //     }
-  // }
 
   @Get('get-full-feelist') // done
   async getFullFeeList(
@@ -122,7 +90,7 @@ export class FeesPenaltiesController {
     try {
       return await this.feesPenaltiesService.getFullFeeList({
         page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 10,
+        limit: limit ? parseInt(limit, 10) : 10,
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -198,12 +166,12 @@ export class FeesPenaltiesController {
 
 
   @Get('filtered')
-  async getStudentPenalties(@Query('student_id') student_id: string){
+  async getStudentPenalties(@Query('student_id') student_id: string) {
     return this.feesPenaltiesService.getStudentPenalties(student_id)
   }
 
   // Get Full Feelist for a particular student - working
-  @Get('get-full-feelist-student')  
+  @Get('get-full-feelist-student')
   async getFullFeeListStudent(@Query('student_id') student_id: string) {
     try {
       return await this.feesPenaltiesService.getFullFeeListStudentPeriodicals(student_id); // getFullFeeListStudentBooks
