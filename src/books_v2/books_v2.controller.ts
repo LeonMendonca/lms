@@ -629,6 +629,8 @@ export class BooksV2Controller {
         );
       }
 
+      const action = booklogPayload.action;
+
       let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
         undefined;
       let result: any = {};
@@ -636,37 +638,13 @@ export class BooksV2Controller {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
           request.ip,
-          (status = 'borrowed'),
+          'borrowed',
         );
-        await this.notifyService.createNotification(
-          result.meta.borrower_uuid,
-          NotificationType.BOOK_BORROWED,
-          {
-            bookTitle: result.meta.new_book_title.book_title,
-          },
-        );
-        // result = await this.booksService.bookBorrowed(
-        //   booklogPayload,
-        //   request,
-        //   (status = 'borrowed'),
-        // );
       } else if (booklogPayload.action === 'return') {
         result = await this.booksService.bookReturned(
           booklogPayload,
           request.ip,
           (status = 'returned'),
-        );
-        console.log({ result });
-        console.log(
-          result.meta.borrower_uuid,
-          result.meta.new_book_title.book_title,
-        );
-        await this.notifyService.createNotification(
-          result.meta.borrower_uuid,
-          NotificationType.BOOK_RETURNED,
-          {
-            bookTitle: result.meta.new_book_title.book_title,
-          },
         );
       } else {
         result = await this.booksService.bookBorrowed(
@@ -674,14 +652,17 @@ export class BooksV2Controller {
           request.ip,
           (status = 'in_library_borrowed'),
         );
-        await this.notifyService.createNotification(
-          result.meta.borrower_uuid,
-          NotificationType.BOOK_RETURNED,
-          {
-            bookTitle: result.meta.new_book_title.book_title,
-          },
-        );
       }
+
+      await this.notifyService.createNotification(
+        result.meta.borrower_uuid,
+        action === 'borrow' || action === 'in_library'
+          ? NotificationType.BOOK_BORROWED
+          : NotificationType.BOOK_RETURNED,
+        {
+          bookTitle: result.meta.new_book_title.book_title,
+        },
+      );
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -836,7 +817,7 @@ export class BooksV2Controller {
     try {
       return await this.booksService.getRequestBookLogs({
         ...query,
-        institute_uuid: JSON.parse(institute_uuid || "[]"),
+        institute_uuid: JSON.parse(institute_uuid || '[]'),
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
