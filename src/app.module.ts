@@ -73,7 +73,7 @@ config({ path: '.env' });
         StudentNotification
       ],
       ssl: true,
-      synchronize: true,
+      synchronize: false,
     }),
     StudentsModule,
     BooksV2Module,
@@ -82,7 +82,6 @@ config({ path: '.env' });
     NotificationsModule,
     CalendarModule,
     FeesPenaltiesModule,
-    FeesPenalties,
     ConfigModule,
     CsvModule,
     ReviewsModule,
@@ -94,3 +93,4 @@ config({ path: '.env' });
 export class AppModule {
   constructor() {}
 }
+

@@ -16,7 +16,7 @@ export async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-  await pgPLV8();
+  // await pgPLV8();
   await app.listen(PORT, '0.0.0.0', () => {
     console.log(`Listening on port ${PORT}`);
   });

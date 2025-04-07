@@ -78,10 +78,10 @@ export class StudentsController {
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
     @Query('_institute_uuid') institute_uuid: string,
   ): Promise<ApiResponse<Students[]>> {
-    console.log(query);
+    console.log({institute_uuid});
     const { data, pagination } = await this.studentsService.findAllStudents({
       ...query,
-      institute_uuid: JSON.parse(institute_uuid || '[]'),
+      institute_uuid: JSON.parse(`${institute_uuid}` || '[]'),
     });
     return {
       success: true,
