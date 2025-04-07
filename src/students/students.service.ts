@@ -29,6 +29,7 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 import { VisitLog } from './visitlog.entity';
 import { InquireLogs } from './entities/inquire-logs';
+import { validateTime } from 'src/misc/validate-time-format';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -462,15 +463,76 @@ export class StudentsService {
   }
   // visit log
   async getCompleteVisitLog(
-    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
+    {
+      page,
+      limit,
+      fromDate,
+      toDate,
+      fromTime,
+      toTime,
+    }: {
+      page: number;
+      limit: number;
+      fromDate: string | undefined;
+      toDate: string | undefined;
+      fromTime: string | undefined;
+      toTime: string | undefined;
+    } = {
+      page: 1,
+      limit: 10,
+      fromDate: undefined,
+      toDate: undefined,
+      fromTime: undefined,
+      toTime: undefined,
+    },
   ) {
     try {
       const offset = (page - 1) * limit;
 
+      let fromDateObj: Date | undefined = undefined;
+      let toDateObj: Date | undefined = undefined;
+
+      //Mark both time as undefined if either is not valid
+      if (
+        fromTime &&
+        toTime &&
+        (!validateTime(fromTime) || !validateTime(toTime))
+      ) {
+        fromTime = undefined;
+        toTime = undefined;
+      }
+
+      console.log('fromTime', fromTime, 'toTime', toTime);
+
+      if (fromDate && toDate) {
+        fromDateObj = new Date(fromDate);
+        toDateObj = new Date(toDate);
+
+        if (fromDateObj > toDateObj) {
+          throw new HttpException(
+            'From date cannot be greater than To date',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
+      console.log(fromDateObj, toDateObj);
+
+      let queryDateAndTime = '';
+
+      if (fromDateObj && toDateObj) {
+        queryDateAndTime += `AND in_time BETWEEN '${fromDateObj.toISOString().split('T')[0]}' AND '${toDateObj.toISOString().split('T')[0]}' `;
+      }
+
+      if (fromTime && toTime) {
+        queryDateAndTime += `
+        AND CAST(in_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}' OR CAST(out_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}'
+        `;
+      }
+
       // Optimized SQL Query with Pagination at Database Level
       const logs = await this.studentsRepository.query(
         `
-        SELECT visitlog_id, department, student_id As student_id, out_time, visitor_name AS visitor, in_time FROM visit_log
+        SELECT visitlog_id, department, student_id, in_time, out_time, visitor_name AS visitor FROM visit_log WHERE 0=0 ${queryDateAndTime}
         ORDER BY in_time DESC
         LIMIT $1 OFFSET $2
         `,
@@ -484,28 +546,21 @@ export class StudentsService {
         `,
       );
 
-      const totalCount = parseInt(total[0].total, 10);
+      const totalCount = parseInt(total[0].count, 10);
 
-      if (logs.length === 0) {
-        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
-      }
-
-      console.log({ totalCount, logs });
+      // console.log({ totalCount, logs });
 
       return {
         data: logs,
         pagination: {
-          total: totalCount,
+          total: totalCount ?? 0,
           page,
           limit,
-          totalPages: Math.ceil(totalCount / limit),
+          totalPages: Math.ceil(totalCount / limit) ?? 0,
         },
       };
     } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw error;
     }
   }
 
@@ -573,13 +628,15 @@ export class StudentsService {
         params,
       );
 
+      console.log('Total is', total);
+
       const totalCount = parseInt(total[0].total, 10);
 
       // if (logs.length === 0) {
       //   throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
       // }
 
-      console.log({ totalCount, logs });
+      // console.log({ totalCount, logs });
 
       return {
         data: logs,
