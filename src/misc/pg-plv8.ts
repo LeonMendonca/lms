@@ -154,46 +154,104 @@ FOR EACH ROW
 EXECUTE PROCEDURE create_book_titles_id()
 `
 
-const createJournalTitleIdFunction  = `
+
+const createJournalTitleIdFunction = `
 CREATE OR REPLACE FUNCTION generate_journal_title_id()
-RETURNS trigger AS $$
+RETURNS TRIGGER AS $$
+  const instituteUUID = NEW.institute_uuid;
 
-  var abbrevQuery = plv8.prepare(
-    "SELECT institute_abbr FROM institute_config WHERE institute_uuid = $1",
-    ["uuid"]
+  const abbrResult = plv8.execute(
+    'SELECT institute_abbr FROM institute_config WHERE institute_uuid = $1 LIMIT 1',
+    [instituteUUID]
   );
-  var abbrevResult = abbrevQuery.execute([NEW.institute_uuid]);
-  abbrevQuery.free();
 
-  if (abbrevResult.length === 0) {
-    throw "Institute not found for UUID: " + NEW.institute_uuid;
+  if (abbrResult.length === 0 || !abbrResult[0].institute_abbr) {
+    throw new Error('No abbreviation found for institute_uuid');
   }
 
-  var abbreviation = abbrevResult[0].institute_abbr;
+  const abbr = abbrResult[0].institute_abbr;
 
-  var countQuery = plv8.prepare(
-    "SELECT COUNT(*) AS count FROM journal_titles WHERE institute_uuid = $1",
-     ["uuid"]
+  // Count titles from journal_titles table using institute_uuid
+  const countResult = plv8.execute(
+    'SELECT COUNT(*) AS total FROM journal_titles WHERE institute_uuid = $1',
+    [instituteUUID]
   );
-  var countResult = countQuery.execute([NEW.institute_uuid]);
-  countQuery.free();
 
-  var count = parseInt(countResult[0].count) + 1;
-  var paddedCount = count.toString().padStart(3, '0');
+  const count = parseInt(countResult[0].total || 0, 10) + 1;
+  const paddedCount = String(count).padStart(3, '0');
 
-  NEW.journal_title_id = 'T/' + abbreviation + '-' + paddedCount;
+  NEW.journal_title_id = 'T/' + abbr + '-' + paddedCount;
+
   return NEW;
-  $$ LANGUAGE plv8;
+$$ LANGUAGE plv8;
 `;
+
 
 const triggerCreateJournalTitleId = `
-CREATE OR REPLACE TRIGGER trigger_journal_title_id
-BEFORE INSERT ON journal_titles
-FOR EACH ROW
-WHEN (NEW.journal_title_id IS NULL)
-EXECUTE FUNCTION generate_journal_title_id();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'generate_journal_title_id'
+  ) THEN
+    CREATE TRIGGER generate_journal_title_id
+    BEFORE INSERT ON journal_titles
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_journal_title_id();
+  END IF;
+END$$;
 `;
 
+
+
+
+const createJournalCopyId = `
+CREATE OR REPLACE FUNCTION generate_journal_copy_id()
+RETURNS TRIGGER AS $$
+  const journalTitleUUID = NEW.journal_title_uuid;
+
+  const titleResult = plv8.execute(
+    'SELECT journal_title_id FROM journal_titles WHERE journal_uuid = $1 LIMIT 1',
+    [journalTitleUUID]
+  );
+
+  if (titleResult.length === 0 || !titleResult[0].journal_title_id) {
+    throw new Error('No journal_title_id found for the given journal_title_uuid');
+  }
+
+  const journalTitleId = titleResult[0].journal_title_id;
+
+  const countResult = plv8.execute(
+    'SELECT COUNT(*) AS total FROM journal_copy WHERE journal_title_uuid = $1',
+    [journalTitleUUID]
+  );
+
+  const count = parseInt(countResult[0].total || 0, 10) + 1;
+  const paddedCount = String(count).padStart(3, '0');
+
+  NEW.journal_copy_id = journalTitleId + '/' + paddedCount;
+
+  return NEW;
+$$ LANGUAGE plv8;
+`;
+
+
+
+const triggerCreateJournalCopyId = `
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'generate_journal_copy_id'
+  ) THEN
+    CREATE TRIGGER generate_journal_copy_id
+    BEFORE INSERT ON journal_copy
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_journal_copy_id();
+  END IF;
+END$$;
+
+
+`
 
 export async function pgPLV8() {
   try {
@@ -226,6 +284,9 @@ export async function pgPLV8() {
     // periodical id
     await clientTriggerAndFunction.query(createJournalTitleIdFunction);
     await clientTriggerAndFunction.query(triggerCreateJournalTitleId);
+
+    await clientTriggerAndFunction.query(createJournalCopyId);
+    await clientTriggerAndFunction.query(triggerCreateJournalCopyId);
 
 
     clientTriggerAndFunction.on('error', (err) => {

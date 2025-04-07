@@ -75,6 +75,43 @@ export class JournalsService {
     private readonly dataSource: DataSource,
   ) { }
 
+  // get all the books and periodicals
+  async getBooks() {
+    const data = await this.journalsTitleRepository.query(
+      `
+      SELECT
+  jt.institute_uuid,
+  jt.name_of_publisher AS journal_publisher,
+  jt.total_count AS journal_total_count,
+  jc.journal_copy_id,
+  jc.journal_title,
+  jc.issn,
+
+  bc.institute_uuid AS book_institute_uuid,
+  bt.book_title,
+  bt.book_author,
+  bt.name_of_publisher AS book_publisher,
+  bt.total_count AS book_total_count,
+  bt.isbn,
+  bt.year_of_publication
+
+FROM journal_titles jt
+JOIN journal_copy jc ON jt.journal_uuid = jc.journal_title_uuid
+
+LEFT JOIN book_copies bc ON bc.institute_uuid = jt.institute_uuid
+LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
+
+        
+
+      `
+    )
+      if(data.length === 0){
+        return{message: "Nothing found"}
+      }else{
+        return data
+      }
+  }
+
   // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
   // working
@@ -111,7 +148,7 @@ export class JournalsService {
     AND jc.is_archived = false
     AND jc.institute_uuid = ANY($1)
   GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
-  [institutes]
+        [institutes]
       )
       console.log(journals);
       const total = await this.journalsTitleRepository.query(
@@ -1604,109 +1641,209 @@ export class JournalsService {
 
   async createJournal(createJournalPayload: TCreateJournalZodDTO) {
     try {
-
-      const data = await this.journalsTitleRepository.query(
-        `SELECT * FROM journal_titles WHERE subscription_id = $1`,
-        [createJournalPayload.subscription_id]
-      )
-      if (data.length) {
-        throw new HttpException("Journal With The Same Subsciprtion Id Exists ", HttpStatus.NOT_FOUND)
-      }
-
-      // check if periodical exists in journal title table
-      let journalTitleUUID: Pick<TJournalTitle, 'journal_uuid'>[] = await this.journalsTitleRepository.query(
+      // Check if journal title exists
+      const existingTitle: Pick<TJournalTitle, 'journal_uuid'>[] = await this.journalsTitleRepository.query(
         `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
         [createJournalPayload.subscription_id]
-      )
+      );
 
-      if (!journalTitleUUID.length) {
-        //Create the required Columns, Arg, and Values
-        //Ignore the Columns that are used by Copy table
+      let journalTitleUUID: string;
+
+      if (!existingTitle.length) {
+        // Insert into journal_titles
         const journalTitleQueryData = insertQueryHelper(createJournalPayload, [
           'barcode',
           'item_type',
           'issn',
           'journal_title',
           'editor_name',
-          'institute_uuid',
           'created_by',
           'remarks',
           'copy_images',
           'copy_additional_fields',
           'copy_description',
-        ])
+        ]);
 
-        //Convert some specific fields to string
-        journalTitleQueryData.values.forEach((element, idx) => {
-          if (Array.isArray(element) || typeof element === 'object') {
-            journalTitleQueryData.values[idx] = JSON.stringify(element);
-          }
-        });
-        journalTitleUUID = await this.journalsTitleRepository.query(
-          `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
-          journalTitleQueryData.values,
+        journalTitleQueryData.values = journalTitleQueryData.values.map((val) =>
+          Array.isArray(val) || typeof val === 'object' ? JSON.stringify(val) : val
         );
+
+        const inserted = await this.journalsTitleRepository.query(
+          `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
+          journalTitleQueryData.values
+        );
+
+        journalTitleUUID = inserted[0].journal_uuid;
       } else {
+        // Use existing journal_uuid
+        journalTitleUUID = existingTitle[0].journal_uuid;
+
+        // Update count in journal_titles
         await this.journalsTitleRepository.query(
-          `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
-          [createJournalPayload.subscription_id],
+          `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE journal_uuid = $1`,
+          [journalTitleUUID]
         );
       }
 
-      //Journal Copy Table logic
-      //This variable also includes journal title payload
-      const journalCopiesPayloadWithTitleUUID = Object.assign(createJournalPayload, {
-        //journal_copy_id: journalId,
-        journal_title_uuid: journalTitleUUID[0].journal_uuid,
-      }) as TJournalCopy & TJournalTitle;
+      // Prepare copy insert payload
+      const journalCopiesPayloadWithTitleUUID = {
+        ...createJournalPayload,
+        journal_title_uuid: journalTitleUUID,
+      } as TJournalCopy & TJournalTitle;
 
-      //Create the required Columns, Arg, and Values
-      //Ignore the Columns that are used by Title table
-      const journalCopyQueryData = insertQueryHelper(journalCopiesPayloadWithTitleUUID,
-        [
-          'journal_uuid',
-          'journal_title_id',
-          'category',
-          'name_of_publisher',
-          'place_of_publication',
-          'subscription_id',
-          'subscription_start_date',
-          'subscription_end_date',
-          'volume_no',
-          'frequency',
-          'issue_number',
-          'vendor_name',
-          'subscription_price',
-          'library_name',
-          'classification_number',
-          'is_archived',
-          'total_count',
-          'available_count',
-          'created_at',
-          'updated_at',
-          'title_images',
-          'title_additional_fields',
-          'title_description'
-        ]
-      )
+      const journalCopyQueryData = insertQueryHelper(journalCopiesPayloadWithTitleUUID, [
+        'journal_uuid',
+        'journal_title_id',
+        'category',
+        'name_of_publisher',
+        'place_of_publication',
+        'subscription_id',
+        'subscription_start_date',
+        'subscription_end_date',
+        'volume_no',
+        'frequency',
+        'issue_number',
+        'vendor_name',
+        'subscription_price',
+        'library_name',
+        'classification_number',
+        'is_archived',
+        'total_count',
+        'available_count',
+        'created_at',
+        'updated_at',
+        'title_images',
+        'title_additional_fields',
+        'title_description',
+        'institute_uuid'
+      ]);
 
-      //Convert some specific fields to string
-      journalCopyQueryData.values.forEach((element, idx) => {
-        if (Array.isArray(element) || typeof element === 'object') {
-          journalCopyQueryData.values[idx] = JSON.stringify(element);
-        }
-      });
+      journalCopyQueryData.values = journalCopyQueryData.values.map((val) =>
+        Array.isArray(val) || typeof val === 'object' ? JSON.stringify(val) : val
+      );
 
+      // Insert into journal_copy
       await this.journalsCopyRepository.query(
         `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
-        journalCopyQueryData.values,
+        journalCopyQueryData.values
       );
-      return { statusCode: HttpStatus.CREATED, message: 'Periodical created' };
 
+      return {
+        statusCode: HttpStatus.CREATED,
+        message: 'Periodical created successfully',
+      };
     } catch (error) {
-      throw error
+      throw error;
     }
   }
+
+
+
+  // async createJournal(createJournalPayload: TCreateJournalZodDTO) {
+  //   try {
+
+  //     const data = await this.journalsTitleRepository.query(
+  //       `SELECT * FROM journal_titles WHERE subscription_id = $1`,
+  //       [createJournalPayload.subscription_id]
+  //     )
+  //     if (data.length) {
+  //       throw new HttpException("Journal With The Same Subsciprtion Id Exists ", HttpStatus.NOT_FOUND)
+  //     }
+
+  //     // check if periodical exists in journal title table
+  //     let journalTitleUUID: Pick<TJournalTitle, 'journal_uuid'>[] = await this.journalsTitleRepository.query(
+  //       `SELECT journal_uuid FROM journal_titles WHERE subscription_id = $1`,
+  //       [createJournalPayload.subscription_id]
+  //     )
+
+  //     if (!journalTitleUUID.length) {
+  //       //Create the required Columns, Arg, and Values
+  //       //Ignore the Columns that are used by Copy table
+  //       const journalTitleQueryData = insertQueryHelper(createJournalPayload, [
+  //         'barcode',
+  //         'item_type',
+  //         'issn',
+  //         'journal_title',
+  //         'editor_name',
+  //         'institute_uuid',
+  //         'created_by',
+  //         'remarks',
+  //         'copy_images',
+  //         'copy_additional_fields',
+  //         'copy_description',
+  //       ])
+
+  //       //Convert some specific fields to string
+  //       journalTitleQueryData.values.forEach((element, idx) => {
+  //         if (Array.isArray(element) || typeof element === 'object') {
+  //           journalTitleQueryData.values[idx] = JSON.stringify(element);
+  //         }
+  //       });
+  //       journalTitleUUID = await this.journalsTitleRepository.query(
+  //         `INSERT INTO journal_titles (${journalTitleQueryData.queryCol}) VALUES (${journalTitleQueryData.queryArg}) RETURNING journal_uuid`,
+  //         journalTitleQueryData.values,
+  //       );
+  //     } else {
+  //       await this.journalsTitleRepository.query(
+  //         `UPDATE journal_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE subscription_id = $1`,
+  //         [createJournalPayload.subscription_id],
+  //       );
+  //     }
+
+  //     //Journal Copy Table logic
+  //     //This variable also includes journal title payload
+  //     const journalCopiesPayloadWithTitleUUID = Object.assign(createJournalPayload, {
+  //       //journal_copy_id: journalId,
+  //       journal_title_uuid: journalTitleUUID[0].journal_uuid,
+  //     }) as TJournalCopy & TJournalTitle;
+
+  //     //Create the required Columns, Arg, and Values
+  //     //Ignore the Columns that are used by Title table
+  //     const journalCopyQueryData = insertQueryHelper(journalCopiesPayloadWithTitleUUID,
+  //       [
+  //         'journal_uuid',
+  //         'journal_title_id',
+  //         'category',
+  //         'name_of_publisher',
+  //         'place_of_publication',
+  //         'subscription_id',
+  //         'subscription_start_date',
+  //         'subscription_end_date',
+  //         'volume_no',
+  //         'frequency',
+  //         'issue_number',
+  //         'vendor_name',
+  //         'subscription_price',
+  //         'library_name',
+  //         'classification_number',
+  //         'is_archived',
+  //         'total_count',
+  //         'available_count',
+  //         'created_at',
+  //         'updated_at',
+  //         'title_images',
+  //         'title_additional_fields',
+  //         'title_description'
+  //       ]
+  //     )
+
+  //     //Convert some specific fields to string
+  //     journalCopyQueryData.values.forEach((element, idx) => {
+  //       if (Array.isArray(element) || typeof element === 'object') {
+  //         journalCopyQueryData.values[idx] = JSON.stringify(element);
+  //       }
+  //     });
+
+  //     await this.journalsCopyRepository.query(
+  //       `INSERT INTO journal_copy (${journalCopyQueryData.queryCol}) VALUES (${journalCopyQueryData.queryArg})`,
+  //       journalCopyQueryData.values,
+  //     );
+  //     return { statusCode: HttpStatus.CREATED, message: 'Periodical created' };
+
+  //   } catch (error) {
+  //     throw error
+  //   }
+  // }
 
   async updatePeriodicalCopy(updatePeriodicalPayload: TUpdatePeriodicalDTO) {
     try {
