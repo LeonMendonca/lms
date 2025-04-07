@@ -15,7 +15,7 @@ export class ConfigController {
     // Get Institute Info
     @Get('get-institute')
     async getInstitute(
-        @Query('_institute_uuid') institute_id: string,
+        @Query('_user_uuid') institute_id: string,
     ) {
         return this.configService.getInstitute(institute_id)
     }
