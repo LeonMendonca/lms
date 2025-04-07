@@ -52,8 +52,27 @@ type QueryReturnType = {
   }
   isbnList = isbnList.slice(0, -1);
 
-  // const result = await client.query(`SELECT institute_uuids, isbn FROM book_titles WHERE isbn IN (${isbnList})`);
-  // const resultData = result.rows as { institute_uuids: string[]; isbn: string }[];
+  const result = await client.query(
+    `SELECT institute_uuids, isbn FROM book_titles WHERE isbn IN (${isbnList})`,
+  );
+  const resultData = result.rows as {
+    institute_uuids: string[];
+    isbn: string;
+  }[];
+
+  console.log('Result from book_titles', resultData);
+
+  for (let resutlElement of resultData) {
+    if (resutlElement.isbn in isbnUUIDs) {
+      for (let element of resutlElement.institute_uuids) {
+        if (!isbnUUIDs[resutlElement.isbn].includes(element)) {
+          isbnUUIDs[resutlElement.isbn].push(element);
+        }
+      }
+    }
+  }
+
+  console.log('ISBN UUIDs after query', isbnUUIDs);
 
   let bulkQueryUpdateTitle = `UPDATE book_titles SET `;
   let bulkQueryUpdateAvailableCount = `available_count = CASE `;
@@ -63,11 +82,12 @@ type QueryReturnType = {
   for (let isbnKey in isbnCountObject) {
     bulkQueryUpdateAvailableCount += `WHEN isbn = '${isbnKey}' THEN available_count + ${isbnCountObject[isbnKey]} `;
     bulkQueryUpdateTotalCount += `WHEN isbn = '${isbnKey}' THEN total_count + ${isbnCountObject[isbnKey]} `;
-    bulkQueryUpdateInstituteUUID += `WHEN isbn = '${isbnKey}' THEN (array_cat(institute_uuids, ${JSON.stringify(isbnUUIDs[isbnKey])}) `;
+    bulkQueryUpdateInstituteUUID += `WHEN isbn = '${isbnKey}' THEN '${JSON.stringify(isbnUUIDs[isbnKey])}' `;
+    console.log('UUIDS', isbnKey, JSON.stringify(isbnUUIDs[isbnKey]));
   }
 
   bulkQueryUpdateAvailableCount += `ELSE available_count END, `;
-  bulkQueryUpdateTotalCount += `ELSE total_count END `;
+  bulkQueryUpdateTotalCount += `ELSE total_count END, `;
   bulkQueryUpdateInstituteUUID += `ELSE institute_uuids END `;
 
   let bulkQueryUpdateEnd = `WHERE isbn IN (${isbnList}) RETURNING isbn, book_uuid`;
@@ -76,6 +96,7 @@ type QueryReturnType = {
     bulkQueryUpdateTitle +
     bulkQueryUpdateAvailableCount +
     bulkQueryUpdateTotalCount +
+    bulkQueryUpdateInstituteUUID +
     bulkQueryUpdateEnd;
 
   //When inserting to book_titles, the count needs to be calculated
@@ -84,7 +105,7 @@ type QueryReturnType = {
     total_count: number;
   })[] = [];
 
-  //console.log('FINAL QUERY', finalUpdateQueryTitle);
+  // console.log('FINAL QUERY', finalUpdateQueryTitle);
   try {
     //Update book_titles table that have existing ISBNs
     //Returns updated isbn, and book_uuid
@@ -148,6 +169,11 @@ type QueryReturnType = {
       for (let element of uniqueArrayOfBookTitleWithCount) {
         bulkQuery3Title += '(';
         for (titleKey in createColumnsFromTitleObject) {
+          if('institute_uuid' in element) {
+            if (titleKey === 'institute_uuids') {
+              bulkQuery3Title += `'${JSON.stringify([element.institute_uuid])}',`;
+            }
+          }
           if (titleKey in element) {
             if (typeof element[titleKey] === 'string') {
               bulkQuery3Title += `'${element[titleKey]}',`;
@@ -174,13 +200,13 @@ type QueryReturnType = {
       const finalInsertQueryTitle =
         bulkQuery1Title + bulkQuery2Title + bulkQuery3Title + bulkQuery4Title;
       console.log(finalInsertQueryTitle);
-      // const insertedResult = await client.query(finalInsertQueryTitle);
-      // const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
-      // if (isbnUUIDInsert.length) {
-      //   for (let element of isbnUUIDInsert) {
-      //     arrOfIsbnUUID.push(element);
-      //   }
-      // }
+      const insertedResult = await client.query(finalInsertQueryTitle);
+      const isbnUUIDInsert = insertedResult.rows as QueryReturnType[];
+      if (isbnUUIDInsert.length) {
+        for (let element of isbnUUIDInsert) {
+          arrOfIsbnUUID.push(element);
+        }
+      }
     }
     //console.log('ISBN with UUID', arrOfIsbnUUID);
 
@@ -238,11 +264,11 @@ type QueryReturnType = {
       bulkQuery1Copies + bulkQuery2Copies + bulkQuery3Copies;
     // console.log(finalInsertQueryCopies);
 
-    // const insertedCopies = await client.query(finalInsertQueryCopies);
-    // parentPort?.postMessage({
-    //   inserted_data: insertedCopies.rowCount ?? 0,
-    // } as TInsertResult) ?? 'Parent port is null';
-    parentPort?.postMessage({ inserted_data: 'x' }) ?? 'Parent port is null';
+    const insertedCopies = await client.query(finalInsertQueryCopies);
+    parentPort?.postMessage({
+      inserted_data: insertedCopies.rowCount ?? 0,
+    } as TInsertResult) ?? 'Parent port is null';
+    // parentPort?.postMessage({ inserted_data: 'x' }) ?? 'Parent port is null';
   } catch (error) {
     let errorMessage = 'Something went wrong while bulk inserting';
     if (error instanceof Error) {
