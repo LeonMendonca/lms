@@ -10,9 +10,11 @@ import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './entity/request-book.entity';
 import { StudentsService } from 'src/students/students.service';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
+import { StudentNotifyService } from 'src/student-notify/student-notify.service';
+import { StudentNotification } from 'src/student-notify/entities/student-notify.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([BookTitle, BookCopy, Students, Booklog_v2, FeesPenalties, RequestBook, Students])],
+  imports: [TypeOrmModule.forFeature([BookTitle, BookCopy, Students, Booklog_v2, FeesPenalties, RequestBook, StudentNotification])],
   controllers: [BooksV2Controller],
-  providers: [BooksV2Service, StudentsService, QueryBuilderService],
+  providers: [BooksV2Service, StudentsService, QueryBuilderService, StudentNotifyService],
 })
 export class BooksV2Module { }

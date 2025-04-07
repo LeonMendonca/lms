@@ -43,6 +43,7 @@ export interface DataWithPagination<T> {
 export interface Data<T> {
   data: T;
   pagination: null;
+  meta?: any;
 }
 
 @Injectable()
@@ -61,6 +62,7 @@ export class StudentsService {
     asc,
     dec,
     filter,
+    institute_uuid,
   }: {
     page: number;
     limit: number;
@@ -68,10 +70,17 @@ export class StudentsService {
     dec: string[];
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
+    institute_uuid: string[];
   }): Promise<DataWithPagination<Students>> {
     const offset = (page - 1) * limit;
 
     const params: (string | number)[] = [];
+
+    filter.push({
+      field: 'institute_uuid',
+      value: institute_uuid,
+      operator: '=',
+    });
 
     const whereClauses = this.queryBuilderService.buildWhereClauses(
       filter,
@@ -500,42 +509,75 @@ export class StudentsService {
     }
   }
 
-  async getVisitAllLog(
-    { page, limit }: { page: number; limit: number } = { page: 1, limit: 10 },
-  ) {
+  async getVisitAllLog({
+    page,
+    limit,
+    search,
+    asc,
+    dec,
+    filter,
+    institute_uuid,
+  }: {
+    page: number;
+    limit: number;
+    asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
+    institute_uuid: string[];
+  }) {
     try {
       const offset = (page - 1) * limit;
+
+      const params: (string | number)[] = [];
+
+      filter.push({
+        field: 'institute_uuid',
+        value: institute_uuid,
+        operator: '=',
+      });
+
+      const whereClauses = this.queryBuilderService.buildWhereClauses(
+        filter,
+        search,
+        params,
+      );
+      const orderByQuery = this.queryBuilderService.buildOrderByClauses(
+        asc,
+        (dec = ['log_date']),
+      );
 
       // Optimized SQL Query with Pagination at Database Level
       const logs = await this.studentsRepository.query(
         `
         SELECT * FROM (
-          SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date, in_time AS timestamp FROM visit_log
+          SELECT institute_uuid, visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date, in_time AS timestamp FROM visit_log
           UNION ALL
-          SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date, time AS timestamp FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
+          SELECT bl.institute_uuid ,  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date, time AS timestamp FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
         ) AS combined_logs
-        ORDER BY log_date DESC
-        LIMIT $1 OFFSET $2
+        ${whereClauses} ${orderByQuery}
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `,
-        [limit, offset],
+        [...params, limit, offset],
       );
 
       // Fetch total count (for pagination)
       const total = await this.studentsRepository.query(
         `
         SELECT COUNT(*) AS total FROM (
-          SELECT visitlog_id AS id FROM visit_log
+          SELECT institute_uuid, visitlog_id AS id FROM visit_log
           UNION ALL
-          SELECT  booklog_uuid AS id  FROM book_logv2 
-        ) AS combined_logs
+          SELECT institute_uuid,  booklog_uuid AS id  FROM book_logv2 
+        ) AS combined_logs ${whereClauses}
         `,
+        params,
       );
 
       const totalCount = parseInt(total[0].total, 10);
 
-      if (logs.length === 0) {
-        throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
-      }
+      // if (logs.length === 0) {
+      //   throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
+      // }
 
       console.log({ totalCount, logs });
 
@@ -666,9 +708,14 @@ export class StudentsService {
           );
           break;
       }
+      const meta: TStudents[] = await this.studentsRepository.query(
+        `SELECT inquiry_type, student_uuid FROM inquire_logs  WHERE report_uuid = $1`,
+        [report_uuid],
+      );
       return {
         data: { success: true },
         pagination: null,
+        meta: meta[0],
       };
     } catch (error) {
       throw new HttpException(
@@ -756,14 +803,8 @@ export class StudentsService {
   async visitlogentry(createvisitpayload: TVisit_log) {
     try {
       // 1. Validate if student exists
-      const result: {
-        student_uuid: string;
-        department: string;
-        student_name: string;
-      }[] = await this.studentsRepository.query(
-        `SELECT student_uuid, department, student_name 
-                 FROM STUDENTS_TABLE 
-                 WHERE STUDENT_ID=$1`,
+      const result: TStudents[] = await this.studentsRepository.query(
+        `SELECT * FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,
         [createvisitpayload.student_id],
       );
 
@@ -798,13 +839,15 @@ export class StudentsService {
 
       // 4. Insert new entry log
       await this.studentsRepository.query(
-        `INSERT INTO visit_log (student_uuid, visitor_name, department, student_id, action, in_time, out_time) 
-             VALUES ($1, $2, $3, $4, 'entry', now(), null)`,
+        `INSERT INTO visit_log (student_uuid, visitor_name, department, student_id, action, in_time, out_time, institute_uuid, institute_name) 
+             VALUES ($1, $2, $3, $4, 'entry', now(), null, $5, $6)`,
         [
           student_uuid,
           result[0].student_name,
           result[0].department,
           createvisitpayload.student_id,
+          result[0].institute_uuid,
+          result[0].institute_name,
         ],
       );
 
@@ -812,6 +855,7 @@ export class StudentsService {
         message: 'Visit log entry created successfully',
         student_id: createvisitpayload.student_id,
         timestamp: new Date().toISOString(),
+        meta: result[0],
       };
     } catch (error) {
       throw new HttpException(
@@ -868,6 +912,7 @@ export class StudentsService {
         message: 'Exit log updated successfully',
         student_id: createvlogpayload.student_id,
         timestamp: new Date().toISOString(),
+        meta: studentExists[0],
       };
     } catch (error) {
       throw new HttpException(
@@ -971,97 +1016,115 @@ export class StudentsService {
     }
   }
 
-  async adminDashboard(instituteUUID: string | null) {
+  async adminDashboard(instituteUUIDs: string | null) {
     try {
-      // Adjust the query for totalBooks
+      // Uncomment after completion of phase 1
+      // if (!instituteUUIDs) {
+      //   throw new HttpException(
+      //     'Please Provide atleast one Institute Identifier',
+      //     HttpStatus.BAD_REQUEST,
+      //   );
+      // }
+
+      const instituteUUIDsJSON = JSON.parse(instituteUUIDs || '[]');
+
+      const useInstituteFilter =
+        Array.isArray(instituteUUIDsJSON) && instituteUUIDsJSON.length > 0;
+
+      const whereInstituteClause = useInstituteFilter
+        ? `AND institute_uuid = ANY($1)`
+        : '';
+
+      const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
+
       const totalBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false
-        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-      `;
-      const totalBooks = await this.studentsRepository.query(
-        totalBooksQuery,
-        instituteUUID ? [instituteUUID] : [],
-      );
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false
+      ${whereInstituteClause}
+    `;
+      const totalBooks: { count: string }[] =
+        await this.studentsRepository.query(totalBooksQuery, instituteParams);
 
       // Adjust the query for totalBorrowedBooks
       const totalBorrowedBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
-        WHERE book_copies.is_archived = false
-        ${instituteUUID ? 'AND book_copies.institute_uuid = $1' : ''}
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
+      WHERE book_copies.is_archived = false
+      ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
+    `;
       const totalBorrowedBooks = await this.studentsRepository.query(
         totalBorrowedBooksQuery,
-        instituteUUID ? [instituteUUID] : [],
+        instituteParams,
       );
 
-      // Adjust the query for totalMembers
       const totalMembersQuery = `
-        SELECT COUNT(*) 
-        FROM students_table 
-        WHERE is_archived = false
-        ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-      `;
+      SELECT COUNT(*) 
+      FROM students_table 
+      WHERE is_archived = false
+      ${whereInstituteClause}
+    `;
       const totalMembers = await this.studentsRepository.query(
         totalMembersQuery,
-        instituteUUID ? [instituteUUID] : [],
+        instituteParams,
       );
 
-      // Adjust the query for newBooks (not filtered by instituteUUID as there's no filter for it)
       const newBooksQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
-      `;
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false 
+        AND is_available = true 
+        AND created_at >= NOW() - INTERVAL '1 month'
+    `;
       const newBooks = await this.studentsRepository.query(newBooksQuery);
 
       const todayIssuesQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        WHERE date >= CURRENT_DATE AND action = 'borrowed'
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      WHERE date >= CURRENT_DATE AND action = 'borrowed'
+    `;
       const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
 
       const todayReturnedQuery = `
-        SELECT COUNT(*) 
-        FROM book_logv2 
-        WHERE date >= CURRENT_DATE AND action = 'returned'
-      `;
+      SELECT COUNT(*) 
+      FROM book_logv2 
+      WHERE date >= CURRENT_DATE AND action = 'returned'
+    `;
       const todayReturned =
         await this.studentsRepository.query(todayReturnedQuery);
 
       const overdueQuery = `
-        SELECT COUNT(*) 
-        FROM fees_penalties 
-        WHERE penalty_amount > 0
-      `;
+      SELECT COUNT(*) 
+      FROM fees_penalties 
+      WHERE penalty_amount > 0
+    `;
       const overdues = await this.studentsRepository.query(overdueQuery);
 
       const trendingQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
-      `;
-      const trending = await this.studentsRepository.query(newBooksQuery);
+      SELECT COUNT(*) 
+      FROM book_copies 
+      WHERE is_archived = false 
+        AND is_available = true 
+        AND created_at >= NOW() - INTERVAL '1 month'
+    `;
+      const trending = await this.studentsRepository.query(trendingQuery);
+
+      const parseCount = (result: { count: string }[]) =>
+        parseInt(result?.[0]?.count || '0', 10);
 
       return {
-        totalBooks: totalBooks[0].count,
-        totalBorrowedBooks: totalBorrowedBooks[0].count,
-        totalMembers: totalMembers[0].count,
-        newBooks: newBooks[0].count,
-        todayIssues: todayIssues[0].count,
-        todayReturned: todayReturned[0].count,
-        overdue: overdues[0].count,
-        trending: trending[0].count,
+        totalBooks: parseCount(totalBooks),
+        totalBorrowedBooks: parseCount(totalBorrowedBooks),
+        totalMembers: parseCount(totalMembers),
+        newBooks: parseCount(newBooks),
+        todayIssues: parseCount(todayIssues),
+        todayReturned: parseCount(todayReturned),
+        overdue: parseCount(overdues),
+        trending: parseCount(trending),
       };
     } catch (error) {
+      console.error('Error in adminDashboard:', error);
       throw error;
     }
   }
@@ -1155,8 +1218,15 @@ export class StudentsService {
     try {
       const studentKey: StudentsVisitKey[] =
         await this.studentsRepository.query(
-          `INSERT INTO student_visit_key (student_id, longitude, latitude, action) VALUES ($1, $2,  $3, $4) RETURNING *`,
-          [user.student_id, longitude, latitude, action],
+          `INSERT INTO student_visit_key (student_id, longitude, latitude, action, institute_uuid, institute_name) VALUES ($1, $2,  $3, $4, $5, $6) RETURNING *`,
+          [
+            user.student_id,
+            longitude,
+            latitude,
+            action,
+            user.institute_uuid,
+            user.institute_name,
+          ],
         );
       if (!studentKey.length) {
         throw new HttpException(
@@ -1197,7 +1267,7 @@ export class StudentsService {
           lib_longitude,
           parseFloat(latitude),
           parseFloat(longitude),
-          3000,
+          30,
         )
       ) {
         await this.studentsRepository.query(

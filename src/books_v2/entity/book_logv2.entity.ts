@@ -57,6 +57,12 @@ export class Booklog_v2 {
   @ManyToOne(() => FeesPenalties, (fees_penalties) => fees_penalties.fpUUID)
   @JoinColumn({ name: 'fp_uuid' })
   fpUUID: 'fp_uuid' = 'fp_uuid';
+  
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUuid: 'institute_uuid' = 'institute_uuid';
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: 'institute_name' = 'institute_name';
 
 }
 

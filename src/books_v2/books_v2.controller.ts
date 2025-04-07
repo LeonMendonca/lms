@@ -58,6 +58,8 @@ import {
   PaginationParserType,
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
+import { StudentNotifyService } from 'src/student-notify/student-notify.service';
+import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -74,6 +76,7 @@ export class BooksV2Controller {
   constructor(
     private readonly booksService: BooksV2Service,
     private readonly studentService: StudentsService,
+    private readonly notifyService: StudentNotifyService,
   ) {}
 
   // Get all books
@@ -89,6 +92,50 @@ export class BooksV2Controller {
       limit: limit ? parseInt(limit, 10) : 10,
       search: search ?? undefined,
     });
+  }
+
+  // {
+  //   page: page ? parseInt(page, 10) : 1,
+  //   limit: limit ? parseInt(limit, 10) : 10,
+  //   search: search ?? undefined,
+  // }
+
+  @Get('book-journal')
+  async getBookJournal(
+    @Query('_book_journal_page') book_journal_page: string,
+    @Query('_book_journal_limit') book_journal_limit: string,
+    @Query('_book_journal_search') book_journal_search: string,
+
+    @Query('_note_page') note_page: string,
+    @Query('_note_limit') note_limit: string,
+    @Query('_note_search') note_search: string,
+  ) {
+    try {
+      return await this.booksService.getBookJournal(
+        {
+          book_journal_page: book_journal_page
+            ? parseInt(book_journal_page, 10)
+            : 1,
+          book_journal_limit: book_journal_limit
+            ? parseInt(book_journal_limit, 10)
+            : 1,
+          book_journal_search,
+        },
+        {
+          note_page: note_page ? parseInt(note_page, 10) : 1,
+          note_limit: note_limit ? parseInt(note_limit, 10) : 1,
+          note_search,
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
   }
 
   @Get('get_copies_with_title') // done
@@ -191,7 +238,7 @@ export class BooksV2Controller {
     @Query('_limit') limit: string = '10',
   ) {
     try {
-      console.log({student_id})
+      console.log({ student_id });
       const student = await this.studentService.findStudentBy({
         student_id: student_id,
       });
@@ -573,7 +620,7 @@ export class BooksV2Controller {
   async updateBookLog(
     @Body() booklogPayload: TCreateBooklogV2DTO,
     @Req() request: Request,
-  ) {
+  ): Promise<ApiResponse<any>> {
     try {
       if (!request.ip) {
         throw new HttpException(
@@ -584,12 +631,19 @@ export class BooksV2Controller {
 
       let status: 'borrowed' | 'returned' | 'in_library_borrowed' | undefined =
         undefined;
-      let result: Record<string, string | number> = {};
+      let result: any = {};
       if (booklogPayload.action === 'borrow') {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
           request.ip,
           (status = 'borrowed'),
+        );
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_BORROWED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
         );
         // result = await this.booksService.bookBorrowed(
         //   booklogPayload,
@@ -602,20 +656,35 @@ export class BooksV2Controller {
           request.ip,
           (status = 'returned'),
         );
+        console.log({ result });
+        console.log(
+          result.meta.borrower_uuid,
+          result.meta.new_book_title.book_title,
+        );
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_RETURNED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
+        );
       } else {
         result = await this.booksService.bookBorrowed(
           booklogPayload,
           request.ip,
           (status = 'in_library_borrowed'),
         );
+        await this.notifyService.createNotification(
+          result.meta.borrower_uuid,
+          NotificationType.BOOK_RETURNED,
+          {
+            bookTitle: result.meta.new_book_title.book_title,
+          },
+        );
       }
       return result;
     } catch (error) {
       if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
         throw new HttpException(
           error.message,
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -761,13 +830,13 @@ export class BooksV2Controller {
 
   @Get('request_booklog')
   async getRequestBooklog(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
+    @Query('_institute_uuid') institute_uuid: string,
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
   ) {
     try {
       return await this.booksService.getRequestBookLogs({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
+        ...query,
+        institute_uuid: JSON.parse(institute_uuid || "[]"),
       });
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -795,11 +864,22 @@ export class BooksV2Controller {
         );
       }
       const user = request.user;
+      const student = await this.studentService.findStudentBy({
+        student_id: user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
       //Adding IP address, since required for issuing
-      const { data } = await this.booksService.createRequestBooklogIssue(
-        user.student_id,
+      const { data, meta } = await this.booksService.createRequestBooklogIssue(
+        student.student_id,
         requestBookIssuePayload,
         request.ip,
+      );
+      const notify = await this.notifyService.createNotification(
+        student.student_uuid,
+        NotificationType.BOOK_REQUESTED,
+        meta,
       );
       return {
         data,
@@ -880,9 +960,18 @@ export class BooksV2Controller {
     @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
   ) {
     try {
-      return await this.booksService.createRequestBooklogIssueAR(
+      const data = await this.booksService.createRequestBooklogIssueAR(
         requestBookIssueARPayload,
       );
+
+      const notify = await this.notifyService.createNotification(
+        data.meta.student_uuid,
+        requestBookIssueARPayload.status === 'approved'
+          ? NotificationType.BOOK_REQUEST_APPROVED
+          : NotificationType.BOOK_REQUEST_REJECTED,
+        data.meta,
+      );
+      return data;
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -895,10 +984,11 @@ export class BooksV2Controller {
   }
 
   @Post('request_booklog_reissue')
+  @UseGuards(TokenAuthGuard)
   @UsePipes(new bodyValidationPipe(requestBookZodReIssue))
   async createRequestBooklogReIssue(
     @Body() requestBookReIssuePayload: TRequestBookZodReIssue,
-    @Req() request: Request,
+    @Req() request: AuthenticatedRequest,
   ) {
     try {
       if (!request.ip) {
@@ -907,9 +997,22 @@ export class BooksV2Controller {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      return await this.booksService.createBooklogReissue(
+      const user = request.user;
+      const student = await this.studentService.findStudentBy({
+        student_id: user.student_id,
+      });
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      const data = await this.booksService.createBooklogReissue(
         requestBookReIssuePayload,
         request.ip,
+      );
+
+      const notify = await this.notifyService.createNotification(
+        student.student_uuid,
+        NotificationType.BOOK_REISSUE_REQUESTED,
+        data.meta,
       );
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -929,9 +1032,17 @@ export class BooksV2Controller {
     @Body() requestBookIssueARPayload: TRequestBookZodIssueReIssueAR,
   ) {
     try {
-      return await this.booksService.requestBooklogReissuear(
+      const data = await this.booksService.requestBooklogReissuear(
         requestBookIssueARPayload,
       );
+      const notify = await this.notifyService.createNotification(
+        data.meta.student_uuid,
+        requestBookIssueARPayload.status === 'approved'
+          ? NotificationType.BOOK_REISSUE_APPROVED
+          : NotificationType.BOOK_REISSUE_REJECTED,
+        data.meta,
+      );
+      return data;
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(

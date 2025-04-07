@@ -6,7 +6,7 @@ import {
 } from 'src/misc/custom-query-helper';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Notes } from './entities/notes.entity';
+import { Notes, TNotes } from './entities/notes.entity';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
 
 interface Data<T> {
@@ -28,7 +28,7 @@ export class NotesService {
     try {
       console.log(user)
       let queryData = insertQueryHelper(
-        { ...createNotesDto, student_uuid: user.student_uuid },
+        { ...createNotesDto, student_uuid: user.student_uuid, institute_uuid: user.institute_uuid, institute_name: user.institute_name },
         [],
       );
       const result: Notes[] = await this.notesRepository.query(
@@ -83,9 +83,9 @@ export class NotesService {
     }
   }
 
-  async approveByAdmin(notes_uuid: string): Promise<Data<Notes>> {
+  async approveByAdmin(notes_uuid: string): Promise<Data<TNotes>> {
     try {
-      const result: Notes[] = await this.notesRepository.query(
+      const result: TNotes[] = await this.notesRepository.query(
         `UPDATE notes SET is_approved = true WHERE notes_uuid = $1 RETURNING *`,
         [notes_uuid],
       );
@@ -102,9 +102,9 @@ export class NotesService {
     }
   }
 
-  async rejectByAdmin(notes_uuid: string): Promise<Data<Notes>> {
+  async rejectByAdmin(notes_uuid: string): Promise<Data<TNotes>> {
     try {
-      const result: Notes[] = await this.notesRepository.query(
+      const result: TNotes[] = await this.notesRepository.query(
         `UPDATE notes SET is_archived = true WHERE notes_uuid = $1 RETURNING *`,
         [notes_uuid],
       );

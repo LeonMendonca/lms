@@ -40,6 +40,12 @@ export class Notes {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: 'updated_at' = 'updated_at'; // Timestamp for review updates
+
+  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
+  instituteUuid: 'institute_uuid' = 'institute_uuid';
+
+  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
+  instituteName: 'institute_name' = 'institute_name';
 }
 
 export const notes = new Notes();

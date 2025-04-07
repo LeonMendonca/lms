@@ -39,6 +39,8 @@ import { User } from './user/user.entity';
 import { Notes } from './notes/entities/notes.entity';
 import { NotesModule } from './notes/notes.module';
 import { InquireLogs } from './students/entities/inquire-logs';
+import { StudentNotifyModule } from './student-notify/student-notify.module';
+import { StudentNotification } from './student-notify/entities/student-notify.entity';
 
 config({ path: '.env' });
 @Module({
@@ -67,7 +69,8 @@ config({ path: '.env' });
         InstituteConfig,
         Calendar,
         Notes,
-        InquireLogs
+        InquireLogs,
+        StudentNotification
       ],
       ssl: true,
       synchronize: true,
@@ -84,7 +87,8 @@ config({ path: '.env' });
     CsvModule,
     ReviewsModule,
     UserModule,
-    NotesModule
+    NotesModule,
+    StudentNotifyModule
   ],
 })
 export class AppModule {
