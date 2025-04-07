@@ -159,8 +159,64 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
   // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
   // working
+  // async getJournals(
+  //   { page, limit, search }: { page: number; limit: number; search: string, } = {
+  //     page: 1,
+  //     limit: 10,
+  //     search: '',
+  //   },
+  // ) {
+  //   try {
+  //     const offset = (page - 1) * limit;
+  //     const searchQuery = search ? `${search}%` : '%';
+
+  //     const institutes = ['a0e08cc6-c7e4-4e6a-b98e-38e8cef99b7c']
+
+  //     // const journals = await this.journalsTitleRepository.query(
+  //     //   `SELECT * FROM journal_copy WHERE is_archived=false AND institute_uuid= ANY($1)`, 
+  //     //   [institutes]
+  //     // );
+
+  //     const journals = await this.journalsTitleRepository.query(
+  //       `
+  //       SELECT
+  //       jt.journal_title_id,
+  //       jt.name_of_publisher,
+  //       jt.total_count,
+  //       jt.volume_no,
+  //       jt.subscription_start_date,
+  //       jt.subscription_end_date
+  //       FROM journal_titles jt
+  //       INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
+  //       WHERE jt.is_archived = false
+  //         AND jc.is_archived = false
+  //         AND jc.institute_uuid = ANY($1)
+  //       GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
+  //       [institutes]
+  //     )
+  //     console.log(journals);
+  //     const total = await this.journalsTitleRepository.query(
+  //       `SELECT COUNT(*) AS count FROM journal_titles WHERE is_archived=false AND available_count>0`,
+  //     );
+  //     return {
+  //       data: journals,
+  //       pagination: {
+  //         total: parseInt(total[0].count, 10),
+  //         page,
+  //         limit,
+  //         totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+  //       },
+  //     };
+  //   } catch (error) {
+  //     throw new HttpException(
+  //       'Error fetching Journals',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //     );
+  //   }
+  // }
+
   async getJournals(
-    { page, limit, search }: { page: number; limit: number; search: string, } = {
+    { page, limit, search }: { page: number; limit: number; search: string } = {
       page: 1,
       limit: 10,
       search: '',
@@ -168,36 +224,44 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
   ) {
     try {
       const offset = (page - 1) * limit;
-      const searchQuery = search ? `${search}%` : '%';
-
-      const institutes = ['a0e08cc6-c7e4-4e6a-b98e-38e8cef99b7c']
-
-      // const journals = await this.journalsTitleRepository.query(
-      //   `SELECT * FROM journal_copy WHERE is_archived=false AND institute_uuid= ANY($1)`, 
-      //   [institutes]
-      // );
-
+      const searchQuery = search ? `%${search}%` : '%';
+  
+      const institutes = ['a0e08cc6-c7e4-4e6a-b98e-38e8cef99b7c'];
+  
       const journals = await this.journalsTitleRepository.query(
         `
         SELECT
-        jt.journal_title_id,
-        jt.name_of_publisher,
-        jt.total_count,
-        jt.volume_no,
-        jt.subscription_start_date,
-        jt.subscription_end_date
+          jt.journal_title_id,
+          jt.name_of_publisher,
+          jt.total_count,
+          jt.volume_no,
+          jt.subscription_start_date,
+          jt.subscription_end_date
         FROM journal_titles jt
         INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
         WHERE jt.is_archived = false
           AND jc.is_archived = false
           AND jc.institute_uuid = ANY($1)
-        GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date`,
-        [institutes]
-      )
-      console.log(journals);
-      const total = await this.journalsTitleRepository.query(
-        `SELECT COUNT(*) AS count FROM journal_titles WHERE is_archived=false AND available_count>0`,
+          AND jt.name_of_publisher ILIKE $2
+        GROUP BY jt.journal_uuid, jt.journal_title_id, jt.name_of_publisher, jt.total_count, jt.volume_no, jt.subscription_start_date, jt.subscription_end_date
+        LIMIT $3 OFFSET $4
+        `,
+        [institutes, searchQuery, limit, offset]
       );
+  
+      const total = await this.journalsTitleRepository.query(
+        `
+        SELECT COUNT(DISTINCT jt.journal_uuid) AS count
+        FROM journal_titles jt
+        INNER JOIN journal_copy jc ON jc.journal_title_uuid = jt.journal_uuid
+        WHERE jt.is_archived = false
+          AND jc.is_archived = false
+          AND jc.institute_uuid = ANY($1)
+          AND jt.name_of_publisher ILIKE $2
+        `,
+        [institutes, searchQuery]
+      );
+  
       return {
         data: journals,
         pagination: {
@@ -214,6 +278,7 @@ async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number
       );
     }
   }
+  
 
   async getPeriodicalLogs(
     { page, limit, search }: { page: number; limit: number; search: string } = {
