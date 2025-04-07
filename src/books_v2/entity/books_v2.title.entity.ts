@@ -31,6 +31,9 @@ export class BookTitle {
   @Column({ name: 'name_of_publisher', type: 'varchar', length: 255 })
   nameOfPublisher: 'name_of_publisher' = 'name_of_publisher';
 
+  @Column({ name: 'institute_uuids', type: 'jsonb' })
+  instituteUUIDs: 'institute_uuids' = 'institute_uuids';
+
   @Column({ name: 'place_of_publication', type: 'varchar', length: 255 })
   placeOfPublication: 'place_of_publication' = 'place_of_publication';
 

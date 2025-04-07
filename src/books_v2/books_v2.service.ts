@@ -1019,33 +1019,41 @@ export class BooksV2Service {
   async createBook(createBookpayload: TCreateBookZodDTO) {
     try {
       //Check if book exists in BookTitle Table
-      let bookTitleUUID: Pick<TBookTitle, 'book_uuid'>[] =
+      let bookTitleUUID: Pick<TBookTitle, 'book_uuid' | 'institute_uuids'>[] =
         await this.booktitleRepository.query(
-          `SELECT book_uuid FROM book_titles WHERE isbn = $1`,
+          `SELECT book_uuid, institute_uuids FROM book_titles WHERE isbn = $1`,
           [createBookpayload.isbn],
         );
 
       //Book Title Table logic
       if (!bookTitleUUID.length) {
+        // (bookTitleUUID[0].institute_uuids as string[])
         //Create the required Columns, Arg, and Values
         //Ignore the Columns that are used by Copy table
-        const bookTitleQueryData = insertQueryHelper(createBookpayload, [
-          'source_of_acquisition',
-          'date_of_acquisition',
-          'bill_no',
-          'language',
-          'inventory_number',
-          'accession_number',
-          'barcode',
-          'item_type',
-          'institute_name',
-          'institute_uuid',
-          'created_by',
-          'remarks',
-          'copy_images',
-          'copy_description',
-          'copy_additional_fields',
-        ]);
+        //Here, there is no record of the book already being in existance, hence an array needs to be created for the UUID
+        let createBookPayloadForTitle = Object.assign(createBookpayload, {
+          institute_uuids: [createBookpayload.institute_uuid],
+        });
+        const bookTitleQueryData = insertQueryHelper(
+          createBookPayloadForTitle,
+          [
+            'source_of_acquisition',
+            'date_of_acquisition',
+            'bill_no',
+            'language',
+            'inventory_number',
+            'accession_number',
+            'barcode',
+            'item_type',
+            'institute_name',
+            'institute_uuid',
+            'created_by',
+            'remarks',
+            'copy_images',
+            'copy_description',
+            'copy_additional_fields',
+          ],
+        );
 
         //Convert some specific fields to string
         bookTitleQueryData.values.forEach((element, idx) => {
@@ -1058,9 +1066,14 @@ export class BooksV2Service {
           bookTitleQueryData.values,
         );
       } else {
+        const instituteUUIDs = bookTitleUUID[0].institute_uuids as string[];
+        if (!instituteUUIDs.includes(createBookpayload.institute_uuid)) {
+          instituteUUIDs.push(createBookpayload.institute_uuid);
+        }
+        const stringyfiedInstituteUUIDS = JSON.stringify(instituteUUIDs);
         await this.booktitleRepository.query(
-          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, updated_at = NOW() WHERE isbn = $1`,
-          [createBookpayload.isbn],
+          `UPDATE book_titles SET total_count = total_count + 1, available_count = available_count + 1, institute_uuids = $2, updated_at = NOW() WHERE isbn = $1`,
+          [createBookpayload.isbn, stringyfiedInstituteUUIDS],
         );
       }
       //Book Copy Table logic
@@ -1101,10 +1114,10 @@ export class BooksV2Service {
         }
       });
 
-      await this.bookcopyRepository.query(
-        `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
-        bookCopyQueryData.values,
-      );
+      // await this.bookcopyRepository.query(
+      //   `INSERT INTO book_copies (${bookCopyQueryData.queryCol}) VALUES (${bookCopyQueryData.queryArg})`,
+      //   bookCopyQueryData.values,
+      // );
       return { statusCode: HttpStatus.CREATED, message: 'Book created' };
     } catch (error) {
       throw error;
@@ -2219,7 +2232,11 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
-      filter.push({ field: 'cr.institute_uuid', value: institute_uuid, operator: '=' });
+      filter.push({
+        field: 'cr.institute_uuid',
+        value: institute_uuid,
+        operator: '=',
+      });
       filter.push({ field: 'cr.is_archived', value: ['false'], operator: '=' });
       filter.push({
         field: 'cr.is_completed',
@@ -2231,7 +2248,7 @@ export class BooksV2Service {
       //   SELECT * FROM notes
       //   `))
 
-        console.log({institute_uuid})
+      console.log({ institute_uuid });
 
       const whereClauses = this.queryBuilderService.buildWhereClauses(
         filter,
