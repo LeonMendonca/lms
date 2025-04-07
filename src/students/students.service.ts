@@ -1306,7 +1306,7 @@ export class StudentsService {
       const lib_longitude = 72.8645;
       const lib_latitude = 19.2135;
       const studentKey = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes' AND is_used = false`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes' AND is_used = false`,
         [studentKeyUUID],
       );
 
@@ -1368,7 +1368,7 @@ export class StudentsService {
       );
       console.log(trial);
       const status: TStudentsVisitkey[] = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '1 minutes'`,
+        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes'`,
         [studentKeyUUID],
       );
       if (status.length === 0) {

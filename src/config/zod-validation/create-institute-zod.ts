@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createObjectOmitProperties } from "src/misc/create-object-from-class"
 import { InstituteConfig } from "../entity/institute_config.entity"
+import { create } from "domain"
 
 const createInstitute = createObjectOmitProperties(new InstituteConfig(), ['instituteUUID', 'instituteId', 'instituteAbbr','createdDate', 'isArchived'])
 
@@ -18,7 +19,11 @@ export const createInstituteSchema = z.object({
     [createInstitute.author]: z.string().optional(),
     [createInstitute.instituteLogo]: z.string().optional(),
     [createInstitute.instituteHeader]: z.string().optional(),
-    user_uuid: z.string().uuid().optional(),
+    [createInstitute.visualization]: z.object({
+        dashboard_card: z.boolean().default(false),
+        report_cards: z.boolean().default(false)
+    }),
+    user_uuid: z.string().uuid().optional()
 })
 
 export type TInstituteDTO = z.infer<typeof createInstituteSchema>;

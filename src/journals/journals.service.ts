@@ -37,6 +37,7 @@ import { BookTitle } from 'src/books_v2/entity/books_v2.title.entity';
 import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
 import { ConfigController } from 'src/config/config.controller';
 import { InstituteConfig } from 'src/config/entity/institute_config.entity';
+import { LibraryConfig } from 'src/config/entity/library_config.entity';
 
 @Injectable()
 export class JournalsService {
@@ -72,46 +73,89 @@ export class JournalsService {
     @InjectRepository(InstituteConfig)
     private instituteConfigRepository: Repository<InstituteConfig>,
 
+    @InjectRepository(LibraryConfig)
+    private libraryConfigRepository: Repository<LibraryConfig>,
+
     private readonly dataSource: DataSource,
   ) { }
 
-  // get all the books and periodicals - i can tmake it
-  async getBooks() {
-    const data = await this.journalsTitleRepository.query(
-      `
+// Get Books and Journals by Institute UUIDs
+async getBooksAndJournals(instituteUUIDs: string[], search: string, page: number, limit: number) {
+  const offset = (page - 1) * limit;
+  const data = await this.journalsTitleRepository.query(
+    `
       SELECT
-  jt.institute_uuid,
-  jt.name_of_publisher AS journal_publisher,
-  jt.total_count AS journal_total_count,
-  jc.journal_copy_id,
-  jc.journal_title,
-  jc.issn,
+        COALESCE(jt.institute_uuid, b.institute_id) AS institute_uuid,
+        COALESCE(jt.name_of_publisher, b.name_of_publisher) AS publisher,
+        COALESCE(jt.total_count, b.total_count) AS total_count,
+        COALESCE(jt.available_count, b.available_count) AS available_count,
+        COALESCE(jt.is_archived, b.is_archived) AS is_archived,
 
-  bc.institute_uuid AS book_institute_uuid,
-  bt.book_title,
-  bt.book_author,
-  bt.name_of_publisher AS book_publisher,
-  bt.total_count AS book_total_count,
-  bt.isbn,
-  bt.year_of_publication
+        -- Journal-specific fields (from journal_titles only)
+        jt.journal_title_id AS item_id,
+        jt.category,
+        jt.subscription_id,
+        jt.subscription_start_date,
+        jt.subscription_end_date,
+        jt.volume_no AS volume_number,
+        jt.frequency,
+        jt.issue_number,
+        jt.vendor_name,
+        jt.subscription_price,
+        jt.library_name,
+        jt.classification_number,
+        jt.created_at AS journal_created_at,
+        jt.updated_at AS journal_updated_at,
+        jt.title_images,
+        jt.title_description,
+        jt.title_additional_fields,
 
-FROM journal_titles jt
-JOIN journal_copy jc ON jt.journal_uuid = jc.journal_title_uuid
+        -- Book-specific fields
+        b.book_title,
+        b.book_author,
+        b.year_of_publication,
+        b.language,
+        b.edition,
+        b.isbn,
+        b.no_of_pages,
+        b.no_of_preliminary_pages,
+        b.subject,
+        b.department,
+        b.call_number,
+        b.author_mark,
+        b.source_of_acquisition,
+        b.date_of_acquisition,
+        b.bill_no,
+        b.inventory_number,
+        b.accession_number,
+        b.barcode,
+        b.item_type,
 
-LEFT JOIN book_copies bc ON bc.institute_uuid = jt.institute_uuid
-LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
+        -- Type indicator
+        CASE 
+          WHEN jt.journal_uuid IS NOT NULL THEN 'journal'
+          WHEN b.book_uuid IS NOT NULL THEN 'book'
+        END AS item_type
 
-        
+      FROM journal_titles jt
+      FULL OUTER JOIN books_table b ON b.institute_id = jt.institute_uuid
+      WHERE COALESCE(jt.institute_uuid, b.institute_id) = ANY($1)
+        AND (
+          $2::text IS NULL 
+          OR jt.title_description ILIKE '%' || $2 || '%' 
+          OR b.book_title ILIKE '%' || $2 || '%'
+        )
+      LIMIT $3 OFFSET $4
+    `,
+    [instituteUUIDs, search || null, limit, offset]
+  );
 
-      `
-    )
-      if(data.length === 0){
-        return{message: "Nothing found"}
-      }else{
-        return data
-      }
+  if (data.length === 0) {
+    return { message: "Nothing found" };
+  } else {
+    return data;
   }
-
+}
   // ----- BOTH TABLE SIMULTAENOUS FUNCTIONS -----
 
   // working
@@ -757,36 +801,16 @@ LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
         const journalTitleUUID = oldTitle[0].journal_uuid;
         const journalCopyUUID = journalData[0].journal_copy_uuid;
 
-        // 7. Insert Log Entry
-        await transactionalEntityManager.query(
-          `INSERT INTO journal_logs 
-            (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
-            action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid)  
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-          [
-            JSON.stringify(journalData[0]),
-            JSON.stringify(newCopyData[0]),
-            JSON.stringify(oldTitle[0]),
-            JSON.stringify(newTitle[0]),
-            status, // 'returned'
-            'Book has been returned',
-            journalData[0].issn,
-            request.ip,
-            studentExists[0].student_uuid,
-            journalTitleUUID,
-            journalCopyUUID,
-          ],
-        );
-
+       
         // 8. Insert Into The Fees-n-Penalties Table
         const penaltyData = await this.feesPenaltiesRepository.query(
-          `SELECT return_date FROM fees_penalties WHERE copy_uuid=$1`,
+          `SELECT * FROM fees_penalties WHERE copy_uuid=$1`,
           [journal_copy_uuid],
         );
 
         if (penaltyData.length === 0) {
           throw new HttpException(
-            'Return date record not found for penalty calculation',
+            'Record not found for penalty calculation',
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -799,23 +823,52 @@ LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
         let delayed_days = differenceInDays(returned_date, return_date);
         delayed_days = delayed_days < 0 ? 0 : delayed_days; // Ensure non-negative
 
+        const max_fees_per_day = penaltyData[0].late_fees_per_day
         // Calculate penalty
-        const penalty_amount = delayed_days > 0 ? delayed_days * 50 : 0;
+        const penalty_amount = delayed_days > 0 ? delayed_days * max_fees_per_day : 0;
         const is_penalised = delayed_days > 0;
+        const is_completed = penalty_amount > penaltyData[0].paid_amount
+
+        const fp_uuid = penaltyData[0].fp_uuid
+        console.log("fp_uuid : ", fp_uuid)
 
         // Update penalty table
         await this.feesPenaltiesRepository.query(
           `UPDATE fees_penalties 
-          SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4 
-          WHERE copy_uuid=$5 RETURNING *`,
+          SET days_delayed=$1, penalty_amount=$2, is_penalised=$3, returned_at=$4, is_completed=$5 WHERE copy_uuid=$6 RETURNING *`,
           [
             delayed_days,
             penalty_amount,
             is_penalised,
             returned_date,
+            is_completed,
             journal_copy_uuid,
           ],
         );
+
+
+         // 7. Insert Log Entry
+         await transactionalEntityManager.query(
+          `INSERT INTO journal_logs 
+            (old_journal_copy, new_journal_copy, old_journal_title, new_journal_title, 
+            action, description, issn, ip_address, borrower_uuid, journal_title_uuid, journal_copy_uuid, fp_uuid)  
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            JSON.stringify(journalData[0]),
+            JSON.stringify(newCopyData[0]),
+            JSON.stringify(oldTitle[0]),
+            JSON.stringify(newTitle[0]),
+            status, // 'returned'
+            'Book has been returned',
+            journalData[0].issn,
+            request.ip,
+            studentExists[0].student_uuid,
+            journalTitleUUID,
+            journalCopyUUID,
+            fp_uuid
+          ],
+        );
+
       });
 
       return {
@@ -991,12 +1044,6 @@ LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
     category,
   ) {
     try {
-
-      // calculate the return date hence fetch the late_fees_per_day, max_days
-      const late_fees_per_day = await this.feesPenaltiesRepository.query(
-        ``
-      )
-
       if (!request.ip) {
         throw new HttpException(
           'Unable to get IP address of the Student',
@@ -1053,8 +1100,33 @@ LEFT JOIN book_titles bt ON bt.book_uuid = bc.book_title_uuid;
           );
         }
         // store data for fees_n_penalties - store the return date properly
-        let return_date = new Date();
-        return_date.setDate(return_date.getDate() + 7);
+
+        // calculate the return date hence fetch the late_fees_per_day, max_days
+        let institute_uuid = await this.journalsTitleRepository.query(
+          `SELECT jt.institute_uuid
+           FROM journal_titles jt
+           WHERE jt.journal_uuid = (
+             SELECT jc.journal_title_uuid
+             FROM journal_copy jc
+             WHERE jc.journal_copy_id = $1
+           )`,
+          [journalLogPayload.copy_id]
+        );
+              
+        institute_uuid = institute_uuid[0].institute_uuid
+
+        const data = await this.libraryConfigRepository.query(
+          `SELECT max_days FROM library_config WHERE institute_uuid = $1`,
+          [institute_uuid]
+        )
+        
+        const max_days = data[0].max_days
+        let return_date = new Date()
+        return_date.setDate(return_date.getDate() + max_days);
+        console.log(return_date)
+
+        // let return_date = new Date();
+        // return_date.setDate(return_date.getDate() + 7);
         console.log('OLD PERIODICAL TITLE DATA : ', oldTitle[0]);
 
         const newTitle = await transactionalEntityManager.query(
