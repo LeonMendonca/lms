@@ -918,7 +918,7 @@ export class BooksV2Service {
       const result: any[] = await this.booklogRepository.query(
         `SELECT bt.book_title, bt.book_uuid, bc.barcode, bt.department, fp.created_at FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN 
         book_titles bt ON bc.book_title_uuid = bt.book_uuid 
-        WHERE fp.created_at < CURRENT_DATE AND fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
+        WHERE fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
         `,
         //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
         //           INNER JOIN fees_penalties ON fees_penalties.book_copy_uuid =book_copies.book_copy_uuid
@@ -927,7 +927,7 @@ export class BooksV2Service {
         [student_id, limit, offset],
       );
       const totalCount = await this.booklogRepository.query(
-        `SELECT COUNT(*) FROM fees_penalties WHERE return_date < CURRENT_DATE AND is_completed = false AND borrower_uuid = $1`,
+        `SELECT COUNT(*) FROM fees_penalties WHERE is_completed = false AND borrower_uuid = $1`,
         //         `SELECT COUNT(*)
         //         FROM book_titles
         //         INNER JOIN book_copies ON book_titles.book_uuid = book_copies.book_title_uuid
