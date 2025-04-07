@@ -500,7 +500,7 @@ export class FeesPenaltiesService {
 
     async payStudentFeeForPeriodicals(feesPayload: TCreatePenaltyZod) {
         try {
-            console.log(feesPayload.journal_copy_id)
+            console.log("feesPayload: ", feesPayload)
 
             const data = await this.journalsCopyRepository.query(
                 `SELECT journal_copy_uuid FROM journal_copy WHERE journal_copy_id = $1`,
@@ -516,33 +516,36 @@ export class FeesPenaltiesService {
             const penaltyPayload: {
                 student_id: string;
                 journal_copy_id: string;
-                penalty_amount: number,
-                return_date: Date,
-                paid_amount: number,
-                is_penalied: boolean,
-                is_completed: boolean
-
-            }[] = await this.studentsRepository.query(
-                `SELECT student_uuid,
-                journal_copy.journal_copy_uuid,
-                penalty_amount,
-                return_Date,
-                paid_amount,
-                is_penalized,
-                is_completed
-                FROM fees_penalties
-                INNER JOIN student_table ON fees_penalties.borrower_uuid = students_table.student_uuid
-                WHERE students_table.is_archived=FALSE
-                AND students_table.student_id = $1
-                AND journal_copy.is_archived = FALSE
-                AND journal_copy.journal_copy_id = $2
-                AND penalty_amount > paid_amount
-                AND is_completed = FALSE
-                AND is_penalized = TRUE
-                AND returned_At IS NOT NULL
+                penalty_amount: number;
+                return_date: Date;
+                paid_amount: number;
+                is_penalied: boolean;
+                is_completed: boolean;
+              }[] = await this.studentsRepository.query(
+                `
+                SELECT 
+                  s.student_id,
+                  jc.journal_copy_id,
+                  fp.penalty_amount,
+                  fp.return_date,
+                  fp.paid_amount,
+                  fp.is_penalised,
+                  fp.is_completed
+                FROM fees_penalties fp
+                INNER JOIN students_table s ON fp.borrower_uuid = s.student_uuid
+                INNER JOIN journal_copy jc ON fp.journal_copy_uuid = jc.journal_copy_uuid
+                WHERE s.is_archived = FALSE
+                  AND s.student_id = $1
+                  AND jc.is_archived = FALSE
+                  AND jc.journal_copy_id = $2
+                  AND fp.penalty_amount > fp.paid_amount
+                  AND fp.is_completed = FALSE
+                  AND fp.is_penalised = TRUE
+                  AND fp.returned_at IS NOT NULL
                 `,
                 [feesPayload.student_id, feesPayload.journal_copy_id]
-            )
+              );
+              
 
             if (!penaltyPayload.length) {
                 throw new HttpException(
@@ -564,13 +567,13 @@ export class FeesPenaltiesService {
             await this.feesPenaltiesRepository.query(
                 `UPDATE fees_penalties 
                  SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
-                 WHERE student_id = $5 AND book_copy_uuid = $6`,
+                 WHERE borrower_uuid = $5 AND copy_uuid = $6`,
                 [
                     feesPayload.payment_method,
                     accumulatedPaidAmount,
                     true,
                     isCompleted,
-                    record.student_id,
+                    student[0].student_uuid,
                     record.journal_copy_id
                 ],
             );
