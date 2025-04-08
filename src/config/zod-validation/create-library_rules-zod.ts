@@ -28,7 +28,6 @@ export const createLibraryRuleSchema = z.object({
         penalties_admin: z.boolean().default(true),
         penalties_student: z.boolean().default(true)
     }),
-    [createLibraryRules.role]: z.enum(["student", "staff"]).optional()
 })
 
 export type TLibraryDTO = z.infer<typeof createLibraryRuleSchema>

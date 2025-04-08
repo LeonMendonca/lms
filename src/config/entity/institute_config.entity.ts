@@ -1,13 +1,8 @@
 import {
   Column,
   Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { LibraryConfig } from './library_config.entity';
 
 @Entity('institute_config')
 export class InstituteConfig {

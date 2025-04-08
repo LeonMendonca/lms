@@ -38,9 +38,6 @@ export class LibraryConfig {
     @Column({name:'email_notifications', type: 'jsonb'})
     emailNotifications: "email_notifications" = "email_notifications"
 
-    @Column({name:'role', type: 'enum', enum: ROLE, default: 'student'})
-    role: "role" = "role"
-
     // one rule belongs to one institute
     @ManyToOne(() => InstituteConfig, (institute) => institute.instituteUUID)
     @JoinColumn({ name: "institute_uuid" })

@@ -113,6 +113,8 @@ export class ConfigService {
         created_date: created_date,
       };
 
+      console.log(finalPayload)
+
       // Generate query data
       const insertQuery = insertQueryHelper(finalPayload, []);
 
@@ -133,10 +135,12 @@ export class ConfigService {
       );
 
       const institute_uuid = result[0]?.institute_uuid;
+      console.log("institute_uuid: ", institute_uuid)
       const created_by_uuid = await this.instituteConfigRepository.query(
         `SELECT * FROM users_table WHERE user_uuid = $1 `,
         [institutePayload.user_uuid],
       );
+      console.log("created_by_uuid : ", created_by_uuid)
       created_by_uuid[0].institute_details.push({
         institute_uuid: institute_uuid,
       });
@@ -173,7 +177,8 @@ export class ConfigService {
           penalties_student: true,
         },
       };
-
+      
+      console.log("Created Rule")
       // Call createLibrary with default rule
       await this.createLibrary(defaultRule);
       return { message: "Institute Created Successfully!" }
