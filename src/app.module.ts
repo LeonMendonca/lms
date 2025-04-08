@@ -27,7 +27,7 @@ import { ConfigModule } from './config/config.module';
 import { LibraryConfig } from './config/entity/library_config.entity';
 import { InstituteConfig } from './config/entity/institute_config.entity';
 import { UserModule } from './user/user.module';
-import { User } from './user/user.entity';
+import { User } from './user/entity/user.entity';
 import { Notes } from './notes/entities/notes.entity';
 import { NotesModule } from './notes/notes.module';
 import { InquireLogs } from './students/entities/inquire-logs';

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './user.entity';
+import { User } from './entity/user.entity';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { LibraryConfig } from 'src/config/entity/library_config.entity';
 

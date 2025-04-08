@@ -1,19 +1,21 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TUser, user, User } from './user.entity';
+import { User } from './entity/user.entity';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { DataWithPagination } from 'src/students/students.service';
-import { TCreateUserDTO } from './zod-validation/create-user-zod';
-import {
-  insertQueryHelper,
-  updateQueryHelper,
-} from 'src/misc/custom-query-helper';
-import { TUserCredZodType } from './zod-validation/user-cred-zod';
 import { setTokenFromPayload } from 'src/jwt/jwt-main';
-import { TokenAuthGuard } from 'src/guards/token.guard';
-import { TEditUserDTO } from './zod-validation/edit-user-zod';
 import { LibraryConfig } from 'src/config/entity/library_config.entity';
+import { TCreateUserDTO } from './dto/create-user.dto';
+import { compare, hash } from 'bcryptjs';
+import { TEditUserDTO } from './dto/update-user.dto';
+import { TLoginUserDTO } from './dto/login-user.dto';
+
+interface Data<T> {
+  data: T;
+  pagination: null;
+  meta?: { accessToken?: string };
+}
 
 @Injectable()
 export class UserService {
@@ -27,67 +29,64 @@ export class UserService {
     private libraryRepository: Repository<LibraryConfig>,
   ) {}
 
-  async getRulesFromLibraryConfig(instituteUUID: string[]) {
+  async createUser(userPayload: TCreateUserDTO): Promise<Data<User>> {
     try {
-      console.log('in getRulesFromLibraryConfig', instituteUUID);
-      let uuids = '';
-      for (let element of instituteUUID) {
-        uuids += `'${element}',`;
-      }
-      uuids = uuids.slice(0, -1);
-      console.log('in getRulesFromLibraryConfig', uuids);
-      const result = this.libraryRepository.query(
-        `SELECT * FROM library_config WHERE institute_uuid IN (${uuids})`,
-      );
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  }
+      const { password } = userPayload;
 
-  async userLogin(userCredPayload: TUserCredZodType) {
-    try {
-      const jwtPayload: TUser[] = await this.userRepository.query(
-        `SELECT * FROM users_table WHERE email = $1 AND password = $2`,
-        [userCredPayload.email, userCredPayload.password],
-      );
+      const hashedPassword = (await hash(password, 10)) as string;
 
-      if (!jwtPayload.length) {
-        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
-      }
+      const result = this.userRepository.create({
+        ...userPayload,
+        password: hashedPassword,
+      });
 
-      const jwtPayloadSelective = {
-        name: jwtPayload[0].name,
-        email: jwtPayload[0].email,
-        designation: jwtPayload[0].designation,
-      };
+      const insertedUser: User = await this.userRepository.save(result);
 
-      delete jwtPayload[0].password;
-
-      const arrOfInstituteUUID = jwtPayload[0].institute_details.map(
-        (institute) => institute.institute_uuid,
-      ) as string[];
-
-      console.log(`SELECT * FROM institute_config WHERE institute_uuid IN (${arrOfInstituteUUID.map(inst=> `${inst}`).join(',')})`)
-
-      const completeInstituteDetailsOfUser = await this.userRepository.query(`
-        SELECT * FROM institute_config WHERE institute_uuid IN (${arrOfInstituteUUID.map(inst=> `'${inst}'`).join(',')})
-        `)
-
-      const libraryConfig =
-        await this.getRulesFromLibraryConfig(arrOfInstituteUUID);
-
-      jwtPayload[0]['rules'] = libraryConfig;
-      jwtPayload[0]['institute_details'] = completeInstituteDetailsOfUser;
+      result.password = '';
 
       return {
-        token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
-        user: jwtPayload[0],
+        data: insertedUser,
+        pagination: null,
       };
     } catch (error) {
       throw error;
     }
   }
+
+  async findUserById(userId: string): Promise<Data<User>> {
+    try {
+      const user = await this.userRepository
+        .createQueryBuilder('user')
+        .select([
+          'user.name',
+          'user.email',
+          'user.designation',
+          'user.address',
+          'user.phoneNo',
+          'user.instituteDetails',
+        ])
+        .where('user.userId = :userId', { userId })
+        .andWhere('user.isArchived = :isArchived', { isArchived: false })
+        .getOne();
+
+      if (!user) {
+        throw new HttpException(
+          'User not found or archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      user.password = '';
+
+      return {
+        data: user,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async findAllUsers({
     page,
     limit,
@@ -102,98 +101,81 @@ export class UserService {
     dec: string[];
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
-  }): Promise<DataWithPagination<TUser>> {
+  }): Promise<DataWithPagination<User>> {
     const offset = (page - 1) * limit;
 
-    const params: (string | number)[] = [];
+    const queryBuilder = this.userRepository.createQueryBuilder('user');
 
-    const whereClauses = this.queryBuilderService.buildWhereClauses(
-      filter,
-      search,
-      params,
-    );
-    const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
+    if (search && search.length > 0) {
+      search.forEach((searchCriteria) => {
+        const { field, value } = searchCriteria;
+        queryBuilder.andWhere(`user.${field} ILIKE :searchValue`, {
+          searchValue: `%${value}%`,
+        });
+      });
+    }
 
-    console.log({ params });
+    if (filter && filter.length > 0) {
+      filter.forEach((filterCriteria) => {
+        const { field, value, operator } = filterCriteria;
 
-    const user = await this.userRepository.query(
-      `SELECT * FROM users_table WHERE is_archived = FALSE ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset],
-    );
+        if (operator === 'in') {
+          queryBuilder.andWhere(`user.${field} IN (:...values)`, {
+            values: value,
+          });
+        } else if (operator === 'equals' || operator === '=') {
+          queryBuilder.andWhere(`user.${field} = :value`, { value: value[0] });
+        }
+      });
+    }
 
-    const total = await this.userRepository.query(
-      `SELECT COUNT(*) FROM users_table`,
-      params,
-    );
+    if (asc && asc.length > 0) {
+      asc.forEach((field) => {
+        queryBuilder.addOrderBy(`user.${field}`, 'ASC');
+      });
+    }
+
+    if (dec && dec.length > 0) {
+      dec.forEach((field) => {
+        queryBuilder.addOrderBy(`user.${field}`, 'DESC');
+      });
+    }
+
+    queryBuilder.where('user.isArchived = :isArchived', { isArchived: false });
+
+    const total = await queryBuilder.getCount();
+
+    const users = await queryBuilder.skip(offset).take(limit).getMany();
 
     return {
-      data: user,
+      data: users,
       pagination: {
-        total: parseInt(total[0].count, 10),
+        total: total,
         page,
         limit,
-        totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
-  async findUserById(userId: string): Promise<TUser> {
+  async deleteUser(userId: string): Promise<Data<{ message: string }>> {
     try {
-      const user: TUser[] = await this.userRepository.query(
-        `SELECT name, email, designation, address, phone_no, institute_details FROM users_table WHERE user_id = $1 AND is_archived = FALSE`,
-        [userId],
+      const result = await this.userRepository.update(
+        { userId, isArchived: false },
+        { isArchived: true },
       );
 
-      if (!user.length) {
+      if (result.affected === 0) {
         throw new HttpException(
-          'User not found or archived',
+          `User with id ${userId} not found or already archived`,
           HttpStatus.NOT_FOUND,
         );
       }
 
-      delete user[0].password;
-
-      return user[0];
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async createUser(userPayload: TCreateUserDTO): Promise<TUser> {
-    try {
-      let userInstituteDetailsAsString: string = '';
-      userInstituteDetailsAsString = JSON.stringify(
-        userPayload.institute_details,
-      );
-      const { name, email, phone_no, designation, address, password } =
-        userPayload;
-      const modifiedUserPayload = {
-        name,
-        email,
-        phone_no,
-        designation,
-        address,
-        password,
-        institute_details: userInstituteDetailsAsString,
+      return {
+        data: { message: `User with id ${userId} archived successfully!` },
+        pagination: null,
       };
-      let queryData = insertQueryHelper(modifiedUserPayload, []);
-      const result: TUser[] = await this.userRepository.query(
-        `INSERT INTO users_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING *`,
-        queryData.values,
-      );
-
-      const userUUID = result[0];
-      if (!userUUID) {
-        throw new HttpException(
-          'Failed to create user',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      let insertedUser: TUser = result[0];
-      delete insertedUser.password;
-
-      return insertedUser;
     } catch (error) {
       throw error;
     }
@@ -202,79 +184,91 @@ export class UserService {
   async editUser(
     userId: string,
     editUserPayload: TEditUserDTO,
-  ): Promise<TUser> {
+  ): Promise<Data<User>> {
     try {
-      const userExists: TUser[] = await this.userRepository.query(
-        `SELECT * FROM users_table WHERE user_id = $1 AND is_archived = FALSE`,
-        [userId],
-      );
+      const userExists = await this.userRepository.findOne({
+        where: { userId, isArchived: false },
+      });
 
-      if (!userExists.length) {
+      if (!userExists) {
         throw new HttpException(
           'User not found or archived',
           HttpStatus.NOT_FOUND,
         );
       }
 
-      let newUpdateUserPayload = editUserPayload as {
-        [P in keyof TEditUserDTO]: TEditUserDTO[P] extends object | undefined
-          ? string
-          : TEditUserDTO[P];
-      };
+      let newUpdateUserPayload = { ...editUserPayload } as Partial<User>;
 
-      if (editUserPayload.institute_details) {
-        editUserPayload['institute_details'] =
-          editUserPayload.institute_details.concat(
-            userExists[0].institute_details,
-          );
-        newUpdateUserPayload['institute_details'] = JSON.stringify(
-          newUpdateUserPayload['institute_details'],
-        );
+      if (editUserPayload.instituteDetails) {
+        newUpdateUserPayload.instituteDetails = [
+          ...editUserPayload.instituteDetails,
+          ...userExists.instituteDetails,
+        ];
       }
 
-      let queryData = updateQueryHelper(newUpdateUserPayload, []);
-      const result: [TUser[], 0 | 1] = await this.userRepository.query(
-        `UPDATE users_table SET ${queryData.queryCol} WHERE user_id = '${userId}' AND is_archived = false RETURNING *`,
-        queryData.values,
-      );
+      await this.userRepository.update(userId, newUpdateUserPayload);
 
-      const updateStatus = result[1];
-      if (!updateStatus) {
+      const updatedUser = await this.userRepository.findOne({
+        where: { userId },
+      });
+
+      if (!updatedUser) {
         throw new HttpException(
           'Failed to update user',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
-      const updatedUser: TUser = result[0][0];
-      delete updatedUser.password;
-
-      return updatedUser;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async deleteUser(userId: string) {
-    try {
-      const result: [[], 0 | 1] = await this.userRepository.query(
-        `UPDATE users_table SET is_archived = TRUE WHERE user_id = '${userId}' AND is_archived = FALSE`,
-      );
-
-      const updateStatus = result[1];
-      if (!updateStatus) {
-        throw new HttpException(
-          `User with id ${userId} not found or archived`,
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
       return {
-        statusCode: HttpStatus.OK,
-        message: `User id ${userId} archived successfully!`,
+        data: updatedUser,
+        pagination: null,
       };
     } catch (error) {
       throw error;
     }
   }
+
+  async userLogin(userCredPayload: TLoginUserDTO): Promise<Data<User>> {
+    try {
+      const user = await this.userRepository.findOne({
+        where: [
+          { email: userCredPayload.email },
+          { username: userCredPayload.email }, // This assumes email and username can be the same
+          { userId: userCredPayload.email },
+        ],
+      });
+      if (!user) {
+        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
+      }
+
+      const isPasswordValid = await compare(
+        userCredPayload.password,
+        user.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
+      }
+
+      const jwtPayloadSelective = {
+        name: user.userUuid,
+      };
+
+      // MICROSERVICE ERROR
+      const instituteDetails = await this.userRepository.query(`
+        SELECT * FROM institute_config WHERE institute_uuid IN (${user.instituteDetails.join(',')})
+      `);
+
+      user.password = instituteDetails;
+
+      return {
+        data: user,
+        pagination: null,
+        meta: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
 }
