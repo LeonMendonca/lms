@@ -11,16 +11,11 @@ import {
   UsePipes,
   Put,
   Delete,
-  UseFilters,
-  Res,
   UseGuards,
-  Req,
   HttpCode,
   Request,
   Patch,
-  ParseDatePipe,
 } from '@nestjs/common';
-const jwt = require('jsonwebtoken');
 
 import { StudentsService } from './students.service';
 import { QueryValidationPipe } from '../pipes/query-validation.pipe';
@@ -46,7 +41,7 @@ import {
   TStudentCredZodType,
 } from './zod-validation/studentcred-zod';
 import { TokenAuthGuard } from '../guards/token.guard';
-import { Students } from './students.entity';
+import { Students, TStudents } from './students.entity';
 import { StudentsVisitKey } from './entities/student-visit-key';
 import {
   PaginationParserType,
@@ -172,16 +167,6 @@ export class StudentsController {
     }
   }
 
-  //@Get('search')
-  //async getStudentBy(@Query() query: UnionUser) {
-  //  const result = await this.studentsService.findStudentBy(query);
-  //  if (result.length != 0) {
-  //    return result[0];
-  //  } else {
-  //    throw new HttpException('No user found', HttpStatus.NOT_FOUND);
-  //  }
-  //}
-
   @Post('create')
   @UsePipes(new bodyValidationPipe(createStudentSchema))
   @HttpCode(HttpStatus.CREATED)
@@ -245,7 +230,7 @@ export class StudentsController {
   async editStudent(
     @Param('_student_id') studentId: string,
     @Body() studentPayload: TEditStudentDTO,
-  ): Promise<ApiResponse<Students>> {
+  ): Promise<ApiResponse<TStudents>> {
     try {
       const data = await this.studentsService.editStudent(
         studentId,
@@ -467,19 +452,6 @@ export class StudentsController {
       }
     }
   }
-  //   @Get('visitlog_by_id')
-  // async getVisitlog(
-  //     @Query('_student_id') student_ID: string,
-  //     @Query('_page') page: string,
-  //     @Query('_limit') limit: string,
-  // ) {
-  //   try {
-  //     console.log(student_ID)
-  //     return await this.studentsService.getVisitLogByStudentUUID(student_ID,page,limit);
-  //   } catch (error) {
-  //     throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  //   }
-  // }
 
   @Get('visitlog_by_id')
   @UseGuards(TokenAuthGuard)
@@ -630,24 +602,7 @@ export class StudentsController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
-
-  // @Post("vistlog_entry")
-  //   async createVisitLog(@Body()createvisitpayload:TVisit_log) {
-  //     try {
-  //       return await this.studentsService.visitlogentry(createvisitpayload);
-  //     } catch (error) {
-  //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  //     }
-  //   }
-
-  //   @Post("vistlog_exit")
-  //   async createVisitExit(@Body() createvlogpayload:TVisit_log) {
-  //     try {
-  //       return await this.studentsService.visitlogexit(createvlogpayload);
-  //     } catch (error) {
-  //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  //     }
-  //   }
+ 
   @Post('visitlog')
   async visitlog(@Body() createvlogpayload: TVisit_log) {
     try {

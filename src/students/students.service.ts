@@ -9,9 +9,7 @@ import {
   insertQueryHelper,
   updateQueryHelper,
 } from '../misc/custom-query-helper';
-const jwt = require('jsonwebtoken');
 import { TEditStudentDTO } from './zod-validation/putstudent-zod';
-import { createStudentId, createStudentId2 } from './create-student-id';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
@@ -27,7 +25,6 @@ import {
 } from './entities/student-visit-key';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
-import { VisitLog } from './visitlog.entity';
 import { InquireLogs } from './entities/inquire-logs';
 import { validateTime } from 'src/misc/validate-time-format';
 import { DashboardCardtypes } from 'types/dashboard';
@@ -144,23 +141,22 @@ export class StudentsService {
       }
 
       const result = (await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE ${requiredKey} = '${value}' `,
+        `SELECT * FROM students_table WHERE ${requiredKey} = $1 AND is_archived = FALSE`,
+        [value],
       )) as TStudents[];
 
       if (result.length === 0) {
         return null;
       }
 
-      const filteredStudentObject = createObjectOmitProperties(result[0], [
-        'password',
-        'is_archived',
-      ]);
+      delete result[0].password;
+      delete result[0].is_archived;
 
       const reviews = await this.studentsRepository.query(
-        `SELECT * FROM reviews WHERE student_uuid = '${filteredStudentObject.student_uuid}' AND is_archived = false`,
+        `SELECT * FROM reviews WHERE student_uuid = '${result[0].student_uuid}' AND is_archived = false`,
       );
 
-      return { ...filteredStudentObject, reviews };
+      return { ...result[0], reviews };
     } catch (error) {
       throw error;
     }
@@ -240,23 +236,30 @@ export class StudentsService {
   async editStudent(
     studentId: string,
     editStudentPayload: TEditStudentDTO,
-  ): Promise<Students> {
+  ): Promise<TStudents> {
     try {
       let queryData = updateQueryHelper<TEditStudentDTO>(
         editStudentPayload,
         [],
       );
-      const result = await this.studentsRepository.query(
+      const result: [TStudents[], 0 | 1] = await this.studentsRepository.query(
         `UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false RETURNING *`,
         queryData.values,
       );
-      if (!result.length) {
+
+      const updateStatus = result[1];
+
+      if (!updateStatus) {
         throw new HttpException(
-          'Student not found after update',
+          'Student not found or already archived',
           HttpStatus.NOT_FOUND,
         );
       }
-      return result[0];
+      
+      const student = result[0][0];
+      delete student.password;
+
+      return result[0][0];
     } catch (error) {
       throw error;
     }
@@ -305,14 +308,6 @@ export class StudentsService {
         archived_data,
         failed_archived_data,
       };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async findAll() {
-    try {
-      throw new Error('test');
     } catch (error) {
       throw error;
     }
@@ -427,8 +422,6 @@ export class StudentsService {
         toTime = undefined;
       }
 
-      console.log('fromTime', fromTime, 'toTime', toTime);
-
       if (fromDate && toDate) {
         fromDateObj = new Date(fromDate);
         toDateObj = new Date(toDate);
@@ -440,7 +433,6 @@ export class StudentsService {
           );
         }
       }
-      console.log(fromDateObj, toDateObj);
 
       let queryDateAndTime = '';
 
@@ -556,12 +548,6 @@ export class StudentsService {
       console.log('Total is', total);
 
       const totalCount = parseInt(total[0].total, 10);
-
-      // if (logs.length === 0) {
-      //   throw new HttpException('No log data found', HttpStatus.NOT_FOUND);
-      // }
-
-      // console.log({ totalCount, logs });
 
       return {
         data: logs,
