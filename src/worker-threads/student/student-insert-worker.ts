@@ -60,7 +60,7 @@ console.log('Unique array done in', Date.now() - start, 'ms');
           bulkQuery3 += `'${JSON.stringify(stuObj[key])}',`;
         }
       } else {
-          bulkQuery3 += `NULL,`;
+        bulkQuery3 += `NULL,`;
       }
     }
     bulkQuery3 = bulkQuery3.slice(0, -1);

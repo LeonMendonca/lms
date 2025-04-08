@@ -1,10 +1,5 @@
 import { Worker } from 'worker_threads';
 
-export async function CreateWorkerQuery<T>(
-  oneDArray,
-  workerScriptName: string,
-) {}
-
 export async function CreateWorker<T>(
   //Unsure about the type being returned
   oneDArray: any[],

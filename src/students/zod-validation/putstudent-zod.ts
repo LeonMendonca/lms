@@ -8,8 +8,7 @@ let studentUpdateObject = createObjectOmitProperties(new Students(), [
   'isArchived',
 ]);
 
-export const editStudentSchema = z
-  .object({
+export const editStudentSchema = z.object({
   [studentUpdateObject.email]: z.string().min(1).email().optional(),
 
   [studentUpdateObject.address]: z
@@ -62,6 +61,6 @@ export const editStudentSchema = z
     .min(1999)
     .max(new Date().getFullYear())
     .optional(),
-  })
+});
 
 export type TEditStudentDTO = z.infer<typeof editStudentSchema>;
