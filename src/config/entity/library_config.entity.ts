@@ -1,13 +1,21 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryColumn } from "typeorm";
 import { InstituteConfig } from "./institute_config.entity";
 
+const ROLE = {
+    STUDENT : "student",
+    STAFF : "staff"
+} as const
+
 @Entity('library_config')
 export class LibraryConfig {
     @PrimaryColumn({ name: 'library_rule_id', type: 'varchar', length: 255 })
     libraryRuleId: "library_rule_id" = "library_rule_id"
 
-    @Column({ name: 'max_books', type: 'int' })
-    maxBooks: "max_books" = "max_books"
+    @Column({ name: 'max_books_student', type: 'int' })
+    maxBooksStudent: "max_books_student" = "max_books_student"
+
+    @Column({ name: 'max_books_staff', type: 'int' })
+    maxBooksStaff: "max_books_staff" = "max_books_staff"
 
     @Column({ name: 'max_days', type: 'int'})
     maxDays: "max_days" = "max_days"
@@ -17,9 +25,6 @@ export class LibraryConfig {
 
     @Column({ name: 'operating_hours', type: 'jsonb' })
     operatingHours: "operating_hours" = "operating_hours"
-
-    // @Column({ name: 'enable_email', type: 'boolean', default: false })
-    // enableEmail: "enable_email" = "enable_email"
 
     @Column({ name: 'created_at', type: 'date', default: () => 'CURRENT_DATE' })
     createdAt: "created_at" = "created_at"
@@ -32,6 +37,9 @@ export class LibraryConfig {
 
     @Column({name:'email_notifications', type: 'jsonb'})
     emailNotifications: "email_notifications" = "email_notifications"
+
+    @Column({name:'role', type: 'enum', enum: ROLE, default: 'student'})
+    role: "role" = "role"
 
     // one rule belongs to one institute
     @ManyToOne(() => InstituteConfig, (institute) => institute.instituteUUID)
