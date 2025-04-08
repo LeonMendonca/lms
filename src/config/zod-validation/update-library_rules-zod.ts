@@ -12,7 +12,8 @@ export const updateLibraryRuleSchema = z.object({
     // [updateLibraryRules.enableEmail]: z.boolean().optional(),
     [updateLibraryRules.isArchived]: z.boolean().optional(),
     [updateLibraryRules.lateFeesPerDay]: z.number().optional(),
-    [updateLibraryRules.maxBooks]: z.number().optional(),
+    [updateLibraryRules.maxBooksStudent]: z.number().optional(),
+    [updateLibraryRules.maxBooksStaff]: z.number().optional(),
     [updateLibraryRules.maxDays]: z.number().optional(),
     [updateLibraryRules.operatingHours]: z.object({
         starting_time: z.string(),
@@ -29,7 +30,8 @@ export const updateLibraryRuleSchema = z.object({
         checkout_student: z.boolean().optional(),
         penalties_admin: z.boolean().default(true).optional(),
         penalties_student: z.boolean().default(true).optional()
-    }).optional()
+    }).optional(),
+    [updateLibraryRules.role]: z.enum(["student", "staff"]).optional()
 })
 
 export type TLibraryUpdateDTO = z.infer<typeof updateLibraryRuleSchema>

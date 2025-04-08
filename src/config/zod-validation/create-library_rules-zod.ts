@@ -6,7 +6,8 @@ const createLibraryRules = createObjectOmitProperties(new LibraryConfig(), ['lib
 
 export const createLibraryRuleSchema = z.object({
     institute_id: z.string(),
-    [createLibraryRules.maxBooks]: z.number(),
+    [createLibraryRules.maxBooksStudent]: z.number(),
+    [createLibraryRules.maxBooksStaff]: z.number(),
     [createLibraryRules.maxDays]: z.number(),
     [createLibraryRules.lateFeesPerDay]: z.number(),
     [createLibraryRules.operatingHours]: z.object({
@@ -26,7 +27,8 @@ export const createLibraryRuleSchema = z.object({
         checkout_student: z.boolean(),
         penalties_admin: z.boolean().default(true),
         penalties_student: z.boolean().default(true)
-    })
+    }),
+    [createLibraryRules.role]: z.enum(["student", "staff"]).optional()
 })
 
 export type TLibraryDTO = z.infer<typeof createLibraryRuleSchema>

@@ -23,7 +23,7 @@ export class ConfigService {
 
     @InjectRepository(LibraryConfig)
     private libraryConfigRepository: Repository<LibraryConfig>,
-  ) {}
+  ) { }
 
   //  ------------- INSTITUTE CONFIGURATIONS ----------
 
@@ -77,15 +77,15 @@ export class ConfigService {
       const created_date = new Date().toISOString();
       const instituteName = institutePayload.institute_name;
 
-            const data = await this.instituteConfigRepository.query(
-                `SELECT * FROM institute_config WHERE institute_name=$1`,
-                [instituteName]
-            )
-            if (data.length) {
-                return { message: "Institute With Same Name Already Exists" }
-            }
-            // Generate institute ID
-            const institute_id = genInstituteId(instituteName, created_date);
+      const data = await this.instituteConfigRepository.query(
+        `SELECT * FROM institute_config WHERE institute_name=$1`,
+        [instituteName]
+      )
+      if (data.length) {
+        return { message: "Institute With Same Name Already Exists" }
+      }
+      // Generate institute ID
+      const institute_id = genInstituteId(instituteName, created_date);
 
       // Check if institute with the same ID exists
       const existingInstitute = await this.instituteConfigRepository.query(
@@ -151,7 +151,8 @@ export class ConfigService {
       // Prepare default rule payload
       const defaultRule: TLibraryDTO = {
         institute_id: institute_id,
-        max_books: 10,
+        max_books_student: 10,
+        max_books_staff: 10,
         max_days: 7,
         late_fees_per_day: 2,
         operating_hours: {
@@ -173,18 +174,18 @@ export class ConfigService {
         },
       };
 
-            // Call createLibrary with default rule
-            await this.createLibrary(defaultRule);
-            return{message: "Institute Created Successfully!"}
+      // Call createLibrary with default rule
+      await this.createLibrary(defaultRule);
+      return { message: "Institute Created Successfully!" }
 
-        } catch (error) {
-            console.error("Error updating institute:", error);
-            throw new HttpException(
-                `Error: ${error.message || error} while updating institute.`,
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
+    } catch (error) {
+      console.error("Error updating institute:", error);
+      throw new HttpException(
+        `Error: ${error.message || error} while updating institute.`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
+  }
 
   // Update Institute Info
   async updateInstitute(updateInstitutePayload: TInstituteUpdateDTO) {
