@@ -125,36 +125,6 @@ CREATE OR REPLACE FUNCTION update_student_id()
 $$ LANGUAGE plv8;
 `
 
-const triggerUpdateStudentId = `
-CREATE OR REPLACE TRIGGER trigger_stup
-AFTER UPDATE OF department ON students_table
-FOR EACH ROW
-WHEN (OLD.department IS DISTINCT FROM NEW.department)
-EXECUTE PROCEDURE update_student_id()
-`
-
-const triggerCreateStudentId = `
-CREATE OR REPLACE TRIGGER trigger_stu
-AFTER INSERT ON students_table
-FOR EACH ROW
-EXECUTE PROCEDURE create_student_id()
-`;
-
-const triggerCreateBookCopiesId = `
-CREATE OR REPLACE TRIGGER trigger_bc
-After INSERT ON book_copies
-FOR EACH ROW
-EXECUTE FUNCTION get_book_copies_id();
-`
-
-const triggerCreateBookTitleId = `
-CREATE OR REPLACE TRIGGER trigger_bt
-AFTER INSERT ON book_titles
-FOR EACH ROW
-EXECUTE PROCEDURE create_book_titles_id()
-`
-
-
 const createJournalTitleIdFunction = `
 CREATE OR REPLACE FUNCTION generate_journal_title_id()
 RETURNS TRIGGER AS $$
@@ -185,23 +155,6 @@ RETURNS TRIGGER AS $$
   return NEW;
 $$ LANGUAGE plv8;
 `;
-
-
-const triggerCreateJournalTitleId = `
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_trigger WHERE tgname = 'generate_journal_title_id'
-  ) THEN
-    CREATE TRIGGER generate_journal_title_id
-    BEFORE INSERT ON journal_titles
-    FOR EACH ROW
-    EXECUTE FUNCTION generate_journal_title_id();
-  END IF;
-END$$;
-`;
-
-
 
 
 const createJournalCopyId = `
@@ -235,6 +188,50 @@ $$ LANGUAGE plv8;
 `;
 
 
+const triggerUpdateStudentId = `
+CREATE OR REPLACE TRIGGER trigger_stup
+AFTER UPDATE OF department ON students_table
+FOR EACH ROW
+WHEN (OLD.department IS DISTINCT FROM NEW.department)
+EXECUTE PROCEDURE update_student_id()
+`
+
+const triggerCreateStudentId = `
+CREATE OR REPLACE TRIGGER trigger_stu
+AFTER INSERT ON students_table
+FOR EACH ROW
+EXECUTE PROCEDURE create_student_id()
+`;
+
+const triggerCreateBookCopiesId = `
+CREATE OR REPLACE TRIGGER trigger_bc
+After INSERT ON book_copies
+FOR EACH ROW
+EXECUTE FUNCTION get_book_copies_id();
+`
+
+const triggerCreateBookTitleId = `
+CREATE OR REPLACE TRIGGER trigger_bt
+AFTER INSERT ON book_titles
+FOR EACH ROW
+EXECUTE PROCEDURE create_book_titles_id()
+`
+
+
+const triggerCreateJournalTitleId = `
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'generate_journal_title_id'
+  ) THEN
+    CREATE TRIGGER generate_journal_title_id
+    BEFORE INSERT ON journal_titles
+    FOR EACH ROW
+    EXECUTE FUNCTION generate_journal_title_id();
+  END IF;
+END$$;
+`;
+
 
 const triggerCreateJournalCopyId = `
 
@@ -255,19 +252,19 @@ END$$;
 
 export async function pgPLV8() {
   try {
-      const clientEnableExt = await pool.connect();
+    const clientEnableExt = await pool.connect();
 
-      await clientEnableExt.query(createExt)
+    await clientEnableExt.query(createExt)
       .then(() => console.log("Extension enabled!"))
       .catch(err => console.error("ERROR", err.message));
 
-      clientEnableExt.on('error', (err) => {
-        console.log(err.message);
-      });
+    clientEnableExt.on('error', (err) => {
+      console.log(err.message);
+    });
 
-      clientEnableExt.release(true);
+    clientEnableExt.release(true);
   } catch (error) {
-      console.log("Catch block", error.message);
+    console.log("Catch block", error.message);
   } finally {
     const clientTriggerAndFunction = await pool.connect();
     await clientTriggerAndFunction.query(createStudentId);
