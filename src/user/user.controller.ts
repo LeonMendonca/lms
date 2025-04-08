@@ -28,6 +28,7 @@ export interface ApiResponse<T> {
   data?: T;
   pagination: {} | null;
   error?: string;
+  meta?: any
 }
 
 interface AuthenticatedRequest extends Request {
@@ -161,8 +162,9 @@ export class UserController {
     @Body() studentCredPayload: TLoginUserDTO,
   ): Promise<ApiResponse<User>> {
     try {
-      const { data } = await this.userService.userLogin(studentCredPayload);
+      const { data, meta } = await this.userService.userLogin(studentCredPayload);
       return {
+        meta,
         success: true,
         data,
         pagination: null,
