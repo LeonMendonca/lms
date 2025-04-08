@@ -172,9 +172,9 @@ export class StudentsController {
   @HttpCode(HttpStatus.CREATED)
   async createStudent(
     @Body() studentPayload: TCreateStudentDTO,
-  ): Promise<ApiResponse<Students>> {
+  ): Promise<ApiResponse<TStudents>> {
     try {
-      const data: Students =
+      const data: TStudents =
         await this.studentsService.createStudent(studentPayload);
       return {
         success: true,

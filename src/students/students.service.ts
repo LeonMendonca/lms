@@ -162,10 +162,10 @@ export class StudentsService {
     }
   }
 
-  async createStudent(studentPayload: TCreateStudentDTO): Promise<Students> {
+  async createStudent(studentPayload: TCreateStudentDTO): Promise<TStudents> {
     try {
       let queryData = insertQueryHelper(studentPayload, []);
-      const result = await this.studentsRepository.query(
+      const result: [Pick<TStudents, 'student_uuid'>] = await this.studentsRepository.query(
         `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING student_uuid`,
         queryData.values,
       );
@@ -178,7 +178,7 @@ export class StudentsService {
         );
       }
 
-      const student = await this.studentsRepository.query(
+      const student: TStudents[] = await this.studentsRepository.query(
         `SELECT * FROM students_table WHERE student_uuid = $1`,
         [studentUuid],
       );
@@ -190,9 +190,11 @@ export class StudentsService {
         );
       }
 
+      delete student[0].password;
+
       return student[0];
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
