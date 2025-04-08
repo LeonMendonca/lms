@@ -33,6 +33,7 @@ import { NotesModule } from './notes/notes.module';
 import { InquireLogs } from './students/entities/inquire-logs';
 import { StudentNotifyModule } from './student-notify/student-notify.module';
 import { StudentNotification } from './student-notify/entities/student-notify.entity';
+import { UserAccessToken } from './user/entity/user-access.entity';
 
 config({ path: '.env' });
 @Module({
@@ -62,7 +63,8 @@ config({ path: '.env' });
         Calendar,
         Notes,
         InquireLogs,
-        StudentNotification
+        StudentNotification,
+        UserAccessToken
       ],
       ssl: true,
       synchronize: false,

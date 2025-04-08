@@ -29,7 +29,7 @@ export class User {
   @Column({ type: 'varchar', length: 255, name: 'address' })
   address: string;
 
-  @Column({ type: 'varchar', length: 255, name: 'phone_no' })
+  @Column({ type: 'varchar', length: 255, name: 'phoneNo' })
   phoneNo: string;
 
   @Column({ type: 'varchar', length: 255, name: 'password' })
