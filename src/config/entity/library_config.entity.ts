@@ -11,10 +11,10 @@ export class LibraryConfig {
     @PrimaryColumn({ name: 'library_rule_id', type: 'varchar', length: 255 })
     libraryRuleId: "library_rule_id" = "library_rule_id"
 
-    @Column({ name: 'max_books_student', type: 'int' })
+    @Column({ name: 'max_books_student', type: 'int', nullable: true })
     maxBooksStudent: "max_books_student" = "max_books_student"
 
-    @Column({ name: 'max_books_staff', type: 'int' })
+    @Column({ name: 'max_books_staff', type: 'int', nullable: true })
     maxBooksStaff: "max_books_staff" = "max_books_staff"
 
     @Column({ name: 'max_days', type: 'int'})

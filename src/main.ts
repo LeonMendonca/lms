@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { config } from 'dotenv';
-// import { pgPLV8 } from './misc/pg-plv8';
+import { pgPLV8 } from './misc/pg-plv8';
 
 export async function bootstrap() {
   config({ path: '.env' });

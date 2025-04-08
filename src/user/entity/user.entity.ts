@@ -6,23 +6,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-// export const DesignationEnum = {
-//   LIBRARIAN: 'librarian',
-//   ASSISTANT: 'assistant',
-//   RECEPTIONIST: 'receptionist',
-// } as const;
-
 @Entity('users_table') // You can specify the table name (optional)
 export class User {
-  @PrimaryGeneratedColumn('uuid', { name: 'user_uuid' })
+  @PrimaryGeneratedColumn('uuid', { name: 'userUuid' })
   userUuid: string;
 
-  @Column({
-    type: 'varchar',
-    generated: true,
-    name: 'user_id',
-    unique: true,
-  })
+  @Column({ type: 'varchar', name: 'userId', unique: true })
   userId: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -31,10 +20,10 @@ export class User {
   @Column({ type: 'varchar', length: 255, name: 'email' })
   email: string;
 
-  @Column({ type: 'enum', name: 'designation' })
+  @Column({ type: 'varchar', name: 'designation' })
   designation: string;
 
-  @Column('simple-array', { name: 'institute_details' })
+  @Column('simple-array', { name: 'instituteDetails' })
   instituteDetails: string[];
 
   @Column({ type: 'varchar', length: 255, name: 'address' })
@@ -46,12 +35,12 @@ export class User {
   @Column({ type: 'varchar', length: 255, name: 'password' })
   password: string;
 
-  @Column({ type: 'boolean', default: false, name: 'is_archived' })
+  @Column({ type: 'boolean', default: false, name: 'isArchived' })
   isArchived: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'createdAt' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updatedAt' })
   updatedAt: Date;
 }
