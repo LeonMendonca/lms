@@ -1,15 +1,12 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { LibraryConfig } from 'src/config/entity/library_config.entity';
 import { TCreateUserDTO } from './dto/create-user.dto';
-import { TEditUserDTO } from './dto/update-user.dto';
 import { TLoginUserDTO } from './dto/login-user.dto';
-import { HttpService } from '@nestjs/axios';
 import { UserAccessToken } from './entity/user-access.entity';
 import { UserPreference } from './entity/user-preference.entity';
-import { UserResponse } from './types/user-response.types';
+import { CreateUserResponse, UserResponse } from './types/user-response.types';
 import axios, { AxiosResponse } from 'axios';
 
 interface Data<T> {
@@ -31,31 +28,34 @@ export class UserService {
     @InjectRepository(UserPreference)
     private userPreferenceRepository: Repository<UserPreference>,
 
-    private readonly queryBuilderService: QueryBuilderService,
-
     @InjectRepository(LibraryConfig)
     private libraryRepository: Repository<LibraryConfig>,
-
-    private readonly httpService: HttpService,
   ) {}
 
   async createUser(
     userPayload: TCreateUserDTO,
+    accessToken: string,
   ): Promise<Data<{ message: string }>> {
     try {
-      const response: AxiosResponse<UserResponse> = await axios.post(
-        `${HR_URL}/login`,
+      const response: AxiosResponse<CreateUserResponse> = await axios.post(
+        `${HR_URL}/addUser`,
         {
           ...userPayload,
-        },
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization' : accessToken
+          },
+        }
       );
+
 
       if (!response?.data) {
         throw new HttpException(
           'HR Module failed to create user',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-      }
+      }      
 
       return {
         data: { message: 'User created successfully!' },
@@ -75,11 +75,7 @@ export class UserService {
         },
       );
 
-      if (!response?.data) {
-        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
-      }
-
-      if (response.status !== 200) {
+      if (!response?.data || response.status !== 200) {
         throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
       }
 
@@ -100,6 +96,7 @@ export class UserService {
           username: response.data.user.workEmail,
           accessToken: response.data.token,
           userPreference: savedUserPreference.userPreferenceUuid,
+          organization: response.data.user.organizationUuid,
         });
 
         await this.userAccessRepository.save(user);
@@ -124,6 +121,7 @@ export class UserService {
 
       const newInstitutes = missingInstitutesUuids.map((uuid) => {
         const newInstitute = this.libraryRepository.create({
+          organisation: response.data.user.organizationUuid,
           instituteUuid: uuid.uuid,
           instituteName: response.data.user.institutes.find(
             (institute) => institute.uuid === uuid.uuid,
@@ -159,24 +157,24 @@ export class UserService {
 
   // TODO: ADD TYPE DATA
   // TODO: ADD HR MODULE URL
-  async findUserById(userId: string): Promise<Data<any>> {
-    try {
-      const response = await this.httpService
-        .get(`${HR_URL}/finduser/${userId}`)
-        .toPromise();
+  // async findUserById(userId: string): Promise<Data<any>> {
+  //   try {
+  //     const response = await this.httpService
+  //       .get(`${HR_URL}/finduser/${userId}`)
+  //       .toPromise();
 
-      if (!response?.data) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
+  //     if (!response?.data) {
+  //       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+  //     }
 
-      return {
-        data: response.data,
-        pagination: null,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
+  //     return {
+  //       data: response.data,
+  //       pagination: null,
+  //     };
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 
   // TODO: COMPLETE THIS FUNCTION
   // async findAllUsers({

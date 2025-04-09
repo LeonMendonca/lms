@@ -12,8 +12,19 @@ import { create } from 'domain';
 import { TInstituteUpdateDTO } from './zod-validation/update-institute-zod';
 import { TLibraryDTO } from './zod-validation/create-library_rules-zod';
 import { genRuleId } from './id-generation/create-library_rule_id';
-import { LibraryConfig, TLibraryConfig } from './entity/library_config.entity';
+import { LibraryConfig } from './entity/library_config.entity';
 import { TLibraryUpdateDTO } from './zod-validation/update-library_rules-zod';
+import axios, { AxiosResponse } from 'axios';
+
+interface Data<T> {
+  data: T;
+  pagination: null;
+  meta?: { accessToken?: string };
+}
+
+// TODO: GLOBAL VARIABLES
+const HR_URL =
+  process.env.HR_URL || 'https://hr-backend-navy.vercel.app/api/auth/';
 
 @Injectable()
 export class ConfigService {
@@ -23,23 +34,34 @@ export class ConfigService {
 
     @InjectRepository(LibraryConfig)
     private libraryConfigRepository: Repository<LibraryConfig>,
-  ) { }
+  ) {}
 
   //  ------------- INSTITUTE CONFIGURATIONS ----------
 
   // Get Institute Info
-  async getInstitute(user_uuid: string) {
-    const user_institutes = await this.instituteConfigRepository.query(
-      `SELECT institute_details FROM users_table WHERE user_uuid=$1`,
-      [user_uuid],
+  async getAlllibraries(accessToken: string): Promise<Data<LibraryConfig[]>> {
+    const response: AxiosResponse<{ organisationId: string }> = await axios.get(
+      `${HR_URL}/addUser`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: accessToken,
+        },
+      },
     );
-    const institutesList = user_institutes[0]?.institute_details
-      .map((i) => i.institute_uuid)
-      .join(',');
-    const result = await this.instituteConfigRepository.query(
-      `SELECT * FROM institute_config WHERE institute_uuid IN (${institutesList})`,
-    );
-    return result;
+
+    if (!response?.data || response.status !== 200) {
+      throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
+    }
+
+    const libraries = await this.libraryConfigRepository.find({
+      where: { organisation: response.data.organisationId },
+    });
+
+    return {
+      data: libraries,
+      pagination: null,
+    };
   }
 
   // Get Institute By Id
@@ -79,10 +101,10 @@ export class ConfigService {
 
       const data = await this.instituteConfigRepository.query(
         `SELECT * FROM institute_config WHERE institute_name=$1`,
-        [instituteName]
-      )
+        [instituteName],
+      );
       if (data.length) {
-        return { message: "Institute With Same Name Already Exists" }
+        return { message: 'Institute With Same Name Already Exists' };
       }
       // Generate institute ID
       const institute_id = genInstituteId(instituteName, created_date);
@@ -113,7 +135,7 @@ export class ConfigService {
         created_date: created_date,
       };
 
-      console.log(finalPayload)
+      console.log(finalPayload);
 
       // Generate query data
       const insertQuery = insertQueryHelper(finalPayload, []);
@@ -135,12 +157,12 @@ export class ConfigService {
       );
 
       const institute_uuid = result[0]?.institute_uuid;
-      console.log("institute_uuid: ", institute_uuid)
+      console.log('institute_uuid: ', institute_uuid);
       const created_by_uuid = await this.instituteConfigRepository.query(
         `SELECT * FROM users_table WHERE user_uuid = $1 `,
         [institutePayload.user_uuid],
       );
-      console.log("created_by_uuid : ", created_by_uuid)
+      console.log('created_by_uuid : ', created_by_uuid);
       created_by_uuid[0].institute_details.push({
         institute_uuid: institute_uuid,
       });
@@ -160,6 +182,7 @@ export class ConfigService {
         max_days: 7,
         late_fees_per_day: 2,
         operating_hours: {
+          // @ts-ignore
           starting_time: '9:00 am',
           closing_time: '5:00 pm',
         },
@@ -177,17 +200,16 @@ export class ConfigService {
           penalties_student: true,
         },
       };
-      
-      console.log("Created Rule")
+
+      console.log('Created Rule');
       // Call createLibrary with default rule
       await this.createLibrary(defaultRule);
-      return { message: "Institute Created Successfully!" }
-
+      return { message: 'Institute Created Successfully!' };
     } catch (error) {
-      console.error("Error updating institute:", error);
+      console.error('Error updating institute:', error);
       throw new HttpException(
         `Error: ${error.message || error} while updating institute.`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -315,6 +337,7 @@ export class ConfigService {
     // Generate institute ID
     try {
       const created_at = new Date().toISOString(); // Use ISO format
+      // @ts-ignore
       let instituteUUID: Pick<TLibraryConfig, 'institute_uuid'>[] =
         await this.instituteConfigRepository.query(
           `SELECT institute_uuid FROM institute_config WHERE institute_id = $1`,
@@ -329,6 +352,7 @@ export class ConfigService {
       );
       const maxId = maxIdQuery[0]?.max_id || '000';
 
+      // @ts-ignore
       const library_rule_id = genRuleId(rulesPayload.institute_id, maxId);
 
       // Check if rule with the same ID exists

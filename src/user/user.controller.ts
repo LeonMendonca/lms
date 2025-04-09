@@ -1,25 +1,15 @@
 import {
   Body,
   Controller,
-  Delete,
-  Get,
+  Headers,
   HttpException,
   HttpStatus,
-  Param,
   Post,
-  Put,
-  Query,
   UsePipes,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import {
-  PaginationParserType,
-  ParsePaginationPipe,
-} from 'src/pipes/pagination-parser.pipe';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import { createUserSchemaZod, TCreateUserDTO } from './dto/create-user.dto';
-import { editUserSchemaZod, TEditUserDTO } from './dto/update-user.dto';
 import { loginUserSchemaZod, TLoginUserDTO } from './dto/login-user.dto';
 import { UserAccessToken } from './entity/user-access.entity';
 
@@ -43,36 +33,14 @@ export class UserController {
   @UsePipes(new bodyValidationPipe(createUserSchemaZod))
   async createUser(
     @Body() userPayload: TCreateUserDTO,
+    @Headers('authorization') authorization: string,
   ): Promise<ApiResponse<{ message: string }>> {
     try {
-      const { data } = await this.userService.createUser(userPayload);
+      const { data } = await this.userService.createUser(userPayload, authorization);
       return {
         success: true,
         data,
         pagination: null,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  @Get(':user_id')
-  async getUserById(
-    @Param('user_id') userId: string,
-  ): Promise<ApiResponse<any>> {
-    try {
-      const { data } = await this.userService.findUserById(userId);
-      return {
-        data,
-        pagination: null,
-        success: true,
       };
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -110,6 +78,30 @@ export class UserController {
       throw error;
     }
   }
+
+  
+  // @Get(':user_id')
+  // async getUserById(
+  //   @Param('user_id') userId: string,
+  // ): Promise<ApiResponse<any>> {
+  //   try {
+  //     const { data } = await this.userService.findUserById(userId);
+  //     return {
+  //       data,
+  //       pagination: null,
+  //       success: true,
+  //     };
+  //   } catch (error) {
+  //     if (!(error instanceof HttpException)) {
+  //       throw new HttpException(
+  //         error.message,
+  //         HttpStatus.INTERNAL_SERVER_ERROR,
+  //       );
+  //     } else {
+  //       throw error;
+  //     }
+  //   }
+  // }
 
   // TODO: This needs to be connected to HR
   // @Get()

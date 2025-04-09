@@ -10,6 +10,7 @@ export const createUserSchemaZod = z.object({
   password: z.string(),
   instituteUuid: z.array(z.string()),
   designation: z.string(),
+  module: z.string()
 });
 
 export type TCreateUserDTO = z.infer<typeof createUserSchemaZod>;

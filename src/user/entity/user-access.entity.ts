@@ -17,8 +17,11 @@ export class UserAccessToken {
   @Column({ type: 'varchar', name: 'userId', unique: true })
   userId: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', name: 'username', length: 255 })
   username: string;
+
+  @Column({ type: 'varchar', name: "organization", length: 255 })
+  organization: string;
 
   @Column({ type: 'varchar', length: 255, name: 'accessToken' })
   accessToken: string;

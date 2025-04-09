@@ -17,6 +17,9 @@ export class LibraryConfig {
   @Column({ name: 'instituteName', type: 'varchar', length: 255 })
   instituteName: string;
 
+  @Column({ name: 'organisation', type: 'varchar', length: 255 })
+  organisation: string;
+
   @Column({
     name: 'instituteAbbr',
     type: 'varchar',

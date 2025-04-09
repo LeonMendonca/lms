@@ -45,3 +45,14 @@ export type UserResponse = {
     institutes: Institutes[];
   };
 };
+
+export type CreateUserResponse = {
+  message: string;
+  employee: {
+    employeeUuid: string;
+    firstName: string;
+    lastName: string;
+    workEmail: string;
+    designation: string;
+  };
+};
