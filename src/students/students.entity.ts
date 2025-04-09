@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
-import { VisitLog } from './visitlog.entity';
+import { VisitLog } from './entities/visitlog.entity';
 
 export const Department = {
   ELECTRICAL: 'electrical',

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   Controller,
   Body,
@@ -24,7 +23,7 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TVisit_log } from './zod-validation/visitlog';
-import { TokenAuthGuard } from '../guards/token.guard';
+import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { StudentsVisitKey } from './entities/student-visit-key';
 import {
   PaginationParserType,
@@ -44,11 +43,13 @@ import {
 import { editStudentDto, TEditStudentDTO } from './dto/student-update.dto';
 import { TStudentUuidZod } from './dto/student-bulk-delete.dto';
 import { studentCredDTO, TStudentCredDTO } from './dto/student-login.dto';
+import { TStudentVisitDTO } from './dto/student-visit.dto';
+import { VisitLog } from './entities/visitlog.entity';
 
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  meta?: any,
+  meta?: any;
   pagination: {} | null;
   error?: string;
 }
@@ -356,6 +357,79 @@ export class StudentsController {
     }
   }
 
+  @Post('student-visit-key')
+  @UseGuards(TokenAuthGuard)
+  async studentVisitKey(
+    @Request() req: AuthenticatedRequest,
+    @Body('longitude') longitude: string,
+    @Body('latitude') latitude: string,
+  ): Promise<ApiResponse<StudentsVisitKey>> {
+    try {
+      const { data } = await this.studentsService.createStudentVisitKey(
+        req.user.studentUuid,
+        parseFloat(latitude),
+        parseFloat(longitude),
+      );
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('verify-student-visit-key/:student_key_uuid')
+  async getStudentVisitKey(
+    @Param('student_key_uuid', ParseUUIDPipe) studentKeyUuid: string,
+  ): Promise<ApiResponse<VisitLog>> {
+    try {
+      const { data, meta } =
+        await this.studentsService.verifyStudentVisitKey(studentKeyUuid);
+
+      return { data, pagination: null, success: true, meta };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('check-status-of-key/:student_key_uuid')
+  async checkStatusofKey(
+    @Param('student_key_uuid', ParseUUIDPipe) studentKeyUuid: string,
+  ): Promise<ApiResponse<{ status: boolean }>> {
+    try {
+      const { data, meta } =
+        await this.studentsService.checkVisitKeyStatus(studentKeyUuid);
+      return {
+        success: true,
+        data,
+        pagination: null,
+        meta
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
   //Visitlog
 
   @Get('alllog')
@@ -457,108 +531,9 @@ export class StudentsController {
     }
   }
 
-  @Post('report-inquiry')
-  @UseGuards(TokenAuthGuard)
-  async createInquiryLog(
-    @Request() req: AuthenticatedRequest,
-    @Body('inquiry_type') type: string,
-    @Body('inquiry_uuid') inquiryUuid: string,
-  ) {
-    try {
-      const student = await this.studentsService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      const data = await this.studentsService.reportInquiryLog({
-        student,
-        type,
-        inquiryUuid,
-      });
-      await this.notifyService.createNotification(
-        student!.student_uuid,
-        NotificationType.ACTIVITY_REPORTED,
-        {
-          activityDescription: type,
-        },
-      );
-      return data;
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  @Patch('report-inquiry-action')
-  async inquiryLogAction(
-    @Body('action_type') type: string,
-    @Body('report_uuid') report_uuid: string,
-  ) {
-    try {
-      const data = await this.studentsService.inquiryLogAction({
-        type,
-        report_uuid,
-      });
-      const student = await this.studentsService.findStudentBy({
-        student_uuid: data.meta.student_uuid,
-      });
-      await this.notifyService.createNotification(
-        student!.student_uuid,
-        NotificationType.ACTIVITY_RESOLVED,
-        {
-          courseName: data.meta.inquiry_type,
-        },
-      );
-      return data;
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  @Get('get-student-inquiry')
-  @UseGuards(TokenAuthGuard)
-  async getInquiryLogByStudentUUID(
-    @Request() req: AuthenticatedRequest,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
-  ) {
-    try {
-      const student = await this.studentsService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      return await this.studentsService.getInquiryLogByStudentUUID({
-        student_uuid: student.student_uuid,
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      });
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  @Get('get-admin-inquiry')
-  @UseGuards(TokenAuthGuard)
-  async getAllInquiryLog(
-    @Request() req: AuthenticatedRequest,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
-  ) {
-    try {
-      return await this.studentsService.getAllInquiry({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      });
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
 
   @Post('visitlog')
-  async visitlog(@Body() createvlogpayload: TVisit_log) {
+  async visitlog(@Body() createvlogpayload: TStudentVisitDTO) {
     try {
       const student = await this.studentsService.findStudentBy({
         student_id: createvlogpayload.student_id,
@@ -601,101 +576,6 @@ export class StudentsController {
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
-      }
-      throw error;
-    }
-  }
-
-  @Post('student-visit-key')
-  @UseGuards(TokenAuthGuard)
-  async studentVisitKey(
-    @Request() req: AuthenticatedRequest,
-    @Body('longitude') longitude: string,
-    @Body('latitude') latitude: string,
-    // @Body('action') action: string,
-  ): Promise<ApiResponse<StudentsVisitKey>> {
-    try {
-      const user = req.user;
-      const student = await this.studentsService.findStudentBy({
-        student_id: user.student_id,
-      });
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-
-      const createKey = await this.studentsService.createStudentVisitKey(
-        student,
-        parseFloat(latitude),
-        parseFloat(longitude),
-        'entry',
-      );
-      return {
-        success: true,
-        data: createKey,
-        pagination: null,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
-  @Get('verify-student-visit-key/:student_key_uuid')
-  async getStudentVisitKey(
-    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
-  ) {
-    try {
-      const visitKey =
-        await this.studentsService.verifyStudentVisitKey(student_key_uuid);
-      if (visitKey.message.includes('Visit log entry created successfully')) {
-        await this.notifyService.createNotification(
-          visitKey.meta.student_uuid,
-          NotificationType.LIBRARY_ENTRY,
-          {},
-        );
-      } else {
-        await this.notifyService.createNotification(
-          visitKey.meta.student_uuid,
-          NotificationType.LIBRARY_EXIT,
-          {},
-        );
-      }
-
-      return visitKey;
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
-  @Get('check-status-of-key/:student_key_uuid')
-  async checkStatusofKey(
-    @Param('student_key_uuid', ParseUUIDPipe) student_key_uuid: string,
-  ): Promise<ApiResponse<{ status: any }>> {
-    try {
-      const { data } =
-        await this.studentsService.checkVisitKeyStatus(student_key_uuid);
-      return {
-        success: true,
-        data,
-        pagination: null,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
       }
       throw error;
     }

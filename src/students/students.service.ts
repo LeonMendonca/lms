@@ -1,24 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import { Students, TStudents } from './students.entity';
-import { StudentQueryValidator } from './students.query-validator';
-import type { UnionStudent } from './students.query-validator';
-import {
-  insertQueryHelper,
-  updateQueryHelper,
-} from '../misc/custom-query-helper';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { Chunkify } from 'src/worker-threads/chunk-array';
-import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
-import { TVisit_log } from './zod-validation/visitlog';
-import { TStudentCredZodType } from './zod-validation/studentcred-zod';
-import { setTokenFromPayload } from 'src/jwt/jwt-main';
+import { setTokenFromPayload } from 'utils/jwt/jwt-main';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { isWithinXMeters } from './utilities/location-calculation';
 import {
   StudentsVisitKey,
-  TStudentsVisitkey,
 } from './entities/student-visit-key';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
@@ -34,6 +24,8 @@ import { hash } from 'bcryptjs';
 import { TEditStudentDTO } from './dto/student-update.dto';
 import { TStudentUuidZod } from './dto/student-bulk-delete.dto';
 import { TStudentCredDTO } from './dto/student-login.dto';
+import { TStudentVisitDTO } from './dto/student-visit.dto';
+import { VisitLog } from './entities/visitlog.entity';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -59,6 +51,12 @@ export class StudentsService {
 
     @InjectRepository(StudentsData)
     private studentsDataRepository: Repository<StudentsData>,
+
+    @InjectRepository(VisitLog)
+    private visitLogRepository: Repository<VisitLog>,
+
+    @InjectRepository(StudentsVisitKey)
+    private studentsVisitRepository: Repository<StudentsVisitKey>,
 
     private readonly queryBuilderService: QueryBuilderService,
   ) {}
@@ -542,74 +540,214 @@ export class StudentsService {
     }
   }
 
-  async findAllArchivedStudents(
-    { page, limit, search }: { page: number; limit: number; search: string } = {
-      page: 1,
-      limit: 10,
-      search: '',
-    },
-  ) {
+  async createStudentVisitKey(
+    studentUuid: string,
+    latitude: number,
+    longitude: number,
+  ): Promise<Data<StudentsVisitKey>> {
     try {
-      const offset = (page - 1) * limit;
-      const searchQuery = search ? '%${search}%' : '%';
+      const studentKey = this.studentsVisitRepository.create({
+        studentUuid,
+        longitude,
+        latitude,
+      });
 
-      const students = await this.studentsRepository.query(
-        'SELECT * from students_table WHERE is_archived = true AND student_name ILIKE $1 LIMIT $2 OFFSET $3',
-        [searchQuery, limit, offset],
-      );
-
-      const total = await this.studentsRepository.query(
-        `SELECT COUNT(*) from students_table WHERE is_archived = true AND student_name ILIKE $1`,
-        [searchQuery],
-      );
+      const result = await this.studentsVisitRepository.save(studentKey);
 
       return {
-        data: students,
-        pagination: {
-          total: parseInt(total[0].count, 10),
-          page,
-          limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
-        },
+        data: result,
+        pagination: null,
       };
     } catch (error) {
-      throw error;
-    }
-  }
-
-  async updateStudentArchive(student_uuid: string, student_id: string) {
-    try {
-      const result: [[], number] = await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = true WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = false`,
-        [student_uuid, student_id],
+      console.log(error);
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
-      return result[1];
-    } catch (error) {
-      throw error;
     }
   }
 
-  async restoreStudentArchive(student_uuid: string, student_id: string) {
+  async visitlogentry({
+    studentUuid,
+  }: TStudentVisitDTO): Promise<Data<VisitLog>> {
     try {
-      const result: [[], number] = await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = false WHERE (student_uuid = $1 OR student_id = $2) AND is_archived = true`,
-        [student_uuid, student_id],
-      );
-      return result[1];
+      const student = await this.studentsDataRepository.findOne({
+        where: { studentUuid },
+      });
+
+      if (!student) {
+        throw new HttpException('Invalid student ID', HttpStatus.BAD_REQUEST);
+      }
+
+      const lastEntry = await this.visitLogRepository.findOne({
+        where: { studentUuid },
+        order: { inTime: 'DESC' },
+      });
+
+      if (lastEntry && lastEntry.action === 'entry' && !lastEntry.outTime) {
+        throw new HttpException(
+          'Previous entry not exited. Exit required before new entry.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const newVisitLog = this.visitLogRepository.create({
+        studentUuid,
+        studentName: `${student.firstName} ${student.lastName}`,
+        department: student.department,
+        action: 'entry',
+        inTime: new Date(),
+        instituteUuid: student.instituteUuid,
+        instituteName: student.instituteName,
+      });
+
+      const data = await this.visitLogRepository.save(newVisitLog);
+
+      return {
+        data,
+        pagination: null,
+        meta: { message: 'Entry Log' },
+      };
     } catch (error) {
-      throw error;
+      throw new HttpException(
+        `Error: ${error.message || error} while processing visit log entry.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  async exportAllStudents() {
-    const students = (await this.studentsRepository.query(
-      'SELECT * from students_table WHERE is_archived = false',
-    )) as TStudents[];
+  async visitlogexit({
+    studentUuid,
+  }: TStudentVisitDTO): Promise<Data<VisitLog>> {
+    try {
+      const student = await this.studentsDataRepository.findOne({
+        where: { studentUuid: studentUuid },
+      });
 
-    return {
-      data: students,
-    };
+      if (!student) {
+        throw new HttpException('Invalid student ID', HttpStatus.BAD_REQUEST);
+      }
+
+      const lastEntry = await this.visitLogRepository.findOne({
+        where: {
+          studentUuid,
+          action: 'entry',
+          outTime: IsNull(),
+        },
+        order: { inTime: 'DESC' },
+      });
+
+      if (!lastEntry) {
+        throw new HttpException(
+          'No open entry log found. A valid entry is required before exit.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      lastEntry.outTime = new Date();
+      lastEntry.action = 'exit';
+      const data = await this.visitLogRepository.save(lastEntry);
+
+      return {
+        data,
+        pagination: null,
+        meta: { message: 'Exit Log' },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while processing visit log exit.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
+
+  async verifyStudentVisitKey(studentKeyUuid: string): Promise<Data<VisitLog>> {
+    try {
+      const lib_longitude = 72.8645;
+      const lib_latitude = 19.2135;
+
+      const studentKey = await this.studentsVisitRepository.findOne({
+        where: {
+          studentKeyUuid,
+          isUsed: false,
+          createdAt: MoreThan(new Date(Date.now() - 3 * 60 * 1000)), // 3 minutes ago
+        },
+      });
+
+      if (!studentKey) {
+        throw new HttpException(
+          'Invalid or expired student visit key',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const { latitude, longitude, studentUuid } = studentKey;
+
+      if (
+        isWithinXMeters(lib_latitude, lib_longitude, latitude, longitude, 30)
+      ) {
+        try {
+          const data = await this.visitlogentry({ studentUuid });
+          studentKey.action = 'entry';
+          await this.studentsVisitRepository.save(studentKey);
+          return data;
+        } catch (error) {
+          if (error?.message.includes('Previous entry not exited')) {
+            const data = await this.visitlogexit({ studentUuid });
+            studentKey.action = 'exit';
+            await this.studentsVisitRepository.save(studentKey);
+            return data;
+          } else {
+            throw new HttpException(
+              'Invalid action type',
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+        }
+      } else {
+        throw new HttpException(
+          'Student visit key is not within the library premises',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async checkVisitKeyStatus(
+    studentKeyUuid: string,
+  ): Promise<Data<{ status: boolean }>> {
+    try {
+      const status = await this.studentsVisitRepository.findOne({
+        where: {
+          studentKeyUuid,
+          createdAt: MoreThan(new Date(Date.now() - 3 * 60 * 1000)),
+        },
+      });
+      if (!status) {
+        throw new HttpException(
+          'Invalid or expired student visit key',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return {
+        data: { status: !status.isUsed },
+        pagination: null,
+        meta: { action: status.action },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // visit log
   async getCompleteVisitLog(
     {
@@ -997,128 +1135,6 @@ export class StudentsService {
     }
   }
 
-  async visitlogentry(createvisitpayload: TVisit_log) {
-    try {
-      // 1. Validate if student exists
-      const result: TStudents[] = await this.studentsRepository.query(
-        `SELECT * FROM STUDENTS_TABLE WHERE STUDENT_ID=$1`,
-        [createvisitpayload.student_id],
-      );
-
-      if (result.length === 0) {
-        throw new HttpException(
-          { message: 'Invalid student ID' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const student_uuid = result[0].student_uuid;
-
-      // 2. Check if the student has a previous visit log
-      const lastEntry = await this.studentsRepository.query(
-        `SELECT action FROM visit_log 
-             WHERE student_uuid = $1 
-             ORDER BY in_time DESC 
-             LIMIT 1`,
-        [student_uuid],
-      );
-
-      // 3. Ensure last action was 'exit' OR there is no record (first-time entry)
-      if (lastEntry.length > 0 && lastEntry[0].action === 'entry') {
-        throw new HttpException(
-          {
-            message:
-              'Previous entry not exited. Exit required before new entry.',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // 4. Insert new entry log
-      await this.studentsRepository.query(
-        `INSERT INTO visit_log (student_uuid, visitor_name, department, student_id, action, in_time, out_time, institute_uuid, institute_name) 
-             VALUES ($1, $2, $3, $4, 'entry', now(), null, $5, $6)`,
-        [
-          student_uuid,
-          result[0].student_name,
-          result[0].department,
-          createvisitpayload.student_id,
-          result[0].institute_uuid,
-          result[0].institute_name,
-        ],
-      );
-
-      return {
-        message: 'Visit log entry created successfully',
-        student_id: createvisitpayload.student_id,
-        timestamp: new Date().toISOString(),
-        meta: result[0],
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error} while processing visit log entry.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async visitlogexit(createvlogpayload: TVisit_log) {
-    try {
-      // 1. Validate if student exists
-      const studentExists = await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE student_id=$1`,
-        [createvlogpayload.student_id],
-      );
-
-      if (studentExists.length === 0) {
-        throw new HttpException(
-          { message: 'Invalid student ID' },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // 2. Get the last 'entry' log that has no 'out_time'
-      const lastEntry = await this.studentsRepository.query(
-        `SELECT student_uuid, in_time FROM visit_log 
-             WHERE student_id=$1 AND action='entry' AND out_time IS NULL 
-             ORDER BY in_time DESC 
-             LIMIT 1`,
-        [createvlogpayload.student_id],
-      );
-      // 3. Ensure there is a valid 'entry' log to update
-      if (lastEntry.length === 0) {
-        throw new HttpException(
-          {
-            message:
-              'No open entry log found. A valid entry is required before exit.',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      // 4. Capture the current timestamp for exit
-      const exitTime = new Date().toISOString();
-      console.log('working4');
-      // 5. Update the last 'entry' log by setting 'out_time' (exit_time) and changing action to 'exit'
-      await this.studentsRepository.query(
-        `UPDATE visit_log 
-             SET out_time = now(), action = 'exit'
-             WHERE student_id = $1`,
-        [createvlogpayload.student_id],
-      );
-      return {
-        message: 'Exit log updated successfully',
-        student_id: createvlogpayload.student_id,
-        timestamp: new Date().toISOString(),
-        meta: studentExists[0],
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error} while processing visit log exit.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   async studentProfile(student_id: string) {
     try {
       const result = await this.studentsRepository.query(
@@ -1218,130 +1234,6 @@ export class StudentsService {
       }
     } catch (error) {
       throw error;
-    }
-  }
-
-  async createStudentVisitKey(
-    user: any,
-    latitude: number,
-    longitude: number,
-    action: string,
-  ): Promise<StudentsVisitKey> {
-    try {
-      const studentKey: StudentsVisitKey[] =
-        await this.studentsRepository.query(
-          `INSERT INTO student_visit_key (student_id, longitude, latitude, action, institute_uuid, institute_name) VALUES ($1, $2,  $3, $4, $5, $6) RETURNING *`,
-          [
-            user.student_id,
-            longitude,
-            latitude,
-            action,
-            user.institute_uuid,
-            user.institute_name,
-          ],
-        );
-      if (!studentKey.length) {
-        throw new HttpException(
-          'Failed to create student visit key',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      return studentKey[0];
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        `Error: ${error.message || error} while creating student.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async verifyStudentVisitKey(studentKeyUUID: string) {
-    try {
-      const lib_longitude = 72.8645;
-      const lib_latitude = 19.2135;
-      const studentKey = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes' AND is_used = false`,
-        [studentKeyUUID],
-      );
-
-      if (!studentKey.length) {
-        throw new HttpException(
-          'Invalid or expired student visit key',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      const { latitude, longitude, student_id, action } = studentKey[0];
-
-      if (
-        isWithinXMeters(
-          lib_latitude,
-          lib_longitude,
-          parseFloat(latitude),
-          parseFloat(longitude),
-          30,
-        )
-      ) {
-        await this.studentsRepository.query(
-          `UPDATE student_visit_key SET is_used = true WHERE student_key_uuid = $1`,
-          [studentKeyUUID],
-        );
-        try {
-          return await this.visitlogentry({ action, student_id });
-        } catch (error) {
-          if (error?.message.includes('Previous entry not exited')) {
-            return await this.visitlogexit({ action, student_id });
-          } else {
-            throw new HttpException(
-              'Invalid action type',
-              HttpStatus.BAD_REQUEST,
-            );
-          }
-        }
-        // run the entry or exit function based on the action
-      } else {
-        throw new HttpException(
-          'Student visit key is not within the library premises',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        `Error: ${error.message || error} while creating student.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async checkVisitKeyStatus(
-    studentKeyUUID: string,
-  ): Promise<Data<{ status: any }>> {
-    try {
-      const trial = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key `,
-      );
-      console.log(trial);
-      const status: TStudentsVisitkey[] = await this.studentsRepository.query(
-        `SELECT * FROM student_visit_key WHERE student_key_uuid = $1 AND created_at >= NOW() - INTERVAL '3 minutes'`,
-        [studentKeyUUID],
-      );
-      if (status.length === 0) {
-        throw new HttpException(
-          'Invalid or expired student visit key',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      return {
-        data: { status: !status[0].is_used },
-        pagination: null,
-      };
-    } catch (error) {
-      console.log(error);
-      throw new HttpException(
-        `Error: ${error.message || error} while creating student.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
   }
 }

@@ -8,7 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
-import { VisitLog } from 'src/students/visitlog.entity';
+import { VisitLog } from 'src/students/entities/visitlog.entity';
 
 @Entity('book_copies')
 export class BookCopy {

@@ -52,7 +52,7 @@ import type {
   TReturnBookZodReIssue,
 } from './zod/requestbook-zod';
 import { StudentsService } from 'src/students/students.service';
-import { TokenAuthGuard } from 'src/guards/token.guard';
+import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { RequestBook } from './entity/request-book.entity';
 import {
   PaginationParserType,

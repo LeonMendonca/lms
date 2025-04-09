@@ -15,7 +15,7 @@ import {
 import { ReviewsService } from './reviews.service';
 import { TCreateReviewDTO } from './dto/create-review.dto';
 import { TUpdateReviewDTO } from './dto/update-review.dto';
-import { TokenAuthGuard } from 'src/guards/token.guard';
+import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { Review } from './entities/review.entity';
 
 interface AuthenticatedRequest extends Request {

@@ -20,5 +20,5 @@
     "resolveJsonModule": true,  // For JSON imports
     "esModuleInterop": true    // For compatibility with CommonJS
   },
-  "include": ["src/**/*"]      // Ensure src/ is compiled
+  "include": ["src/**/*", "utils/jwt", "utils/guards"]      // Ensure src/ is compiled
 }

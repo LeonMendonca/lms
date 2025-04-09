@@ -5,52 +5,30 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-export const Action = {
-  ENTRY: 'entry',
-  EXIT: 'exit',
-} as const;
-
 @Entity('student_visit_key')
 export class StudentsVisitKey {
-  @PrimaryGeneratedColumn('uuid', { name: 'student_key_uuid' })
-  studentKeyUUID: 'student_key_uuid' = 'student_key_uuid';
+  @PrimaryGeneratedColumn('uuid', { name: 'studentKeyUuid' })
+  studentKeyUuid: string;
 
-  @Column({ name: 'student_id', type: 'varchar', length: 255, nullable: true })
-  studentId: 'student_id' = 'student_id';
+  @Column({ name: 'studentUuid', type: 'varchar', length: 255 })
+  studentUuid: string;
 
-  @Column({
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  createdAt: 'created_at' = 'created_at';
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
 
   @Column({ name: 'longitude' })
-  longitude: 'longitude' = 'longitude';
+  longitude: number;
 
   @Column({ name: 'latitude' })
-  latitude: 'latitude' = 'latitude';
+  latitude: number;
+
+  @Column({ name: 'action', nullable: true })
+  action: string;
 
   @Column({
-    name: 'is_used',
+    name: 'IsUsed',
     type: 'boolean',
     default: false,
   })
-  isUsed: 'is_used' = 'is_used';
-
-  @Column({ name: 'action', type: 'enum', enum: Action, nullable: true })
-  action: 'action' = 'action';
-  
-  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
-  instituteUuid: 'institute_uuid' = 'institute_uuid';
-
-  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
-  instituteName: 'institute_name' = 'institute_name';
+  isUsed: boolean;
 }
-
-export const student = new StudentsVisitKey();
-
-//Type that represents the table Columns
-export type TStudentsVisitkey = {
-  [P in keyof typeof student as (typeof student)[P]]: (typeof student)[P];
-};

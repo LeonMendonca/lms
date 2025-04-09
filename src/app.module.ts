@@ -13,9 +13,7 @@ import { Booklog_v2 } from './books_v2/entity/book_logv2.entity';
 import { BookTitle } from './books_v2/entity/books_v2.title.entity';
 import { JournalTitle } from './journals/entity/journals_title.entity';
 import { JournalLogs } from './journals/entity/journals_log.entity';
-import { CalendarModule } from './calendar/calendar.module';
-import { Calendar } from './calendar/entity/calendar.entity';
-import { VisitLog } from './students/visitlog.entity';
+import { VisitLog } from './students/entities/visitlog.entity';
 import { FeesPenaltiesModule } from './fees-penalties/fees-penalties.module';
 import { FeesPenalties } from './fees-penalties/entity/fees-penalties.entity';
 import { RequestBook } from './books_v2/entity/request-book.entity';
@@ -35,6 +33,7 @@ import { StudentNotifyModule } from './student-notify/student-notify.module';
 import { StudentNotification } from './student-notify/entities/student-notify.entity';
 import { UserAccessToken } from './user/entity/user-access.entity';
 import { StudentsData } from './students/entities/student.entity';
+import { InquiryModule } from './inquiry/inquiry.module';
 
 config({ path: '.env' });
 @Module({
@@ -49,26 +48,24 @@ config({ path: '.env' });
         StudentsData,
 
 
-        // Students,
-        // BookCopy,
-        // BookTitle,
-        // VisitLog,
-        // FeesPenalties,
-        // RequestBook,
-        // BookCopy,
-        // BookTitle,
-        // // Booklog_v2,
-        // StudentsVisitKey,
-        // Review,
-        // // JournalLogs, 
-        // JournalCopy, 
-        // JournalTitle, 
-        // Calendar, 
-        // InstituteConfig,
-        // Calendar,
-        // Notes,
-        // InquireLogs,
-        // StudentNotification,
+        Students,
+        BookCopy,
+        BookTitle,
+        VisitLog,
+        FeesPenalties,
+        RequestBook,
+        BookCopy,
+        BookTitle,
+        Booklog_v2,
+        StudentsVisitKey,
+        Review,
+        JournalLogs, 
+        JournalCopy, 
+        JournalTitle, 
+        InstituteConfig,
+        Notes,
+        InquireLogs,
+        StudentNotification,
       ],
       ssl: true,
       synchronize: false,
@@ -78,14 +75,14 @@ config({ path: '.env' });
     BookLogModule,
     JournalsModule,
     NotificationsModule,
-    CalendarModule,
     FeesPenaltiesModule,
     ConfigModule,
     CsvModule,
     ReviewsModule,
     UserModule,
     NotesModule,
-    StudentNotifyModule
+    StudentNotifyModule,
+    InquiryModule
   ],
 })
 export class AppModule {

@@ -9,8 +9,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { StudentNotifyService } from './student-notify.service';
-import { TokenAuthGuard } from 'src/guards/token.guard';
-import { StudentsService } from 'src/students/students.service';
+import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { StudentNotification } from './entities/student-notify.entity';
 
 interface AuthenticatedRequest extends Request {

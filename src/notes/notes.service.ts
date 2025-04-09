@@ -1,14 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { TCreateNotesDTO } from './dto/create-notes.dto';
-import {
-  insertQueryHelper,
-  updateQueryHelper,
-} from 'src/misc/custom-query-helper';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
 import { Notes } from './entities/notes.entity';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
-import { StudentsData } from 'src/students/entities/student.entity';
 
 interface Data<T> {
   data: T;

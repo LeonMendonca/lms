@@ -11,25 +11,6 @@ export class CsvController {
     private readonly studentsService: StudentsService,
   ) {}
 
-  @Get('download')
-  downloadCSV(@Res() res: Response): void {
-    // Sample data (you can replace this with dynamic data from your DB)
-    const data = [
-      { name: 'Alice', age: 30 },
-      { name: 'Bob', age: 25 },
-    ];
-
-    // Generate the CSV content using the service
-    const csvContent = this.csvService.generateCSV(data);
-
-    // Set headers for the CSV file download
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="data.csv"');
-
-    // Send the CSV content as a file
-    res.send(csvContent);
-  }
-
   @Get('total-books')
   async getTotalBooksCSV(
     @Query('_institute_uuid') institute_uuid: string,
