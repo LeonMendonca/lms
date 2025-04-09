@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'worker_threads';
-import { TstudentUUIDZod } from 'src/students/zod-validation/studentuuid-zod';
 import { pool } from '../../pg.connect';
+import { TStudentUuidZod } from 'src/students/dto/student-bulk-delete.dto';
 
 export type TUpdateResult = {
   archived_data: number;
@@ -14,13 +14,13 @@ export type TUpdateResult = {
     console.error('Pool Client in ARCHIVE worker emitted error', err.message);
   });
 
-  let arrOfUUID = workerData.oneDArray as TstudentUUIDZod[];
+  let arrOfUUID = workerData.oneDArray as TStudentUuidZod[];
 
   //Count payload being updated
   const updatePayloadCount = arrOfUUID.length;
 
   let bulkQuery1 =
-    'UPDATE students_table SET is_archived = TRUE WHERE student_uuid IN ';
+    'UPDATE students_table SET isArchived = TRUE WHERE studentUuid IN ';
 
   let bulkQuery2 = '(';
   for (const element of arrOfUUID) {
@@ -29,7 +29,7 @@ export type TUpdateResult = {
   bulkQuery2 = bulkQuery2.slice(0, -1);
   bulkQuery2 += ')';
 
-  let bulkQuery3 = 'AND is_archived = FALSE RETURNING student_uuid';
+  let bulkQuery3 = 'AND isArchived = FALSE RETURNING studentUuid';
 
   const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3;
 

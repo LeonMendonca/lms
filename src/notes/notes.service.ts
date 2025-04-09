@@ -5,9 +5,10 @@ import {
   updateQueryHelper,
 } from 'src/misc/custom-query-helper';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Notes, TNotes } from './entities/notes.entity';
+import { Brackets, Repository } from 'typeorm';
+import { Notes } from './entities/notes.entity';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
+import { StudentsData } from 'src/students/entities/student.entity';
 
 interface Data<T> {
   data: T;
@@ -22,21 +23,16 @@ export class NotesService {
   ) {}
 
   async create(
-    user: any,
+    studentUuid: string,
     createNotesDto: TCreateNotesDTO,
   ): Promise<Data<Notes>> {
     try {
-      console.log(user)
-      let queryData = insertQueryHelper(
-        { ...createNotesDto, student_uuid: user.student_uuid, institute_uuid: user.institute_uuid, institute_name: user.institute_name },
-        [],
-      );
-      const result: Notes[] = await this.notesRepository.query(
-        `
-      INSERT INTO notes (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING *`,
-        queryData.values,
-      );
-      return { data: result[0], pagination: null };
+      const note = this.notesRepository.create({
+        ...createNotesDto,
+        studentUuid,
+      });
+      const savedNote = await this.notesRepository.save(note);
+      return { data: savedNote, pagination: null };
     } catch (error) {
       console.log(error);
       throw new HttpException(
@@ -46,18 +42,26 @@ export class NotesService {
     }
   }
 
-  async findAllNotesForStudent(user: any): Promise<Data<Notes[]>> {
+  async findAllNotesForStudent(studentUuid: string): Promise<Data<Notes[]>> {
     try {
-      const data: Notes[] = await this.notesRepository.query(
-        `SELECT * FROM notes WHERE is_archived = false AND (is_approved = true OR student_uuid = $1)`,
-        [user.student_uuid],
-      );
+      const data = await this.notesRepository
+        .createQueryBuilder('notes')
+        .where('notes.isArchived = false')
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where('notes.isApproved = true').orWhere(
+              'notes.studentUuid = :studentUuid',
+            );
+          }),
+        )
+        .setParameter('studentUuid', studentUuid)
+        .getMany();
+
       return {
         data,
         pagination: null,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -67,15 +71,15 @@ export class NotesService {
 
   async findAllAdmin(): Promise<Data<Notes[]>> {
     try {
-      const result: Notes[] = await this.notesRepository.query(
-        `SELECT * FROM notes WHERE is_archived = false`,
-      );
+      const result = await this.notesRepository
+        .createQueryBuilder('notes')
+        .where('notes.isArchived = false')
+        .getMany();
       return {
         data: result,
         pagination: null,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -83,18 +87,21 @@ export class NotesService {
     }
   }
 
-  async approveByAdmin(notes_uuid: string): Promise<Data<TNotes>> {
+  async approveByAdmin(notesUuid: string): Promise<Data<Notes>> {
     try {
-      const result: TNotes[] = await this.notesRepository.query(
-        `UPDATE notes SET is_approved = true WHERE notes_uuid = $1 RETURNING *`,
-        [notes_uuid],
-      );
+      const result = await this.notesRepository
+        .createQueryBuilder('notes')
+        .update(Notes)
+        .set({ isApproved: true })
+        .where('notesUuid = :uuid', { uuid: notesUuid })
+        .returning('*')
+        .execute();
+
       return {
-        data: result[0],
+        data: result.raw[0],
         pagination: null,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -102,18 +109,21 @@ export class NotesService {
     }
   }
 
-  async rejectByAdmin(notes_uuid: string): Promise<Data<TNotes>> {
+  async rejectByAdmin(notesUuid: string): Promise<Data<Notes>> {
     try {
-      const result: TNotes[] = await this.notesRepository.query(
-        `UPDATE notes SET is_archived = true WHERE notes_uuid = $1 RETURNING *`,
-        [notes_uuid],
-      );
+      const result = await this.notesRepository
+        .createQueryBuilder('notes')
+        .update()
+        .set({ isArchived: true })
+        .where('notesUuid = :uuid', { uuid: notesUuid })
+        .returning('*')
+        .execute();
+
       return {
-        data: result[0],
+        data: result.raw[0],
         pagination: null,
       };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -122,23 +132,27 @@ export class NotesService {
   }
 
   async update(
-    notes_uuid: string,
+    notesUuid: string,
     updateNotesDto: TUpdateNotesDTO,
   ): Promise<Data<Notes>> {
     try {
-      let queryData = updateQueryHelper<TUpdateNotesDTO>(updateNotesDto, []);
-      console.log(queryData);
-      const result: Notes[] = await this.notesRepository.query(
-        `UPDATE notes SET ${queryData.queryCol} WHERE notes_uuid = $${queryData.values.length + 1} AND is_archived = false RETURNING *`,
-        [...queryData.values, notes_uuid],
-      );
-      if (!result.length) {
+      const result = await this.notesRepository
+        .createQueryBuilder('notes')
+        .update()
+        .set(updateNotesDto)
+        .where('notesUuid = :notesUuid', { notesUuid })
+        .andWhere('isArchived = false')
+        .returning('*')
+        .execute();
+
+      if (!result.raw.length) {
         throw new HttpException(
           'Student not found after update',
           HttpStatus.NOT_FOUND,
         );
       }
-      return { data: result[0], pagination: null };
+
+      return { data: result.raw[0], pagination: null };
     } catch (error) {
       throw error;
     }

@@ -90,17 +90,9 @@ export class StudentsData {
   @Column({ name: 'profileImage', type: 'varchar', nullable: true })
   profileImage: string;
 
-  @Column({
-    name: 'createdAt',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn({ name: 'createdAt' })
   createdAt: Date;
 
-  @Column({
-    name: 'updatedAt',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn({ name: 'updatedAt' })
   updatedAt: Date;
 }

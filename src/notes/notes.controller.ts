@@ -17,7 +17,7 @@ import { TCreateNotesDTO } from './dto/create-notes.dto';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
 import { TokenAuthGuard } from 'src/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
-import { Notes, TNotes } from './entities/notes.entity';
+import { Notes } from './entities/notes.entity';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
@@ -36,7 +36,6 @@ interface ApiResponse<T> {
 export class NotesController {
   constructor(
     private readonly notesService: NotesService,
-    private readonly studentService: StudentsService,
     private readonly notifyService: StudentNotifyService,
   ) {}
 
@@ -47,22 +46,9 @@ export class NotesController {
     @Body() createNotesDto: TCreateNotesDTO,
   ): Promise<ApiResponse<Notes>> {
     try {
-      console.log(req.user);
-      const student = await this.studentService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      if (!createNotesDto.author.includes(student.student_name))
-        createNotesDto.author.push(student.student_name);
-      const { data } = await this.notesService.create(student, createNotesDto);
-      const notification = await this.notifyService.createNotification(
-        student.student_uuid,
-        NotificationType.NOTES_REQUESTED,
-        {
-          courseName: data.noteTitle,
-        },
+      const { data } = await this.notesService.create(
+        req.user.studentUuid,
+        createNotesDto,
       );
       return {
         success: true,
@@ -83,14 +69,13 @@ export class NotesController {
 
   @Get('student')
   @UseGuards(TokenAuthGuard)
-  async findAllStudent(
+  async findAllNotesForStudent(
     @Request() req: AuthenticatedRequest,
   ): Promise<ApiResponse<Notes[]>> {
     try {
-      const student = await this.studentService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-      const { data } = await this.notesService.findAllNotesForStudent(student);
+      const { data } = await this.notesService.findAllNotesForStudent(
+        req.user.studentUuid,
+      );
       return {
         success: true,
         data,
@@ -131,23 +116,17 @@ export class NotesController {
 
   @Patch()
   async approveNotes(
-    @Query('_notes_uuid') notes_uuid: string,
-  ): Promise<ApiResponse<TNotes>> {
+    @Query('_notes_uuid') notesUuid: string,
+  ): Promise<ApiResponse<Notes>> {
     try {
-      const { data } = await this.notesService.approveByAdmin(notes_uuid);
-      const student = await this.studentService.findStudentBy({
-        student_uuid: data[0].student_uuid,
-      });
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
+      const { data } = await this.notesService.approveByAdmin(notesUuid);
       await this.notifyService.createNotification(
-        student.student_uuid,
+        data.studentUuid,
         NotificationType.NOTES_APPROVED,
         {
-          courseName: data.note_title,
+          courseName: data.noteTitle,
         },
-      )
+      );
       return {
         success: true,
         data,
@@ -167,20 +146,17 @@ export class NotesController {
 
   @Delete()
   async deleteNotes(
-    @Query('_notes_uuid') notes_uuid: string,
-  ): Promise<ApiResponse<TNotes>> {
+    @Query('_notes_uuid') notesUuid: string,
+  ): Promise<ApiResponse<Notes>> {
     try {
-      const { data } = await this.notesService.rejectByAdmin(notes_uuid);
-      const student = await this.studentService.findStudentBy({
-        student_uuid: data.student_uuid,
-      });
+      const { data } = await this.notesService.rejectByAdmin(notesUuid);
       await this.notifyService.createNotification(
-        student!.student_uuid,
+        data.studentUuid,
         NotificationType.NOTES_APPROVED,
         {
-          courseName: data.note_title,
+          courseName: data.noteTitle,
         },
-      )
+      );
       return {
         success: true,
         data,
@@ -204,11 +180,13 @@ export class NotesController {
     @Body() updateNotesDto: TUpdateNotesDTO,
   ): Promise<ApiResponse<Notes>> {
     try {
-      console.log({notes_uuid, updateNotesDto})
-      const review = await this.notesService.update(notes_uuid, updateNotesDto);
+      const { data } = await this.notesService.update(
+        notes_uuid,
+        updateNotesDto,
+      );
       return {
         success: true,
-        data: review.data,
+        data,
         pagination: null,
       };
     } catch (error) {

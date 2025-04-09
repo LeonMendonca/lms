@@ -45,18 +45,10 @@ export class LibraryConfig {
   })
   closingHour: string;
 
-  @Column({
-    name: 'createdAt',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @CreateDateColumn({ name: 'createdAt' })
   createdAt: Date;
 
-  @Column({
-    name: 'updatedAt',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @UpdateDateColumn({ name: 'updatedAt' })
   updatedAt: Date;
 
   @Column({ name: 'createdByUUID', type: 'uuid', nullable: true })
@@ -68,13 +60,13 @@ export class LibraryConfig {
   @Column({
     name: 'emailNotificationStudent',
     type: 'json',
-    default: () => ({
-      bookBorrowing: true,
-      bookReturning: true,
-      checkIn: true,
-      checkOut: true,
-      penalties: false,
-    }),
+    default: () => `'{
+      "bookBorrowing": true,
+      "bookReturning": true,
+      "checkIn": true,
+      "checkOut": true,
+      "penalties": false
+    }'`,
   })
   emailNotificationStudent: {
     bookBorrowing: boolean;
@@ -87,13 +79,13 @@ export class LibraryConfig {
   @Column({
     name: 'emailNotificationAdmin',
     type: 'json',
-    default: () => ({
-      bookBorrowing: true,
-      bookReturning: true,
-      checkIn: true,
-      checkOut: true,
-      penalties: false,
-    }),
+    default: () => `'{
+      "bookBorrowing": true,
+      "bookReturning": true,
+      "checkIn": true,
+      "checkOut": true,
+      "penalties": false
+    }'`,
   })
   emailNotificationAdmin: {
     bookBorrowing: boolean;

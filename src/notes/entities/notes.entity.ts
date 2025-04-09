@@ -8,48 +8,42 @@ import {
 
 @Entity('notes')
 export class Notes {
-  @PrimaryGeneratedColumn('uuid', { name: 'notes_uuid' })
-  notesUUID: 'notes_uuid' = 'notes_uuid';
+  @PrimaryGeneratedColumn('uuid', { name: 'notesUuid' })
+  notesUuid: string;
 
-  @Column({ name: 'student_uuid', type: 'uuid' })
-  studentUuid: 'student_uuid' = 'student_uuid';
-  
-  @Column({ name: 'note_resource', type: 'text' })
-  noteResource: 'note_resource' = 'note_resource';
+  @Column({ name: 'studentUuid', type: 'uuid' })
+  studentUuid: string;
 
-  @Column({ name: 'note_title', type: 'text' })
-  noteTitle: 'note_title' = 'note_title';
-  
+  @Column({ name: 'noteResource', type: 'text' })
+  noteResource: string;
+
+  @Column({ name: 'noteTitle', type: 'text' })
+  noteTitle: string;
+
   @Column({ name: 'category', type: 'text' })
-  category: 'category' = 'category';
-  
+  category: string;
+
   @Column({ name: 'author', type: 'simple-array' })
-  author: 'author' = 'author';
+  author: string[];
 
-  @Column({ name: 'note_description', type: 'text' })
-  noteDescription: 'note_description' = 'note_description';
+  @Column({ name: 'noteDescription', type: 'text' })
+  noteDescription: string;
 
-  @Column({ name: 'is_approved', type: 'boolean', default: false })
-  isApproved: 'is_approved' = 'is_approved';
+  @Column({ name: 'isApproved', type: 'boolean', default: false })
+  isApproved: boolean;
 
-  @Column({ name: 'is_archived', type: 'boolean', default: false })
-  isArchived: 'is_archived' = 'is_archived'; // Null = Active, True = Archived
+  @Column({ name: 'isArchived', type: 'boolean', default: false })
+  isArchived: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: 'created_at' = 'created_at'; // Timestamp for review creation
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: 'updated_at' = 'updated_at'; // Timestamp for review updates
+  @UpdateDateColumn({ name: 'updatedAt' })
+  updatedAt: Date;
 
-  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
-  instituteUuid: 'institute_uuid' = 'institute_uuid';
+  @Column({ name: 'instituteUuid', type: 'uuid' })
+  instituteUuid: string;
 
-  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
-  instituteName: 'institute_name' = 'institute_name';
+  @Column({ name: 'instituteName', type: 'varchar', nullable: true })
+  instituteName: string;
 }
-
-export const notes = new Notes();
-
-export type TNotes = {
-  [P in keyof typeof notes as (typeof notes)[P]]: (typeof notes)[P];
-};

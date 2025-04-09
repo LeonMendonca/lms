@@ -1,10 +1,9 @@
 
-      //@ts-ignore
-      import { TCreateStudentDTO } from 'src/students/zod-validation/createstudents-zod';
 import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';
 import { TInsertResult } from '../worker-types/student-insert.type';
 import { studentObj } from 'src/students/students.entity';
+import { TCreateStudentDTO } from 'src/students/dto/student-create.dto';
 
 let start = Date.now();
 let uniqueArray: TCreateStudentDTO[] = [];

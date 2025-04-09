@@ -8,9 +8,7 @@ import {
   insertQueryHelper,
   updateQueryHelper,
 } from '../misc/custom-query-helper';
-import { TEditStudentDTO } from './zod-validation/putstudent-zod';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
-import { TstudentUUIDZod } from './zod-validation/studentuuid-zod';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { TVisit_log } from './zod-validation/visitlog';
@@ -26,10 +24,16 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
 import { InquireLogs } from './entities/inquire-logs';
 import { validateTime } from 'src/misc/validate-time-format';
-import { DashboardCardtypes } from 'types/dashboard';
+import {
+  DashboardCardtypes,
+  StudentCardtypes,
+} from 'src/students/types/dashboard';
 import { StudentsData } from './entities/student.entity';
 import { TCreateStudentDTO } from './dto/student-create.dto';
 import { hash } from 'bcryptjs';
+import { TEditStudentDTO } from './dto/student-update.dto';
+import { TStudentUuidZod } from './dto/student-bulk-delete.dto';
+import { TStudentCredDTO } from './dto/student-login.dto';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -58,6 +62,46 @@ export class StudentsService {
 
     private readonly queryBuilderService: QueryBuilderService,
   ) {}
+
+  async studentLogin(studentCredPayload: TStudentCredDTO): Promise<Data<any>> {
+    try {
+      const { email, password } = studentCredPayload;
+
+      const student = await this.studentsDataRepository
+        .createQueryBuilder('student')
+        .where('(student.email = :email OR student.student_id = :email)', {
+          email,
+        })
+        .andWhere('student.password = :password', { password })
+        .getOne();
+
+      if (!student) {
+        throw new HttpException(
+          'Invalid Email or Username',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const jwtPayloadSelective = {
+        studentUuid: student.studentUuid,
+        email: student.email,
+      };
+
+      return {
+        meta: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
+        data: {
+          ...student,
+          institute_image:
+            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+          institute_header:
+            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
+        },
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async createStudent(
     studentPayload: TCreateStudentDTO,
@@ -179,7 +223,9 @@ export class StudentsService {
           .getRawMany();
 
       return {
-        data: departments?.map((dept: { department: string }) => dept.department),
+        data: departments?.map(
+          (dept: { department: string }) => dept.department,
+        ),
         pagination: null,
       };
     } catch (error) {
@@ -187,36 +233,63 @@ export class StudentsService {
     }
   }
 
-  async findStudentBy(query: UnionStudent) {
+  async editStudent(
+    studentUuid: string,
+    editStudentPayload: TEditStudentDTO,
+  ): Promise<Data<StudentsData>> {
     try {
-      let requiredKey: keyof typeof StudentQueryValidator | undefined =
-        undefined;
-      let value: string | undefined = undefined;
-      if ('student_id' in query) {
-        requiredKey = 'student_id';
-        value = query.student_id;
-      } else {
-        requiredKey = 'student_uuid';
-        value = query.student_uuid;
+      const existingStudent = await this.studentsDataRepository.findOne({
+        where: {
+          studentUuid: studentUuid,
+          isArchived: false,
+        },
+      });
+
+      if (!existingStudent) {
+        throw new HttpException(
+          'Student not found or already archived',
+          HttpStatus.NOT_FOUND,
+        );
       }
 
-      const result = (await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE ${requiredKey} = $1 AND is_archived = FALSE`,
-        [value],
-      )) as TStudents[];
+      await this.studentsDataRepository
+        .createQueryBuilder()
+        .update()
+        .set(editStudentPayload)
+        .where('studentUuid = :studentUuid', { studentUuid })
+        .andWhere('isArchived = false')
+        .returning('*')
+        .execute();
 
-      if (result.length === 0) {
-        return null;
+      const updatedStudent = await this.studentsDataRepository.findOneByOrFail({
+        studentUuid: studentUuid,
+      });
+
+      return {
+        data: updatedStudent,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async findStudentBy(studentUuid: string): Promise<Data<StudentsData>> {
+    try {
+      const student = await this.studentsDataRepository
+        .createQueryBuilder('student_info')
+        .where('student.studentUuid = :id', { id: studentUuid })
+        .andWhere('student.isArchived = false')
+        .getOne();
+
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
       }
 
-      delete result[0].password;
-      delete result[0].is_archived;
-
-      const reviews = await this.studentsRepository.query(
-        `SELECT * FROM reviews WHERE student_uuid = '${result[0].student_uuid}' AND is_archived = false`,
-      );
-
-      return { ...result[0], reviews };
+      return {
+        data: student,
+        pagination: null,
+      };
     } catch (error) {
       throw error;
     }
@@ -225,10 +298,16 @@ export class StudentsService {
   async bulkCreate(studentZodValidatedObject: {
     validated_array: TCreateStudentDTO[];
     invalid_data_count: number;
-  }) {
+  }): Promise<
+    Data<{
+      invalid_data: number;
+      inserted_data: number;
+      duplicate_data_pl: number;
+      duplicate_date_db: number;
+      unique_data: number;
+    }>
+  > {
     try {
-      console.log('SERVICE calling main worker thread');
-
       const result = await CreateWorker<TInsertResult>(
         studentZodValidatedObject.validated_array,
         'student/student-insert-worker',
@@ -241,11 +320,14 @@ export class StudentsService {
           unique_data,
         } = result;
         return {
-          invalid_data: studentZodValidatedObject.invalid_data_count,
-          inserted_data,
-          duplicate_data_pl,
-          duplicate_date_db,
-          unique_data,
+          data: {
+            invalid_data: studentZodValidatedObject.invalid_data_count,
+            inserted_data,
+            duplicate_data_pl,
+            duplicate_date_db,
+            unique_data,
+          },
+          pagination: null,
         };
       } else {
         throw new HttpException(result, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -255,56 +337,18 @@ export class StudentsService {
     }
   }
 
-  async editStudent(
-    studentId: string,
-    editStudentPayload: TEditStudentDTO,
-  ): Promise<TStudents> {
-    try {
-      let queryData = updateQueryHelper<TEditStudentDTO>(
-        editStudentPayload,
-        [],
-      );
-      const result: [TStudents[], 0 | 1] = await this.studentsRepository.query(
-        `UPDATE students_table SET ${queryData.queryCol} WHERE student_id = '${studentId}' AND is_archived = false RETURNING *`,
-        queryData.values,
-      );
-
-      const updateStatus = result[1];
-
-      if (!updateStatus) {
-        throw new HttpException(
-          'Student not found or already archived',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      const student = result[0][0];
-      delete student.password;
-
-      return result[0][0];
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async deleteStudent(studentId: string) {
-    try {
-      const result = await this.studentsRepository.query(
-        `UPDATE students_table SET is_archived = TRUE WHERE student_id = '${studentId}' AND is_archived = false`,
-      );
-      //Asserted a type as UPDATE returns it
-      return result as [[], number];
-    } catch (error) {
-      throw error;
-    }
-  }
-
   async bulkDelete(arrStudentUUIDPayload: {
-    validated_array: TstudentUUIDZod[];
+    validated_array: TStudentUuidZod[];
     invalid_data_count: number;
-  }) {
+  }): Promise<
+    Data<{
+      invalid_data: number;
+      archived_data: number;
+      failed_archived_data: number;
+    }>
+  > {
     try {
-      const zodValidatedBatchArr: TstudentUUIDZod[][] = Chunkify(
+      const zodValidatedBatchArr: TStudentUuidZod[][] = Chunkify(
         arrStudentUUIDPayload.validated_array,
       );
       const BatchArr: Promise<TUpdateResult>[] = [];
@@ -326,9 +370,172 @@ export class StudentsService {
         },
       );
       return {
-        invalid_data: arrStudentUUIDPayload.invalid_data_count,
-        archived_data,
-        failed_archived_data,
+        data: {
+          invalid_data: arrStudentUUIDPayload.invalid_data_count,
+          archived_data,
+          failed_archived_data,
+        },
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // This is in Raw SQL because converting it to SQL would be difficult
+  async adminDashboard(
+    instituteUuid: string | null,
+  ): Promise<Data<DashboardCardtypes>> {
+    try {
+      if (!instituteUuid) {
+        throw new HttpException(
+          'Please Provide atleast one Institute Identifier',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const instituteUUIDsJSON = JSON.parse(instituteUuid || '[]') as string[];
+      const useInstituteFilter =
+        Array.isArray(instituteUUIDsJSON) && instituteUUIDsJSON.length > 0;
+
+      const whereInstituteClause = useInstituteFilter
+        ? `AND instituteUuid = ANY($1)`
+        : '';
+
+      const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
+
+      const totalBooksQuery = `
+        SELECT COUNT(*) 
+          FROM book_copies 
+          WHERE is_archived = false
+          ${whereInstituteClause}
+        `;
+
+      const totalBooks: { count: string }[] =
+        await this.studentsDataRepository.query(
+          totalBooksQuery,
+          instituteParams,
+        );
+
+      const totalBorrowedBooksQuery = `
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
+          WHERE book_copies.is_archived = false
+          ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
+        `;
+
+      const totalBorrowedBooks = await this.studentsDataRepository.query(
+        totalBorrowedBooksQuery,
+        instituteParams,
+      );
+
+      const totalMembersQuery = `
+      SELECT COUNT(*) 
+        FROM studentUuid 
+        WHERE isArchived = false
+        ${whereInstituteClause}
+      `;
+
+      const totalMembers = await this.studentsDataRepository.query(
+        totalMembersQuery,
+        instituteParams,
+      );
+
+      const newBooksQuery = `
+        SELECT COUNT(*) 
+          FROM book_copies 
+          WHERE is_archived = false 
+            AND is_available = true 
+            AND created_at >= NOW() - INTERVAL '1 month'
+        `;
+      const newBooks = await this.studentsDataRepository.query(newBooksQuery);
+
+      const todayIssuesQuery = `
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          WHERE date >= CURRENT_DATE AND action = 'borrowed'
+        `;
+      const todayIssues =
+        await this.studentsDataRepository.query(todayIssuesQuery);
+
+      const todayReturnedQuery = `
+        SELECT COUNT(*) 
+          FROM book_logv2 
+          WHERE date >= CURRENT_DATE AND action = 'returned'
+        `;
+      const todayReturned =
+        await this.studentsDataRepository.query(todayReturnedQuery);
+
+      const overdueQuery = `
+        SELECT COUNT(*) 
+          FROM fees_penalties 
+          WHERE penalty_amount > 0
+        `;
+      const overdues = await this.studentsDataRepository.query(overdueQuery);
+
+      const trendingQuery = `
+        SELECT COUNT(*) 
+        FROM book_copies 
+        WHERE is_archived = false 
+          AND is_available = true 
+          AND created_at >= NOW() - INTERVAL '1 month'
+      `;
+      const trending = await this.studentsDataRepository.query(trendingQuery);
+
+      const parseCount = (result: { count: string }[]) =>
+        parseInt(result?.[0]?.count || '0', 10);
+
+      return {
+        data: {
+          totalBooks: parseCount(totalBooks),
+          totalBorrowedBooks: parseCount(totalBorrowedBooks),
+          totalMembers: parseCount(totalMembers),
+          newBooks: parseCount(newBooks),
+          todayIssues: parseCount(todayIssues),
+          todayReturned: parseCount(todayReturned),
+          overdue: parseCount(overdues),
+          trending: parseCount(trending),
+        },
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async studentDashboard(user: string): Promise<Data<StudentCardtypes>> {
+    try {
+      const student = await this.studentsDataRepository.query(
+        `SELECT studentUuid FROM students_info WHERE studentUuid = $1`,
+        [user],
+      );
+
+      const totalBooks = await this.studentsDataRepository.query(
+        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false`,
+      );
+
+      const newBooks = await this.studentsDataRepository.query(
+        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false AND created_at >= NOW() - INTERVAL '1 month'`,
+      );
+      const yearlyBorrow = await this.studentsDataRepository.query(
+        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
+          AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
+        [student[0].student_uuid],
+      );
+      const totalBorrowedBooks = await this.studentsDataRepository.query(
+        `SELECT COUNT(*) FROM fees_penalties WHERE is_completed = false AND borrower_uuid = $1 `,
+        [student[0].student_uuid],
+      );
+
+      return {
+        data: {
+          totalBooks: totalBooks[0].count,
+          newBooks: newBooks[0].count,
+          yearlyBorrow: yearlyBorrow[0].count,
+          totalBorrowedBooks: totalBorrowedBooks[0].count,
+        },
+        pagination: null,
       };
     } catch (error) {
       throw error;
@@ -930,167 +1137,6 @@ export class StudentsService {
       );
       return { ...result[0], reviews };
     } catch (error) {
-      throw error;
-    }
-  }
-
-  
-
-  async studentDashboard(user: any) {
-    try {
-      console.log(user);
-      const student = await this.studentsRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id= $1`,
-        [user.student_id],
-      );
-      const totalBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false`,
-      );
-      // const availableBooks = await this.studentsRepository.query(
-      //   `SELECT COUNT(*) FROM book_copies WHERE is_archived = false AND is_available = true`,
-      // );
-      const newBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false AND created_at >= NOW() - INTERVAL '1 month'`,
-      );
-      const yearlyBorrow = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
-   AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
-        [student[0].student_uuid],
-      );
-      const totalBorrowedBooks = await this.studentsRepository.query(
-        `SELECT COUNT(*) FROM fees_penalties WHERE is_completed = false AND borrower_uuid = $1 `,
-        [student[0].student_uuid],
-      );
-
-      //Asserted a type as UPDATE returns it
-      return {
-        totalBooks: totalBooks[0].count,
-        // availableBooks: availableBooks[0].count,
-        newBooks: newBooks[0].count,
-        yearlyBorrow: yearlyBorrow[0].count,
-        totalBorrowedBooks: totalBorrowedBooks[0].count,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async adminDashboard(
-    instituteUUIDs: string | null,
-  ): Promise<Data<DashboardCardtypes>> {
-    try {
-      if (!instituteUUIDs) {
-        throw new HttpException(
-          'Please Provide atleast one Institute Identifier',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const instituteUUIDsJSON = JSON.parse(instituteUUIDs || '[]');
-
-      const useInstituteFilter =
-        Array.isArray(instituteUUIDsJSON) && instituteUUIDsJSON.length > 0;
-
-      const whereInstituteClause = useInstituteFilter
-        ? `AND institute_uuid = ANY($1)`
-        : '';
-
-      const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
-
-      const totalBooksQuery = `
-        SELECT COUNT(*) 
-          FROM book_copies 
-          WHERE is_archived = false
-          ${whereInstituteClause}
-        `;
-
-      const totalBooks: { count: string }[] =
-        await this.studentsRepository.query(totalBooksQuery, instituteParams);
-
-      // Adjust the query for totalBorrowedBooks
-      const totalBorrowedBooksQuery = `
-        SELECT COUNT(*) 
-          FROM book_logv2 
-          LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
-          WHERE book_copies.is_archived = false
-          ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
-        `;
-
-      const totalBorrowedBooks = await this.studentsRepository.query(
-        totalBorrowedBooksQuery,
-        instituteParams,
-      );
-
-      const totalMembersQuery = `
-      SELECT COUNT(*) 
-        FROM students_table 
-        WHERE is_archived = false
-        ${whereInstituteClause}
-      `;
-
-      const totalMembers = await this.studentsRepository.query(
-        totalMembersQuery,
-        instituteParams,
-      );
-
-      const newBooksQuery = `
-        SELECT COUNT(*) 
-          FROM book_copies 
-          WHERE is_archived = false 
-            AND is_available = true 
-            AND created_at >= NOW() - INTERVAL '1 month'
-        `;
-      const newBooks = await this.studentsRepository.query(newBooksQuery);
-
-      const todayIssuesQuery = `
-        SELECT COUNT(*) 
-          FROM book_logv2 
-          WHERE date >= CURRENT_DATE AND action = 'borrowed'
-        `;
-      const todayIssues = await this.studentsRepository.query(todayIssuesQuery);
-
-      const todayReturnedQuery = `
-        SELECT COUNT(*) 
-          FROM book_logv2 
-          WHERE date >= CURRENT_DATE AND action = 'returned'
-        `;
-      const todayReturned =
-        await this.studentsRepository.query(todayReturnedQuery);
-
-      const overdueQuery = `
-        SELECT COUNT(*) 
-          FROM fees_penalties 
-          WHERE penalty_amount > 0
-        `;
-      const overdues = await this.studentsRepository.query(overdueQuery);
-
-      const trendingQuery = `
-        SELECT COUNT(*) 
-        FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
-      `;
-      const trending = await this.studentsRepository.query(trendingQuery);
-
-      const parseCount = (result: { count: string }[]) =>
-        parseInt(result?.[0]?.count || '0', 10);
-
-      return {
-        data: {
-          totalBooks: parseCount(totalBooks),
-          totalBorrowedBooks: parseCount(totalBorrowedBooks),
-          totalMembers: parseCount(totalMembers),
-          newBooks: parseCount(newBooks),
-          todayIssues: parseCount(todayIssues),
-          todayReturned: parseCount(todayReturned),
-          overdue: parseCount(overdues),
-          trending: parseCount(trending),
-        },
-        pagination: null,
-      };
-    } catch (error) {
-      console.error('Error in adminDashboard:', error);
       throw error;
     }
   }

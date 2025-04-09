@@ -8,3 +8,10 @@ export type DashboardCardtypes = {
   overdue?: number;
   trending?: number;
 };
+
+export type StudentCardtypes = {
+  totalBooks: number;
+  newBooks: number;
+  yearlyBorrow: number;
+  totalBorrowedBooks: number;
+};

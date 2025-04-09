@@ -1,4 +1,5 @@
 import { parentPort, workerData } from 'worker_threads';
+// @ts-ignore
 import { TstudentUUIDZod } from 'src/students/zod-validation/studentuuid-zod';
 import { pool } from '../../pg.connect';
 import { TUpdateResult } from '../student/student-archive-worker';

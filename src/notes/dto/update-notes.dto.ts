@@ -1,26 +1,11 @@
-import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
-import { Notes } from '../entities/notes.entity';
 import { z } from 'zod';
 
-let notesUpdateObject = createObjectOmitProperties(new Notes(), [
-  'notesUUID',
-  'studentUuid',
-  'isApproved',
-  'isArchived',
-  'createdAt',
-  'updatedAt',
-]);
-
 export const updateNotesSchema = z.object({
-  [notesUpdateObject.noteDescription]: z.string(),
-
-  [notesUpdateObject.noteResource]: z.string(),
-
-  [notesUpdateObject.noteTitle]: z.string(),
-
-  [notesUpdateObject.category]: z.string(),
-
-  [notesUpdateObject.author]: z.array(z.string()),
+  noteDescription: z.string().optional(),
+  noteResource: z.string().optional(),
+  noteTitle: z.string().optional(),
+  category: z.string().optional(),
+  author: z.array(z.string()).optional(),
 });
 
 export type TUpdateNotesDTO = z.infer<typeof updateNotesSchema>;
