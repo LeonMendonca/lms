@@ -22,10 +22,10 @@ export function genBookId(prevId: string | null) {
 
 export function genBookId2(instituteCount: string, instituteName: string) {
   let instituteCountAsNum = Number(instituteCount);
-  let instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+  // let instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
   if(!instituteCountAsNum) {
-    return `${instituteNameAbbr}0001`;
+    return `0001`;
   }
   const instituteCountPadstart = String(instituteCountAsNum + 1).padStart(4, '0');
-  return `${instituteNameAbbr}${instituteCountPadstart}`;
+  return `${instituteCountPadstart}`;
 }

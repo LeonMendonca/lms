@@ -13,6 +13,7 @@ import { TUpdatebookZodDTO } from './zod/updatebookdto';
 import { TCreateBooklogDTO } from 'src/book_log/zod/createbooklog';
 import { student, Students, TStudents } from 'src/students/students.entity';
 import { Booklog_v2, booklogV2, TBooklog_v2 } from './entity/book_logv2.entity';
+// @ts-ignore
 import { genBookId, genBookId2 } from './create-book-id';
 import { TupdatearchiveZodDTO } from './zod/uarchive';
 import { TRestoreZodDTO } from './zod/restorearchive';

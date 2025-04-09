@@ -25,6 +25,7 @@ import { TUpdatePeriodicalDTO } from './zod-validation/update-journacopydto-zod'
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
+// @ts-ignore
 import { genIdForTitle } from './id-generation/create-periodical_title-id';
 import { create } from 'domain';
 import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';

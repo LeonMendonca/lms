@@ -34,6 +34,7 @@ import { InquireLogs } from './students/entities/inquire-logs';
 import { StudentNotifyModule } from './student-notify/student-notify.module';
 import { StudentNotification } from './student-notify/entities/student-notify.entity';
 import { UserAccessToken } from './user/entity/user-access.entity';
+import { StudentsData } from './students/entities/student.entity';
 
 config({ path: '.env' });
 @Module({
@@ -42,32 +43,35 @@ config({ path: '.env' });
       type: 'postgres',
       url: process.env.DB_URL,
       entities: [
-        Students,
         UserPreference,
-        BookCopy,
-        BookTitle,
-        VisitLog,
-        FeesPenalties,
-        RequestBook,
-        BookCopy,
-        BookTitle,
-        Booklog_v2,
-        StudentsVisitKey,
-        Review,
-        JournalLogs, 
-        JournalCopy, 
-        JournalTitle, 
-        Calendar, 
+        UserAccessToken,
         LibraryConfig,
-        InstituteConfig,
-        Calendar,
-        Notes,
-        InquireLogs,
-        StudentNotification,
-        UserAccessToken
+        StudentsData,
+
+
+        // Students,
+        // BookCopy,
+        // BookTitle,
+        // VisitLog,
+        // FeesPenalties,
+        // RequestBook,
+        // BookCopy,
+        // BookTitle,
+        // // Booklog_v2,
+        // StudentsVisitKey,
+        // Review,
+        // // JournalLogs, 
+        // JournalCopy, 
+        // JournalTitle, 
+        // Calendar, 
+        // InstituteConfig,
+        // Calendar,
+        // Notes,
+        // InquireLogs,
+        // StudentNotification,
       ],
       ssl: true,
-      synchronize: false,
+      synchronize: true,
     }),
     StudentsModule,
     BooksV2Module,

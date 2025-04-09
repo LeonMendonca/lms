@@ -21,22 +21,22 @@ export function createStudentId2(
   instituteName: string,
   department: string
 ) {
-  const institute_name = instituteName.trim().split(" ")
-    .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
-    .join("");
+  // const institute_name = instituteName.trim().split(" ")
+  //   .map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0]: "")
+  //   .join("");
 
-  const dept = department.trim().split(" ")
-  .map((item) => (item[0] === item[0].toUpperCase()) ? item[0]: "")
-  .join(""); 
+  // const dept = department.trim().split(" ")
+  // .map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0]: "")
+  // .join(""); 
 
   if (!count) {
-    return `${institute_name}001/${dept}${deptcount}`
+    return `001/${deptcount}`
   }
   if (!deptcount) {
-    return `${institute_name}${count}/${dept}001`  }
+    return `${count}/001`  }
 
   if (!count && !deptcount) {
-    return `${institute_name}001/${dept}001 `
+    return `001/001 `
   }
   const splitMaxId = count.split('/');
   let maxIdToNumber = Number(splitMaxId[0]);
@@ -44,8 +44,8 @@ export function createStudentId2(
   const departmentcount = deptcount.split('/');
   let deptotal = Number(departmentcount[0]);
 
-  // console.log("institute:", institute, "department:", dept);
-  return (`${institute_name}${(maxIdToNumber + 1).toString().padStart(3, '0')}/${dept}${(deptotal + 1).toString().padStart(3, '0')}`)
+  console.log("institute:", "institute", "department:", "dept");
+  return (``)
 }
 
 

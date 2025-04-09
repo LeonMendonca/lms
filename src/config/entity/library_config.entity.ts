@@ -13,20 +13,8 @@ export class LibraryConfig {
 
   @Column({ name: 'instituteUuid', type: 'varchar' })
   instituteUuid: string;
-
-  @Column({ name: 'instituteName', type: 'varchar', length: 255 })
-  instituteName: string;
-
   @Column({ name: 'organisation', type: 'varchar', length: 255 })
   organisation: string;
-
-  @Column({
-    name: 'instituteAbbr',
-    type: 'varchar',
-    length: 255,
-    default: ''
-  })
-  instituteAbbr: string;
 
   @Column({ name: 'maxBooksStudent', type: 'int', default: 1 })
   maxBooksStudent: number;
@@ -38,7 +26,7 @@ export class LibraryConfig {
   maxDaysStudent: number;
 
   @Column({ name: 'maxDaysStaff', type: 'int', default: 7 })
-  maxDaysStaff: number; 
+  maxDaysStaff: number;
 
   @Column({ name: 'lateFeesPerDay', type: 'int', default: 10 })
   lateFeesPerDay: number;
@@ -57,10 +45,18 @@ export class LibraryConfig {
   })
   closingHour: string;
 
-  @CreateDateColumn({ name: 'createdAt' })
+  @Column({
+    name: 'createdAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updatedAt' })
+  @Column({
+    name: 'updatedAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 
   @Column({ name: 'createdByUUID', type: 'uuid', nullable: true })
@@ -69,6 +65,41 @@ export class LibraryConfig {
   @Column({ name: 'isArchived', type: 'boolean', default: false })
   isArchived: boolean;
 
-  @Column({ name: 'emailNotifications', type: 'boolean', default: true })
-  emailNotifications: boolean;
+  @Column({
+    name: 'emailNotificationStudent',
+    type: 'json',
+    default: () => ({
+      bookBorrowing: true,
+      bookReturning: true,
+      checkIn: true,
+      checkOut: true,
+      penalties: false,
+    }),
+  })
+  emailNotificationStudent: {
+    bookBorrowing: boolean;
+    bookReturning: boolean;
+    checkIn: boolean;
+    checkOut: boolean;
+    penalties: boolean;
+  };
+
+  @Column({
+    name: 'emailNotificationAdmin',
+    type: 'json',
+    default: () => ({
+      bookBorrowing: true,
+      bookReturning: true,
+      checkIn: true,
+      checkOut: true,
+      penalties: false,
+    }),
+  })
+  emailNotificationAdmin: {
+    bookBorrowing: boolean;
+    bookReturning: boolean;
+    checkIn: boolean;
+    checkOut: boolean;
+    penalties: boolean;
+  };
 }

@@ -23,10 +23,7 @@ import { studentQuerySchema } from './zod-validation/studentquery-zod';
 import type { UnionStudent } from './students.query-validator';
 import { StudentQueryValidator } from './students.query-validator';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-import {
-  createStudentSchema,
-  TCreateStudentDTO,
-} from './zod-validation/createstudents-zod';
+
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import {
   editStudentSchema,
@@ -50,6 +47,8 @@ import {
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 import { DashboardCardtypes } from 'types/dashboard';
+import { StudentsData } from './entities/student.entity';
+import { createStudentSchema, TCreateStudentDTO } from './dto/student-create.dto';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -69,6 +68,52 @@ export class StudentsController {
     private readonly notifyService: StudentNotifyService,
   ) {}
 
+  @Post()
+  @UsePipes(new bodyValidationPipe(createStudentSchema))
+  @HttpCode(HttpStatus.CREATED)
+  async createStudent(
+    @Body() studentPayload: TCreateStudentDTO,
+  ): Promise<ApiResponse<StudentsData>> {
+    try {
+      const { data } = await this.studentsService.createStudent(studentPayload);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  @Get('departments')
+  async getAllDepartments(): Promise<ApiResponse<string[]>> {
+    try {
+      const { data } = await this.studentsService.getAllDepartments();
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
   protected async fetchData<T>(method: Function, ...args: any[]): Promise<T> {
     try {
       const response = await method(...args);
@@ -76,7 +121,10 @@ export class StudentsController {
     } catch (error) {
       // Handle errors appropriately
       if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
       throw error;
     }
@@ -112,13 +160,15 @@ export class StudentsController {
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
     @Query('_institute_uuid') institute_uuid: string,
   ): Promise<ApiResponse<Students[]>> {
-    console.log({institute_uuid});
+    console.log({ institute_uuid });
     const { data, pagination } = await this.studentsService.findAllStudents({
       ...query,
       institute_uuid: JSON.parse(`["${institute_uuid}"]` || '[]'),
     });
     return {
       success: true,
+
+      //@ts-ignore
       data,
       pagination,
     };
@@ -134,53 +184,6 @@ export class StudentsController {
       } else {
         throw new HttpException('No user found', HttpStatus.NOT_FOUND);
       }
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  @Get('departments')
-  async getAllDepartments() {
-    try {
-      const result = await this.studentsService.getAllDepartments();
-      if (result) {
-        return result;
-      } else {
-        throw new HttpException('No department found', HttpStatus.NOT_FOUND);
-      }
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  @Post('create')
-  @UsePipes(new bodyValidationPipe(createStudentSchema))
-  @HttpCode(HttpStatus.CREATED)
-  async createStudent(
-    @Body() studentPayload: TCreateStudentDTO,
-  ): Promise<ApiResponse<TStudents>> {
-    try {
-      const data: TStudents =
-        await this.studentsService.createStudent(studentPayload);
-      return {
-        success: true,
-        data,
-        pagination: null,
-      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -602,7 +605,7 @@ export class StudentsController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
- 
+
   @Post('visitlog')
   async visitlog(@Body() createvlogpayload: TVisit_log) {
     try {
@@ -656,6 +659,7 @@ export class StudentsController {
   @UsePipes(new bodyValidationPipe(studentCredZodSchema))
   async studentLogin(@Body() studentCredPayload: TStudentCredZodType) {
     try {
+      // @ts-ignore
       return await this.studentsService.studentLogin(studentCredPayload);
     } catch (error) {
       if (!(error instanceof HttpException)) {

@@ -3,10 +3,9 @@ import { ConfigService } from './config.service';
 import { ConfigController } from './config.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LibraryConfig } from './entity/library_config.entity';
-import { InstituteConfig } from './entity/institute_config.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LibraryConfig, InstituteConfig])],
+  imports: [TypeOrmModule.forFeature([LibraryConfig])],
   providers: [ConfigService],
   controllers: [ConfigController]
 })

@@ -12,9 +12,10 @@ import { Booklog } from 'src/book_log/book_log.entity';
 import { Students } from 'src/students/students.entity';
 import { StudentsService } from 'src/students/students.service';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
+import { StudentsData } from 'src/students/entities/student.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FeesPenalties, JournalCopy, JournalTitle, JournalLogs, BookCopy, BookTitle, Booklog, Students])],
+  imports: [TypeOrmModule.forFeature([FeesPenalties, JournalCopy, JournalTitle, JournalLogs, BookCopy, BookTitle, Booklog, Students, StudentsData])],
   controllers: [FeesPenaltiesController],
   providers: [FeesPenaltiesService, StudentsService, QueryBuilderService]
 })

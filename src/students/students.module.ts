@@ -6,9 +6,10 @@ import { Students } from './students.entity';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { StudentNotification } from 'src/student-notify/entities/student-notify.entity';
+import { StudentsData } from './entities/student.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Students, StudentNotification])],
+  imports: [TypeOrmModule.forFeature([Students, StudentNotification, StudentsData])],
   controllers: [StudentsController],
   providers: [StudentsService, QueryBuilderService, StudentNotifyService],
   exports: [StudentsService],

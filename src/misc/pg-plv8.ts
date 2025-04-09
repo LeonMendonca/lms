@@ -7,7 +7,7 @@ CREATE EXTENSION plv8;
 const createStudentId = `
 CREATE OR REPLACE FUNCTION create_student_id()
   RETURNS TRIGGER AS $$
-  
+
   const instituteName = NEW.institute_name;
   const departmentName = NEW.department;
 
@@ -24,8 +24,8 @@ CREATE OR REPLACE FUNCTION create_student_id()
   const instituteCountPadstart = String(instituteCountAsNum).padStart(3, '0');
   const deptCountPadstart = String(deptCountAsNum).padStart(3, '0');
 
-  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
-  const deptNameAbbr = departmentName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
+  const deptNameAbbr = departmentName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
 
   const studentId = instituteNameAbbr+instituteCountPadstart+'/'+deptNameAbbr+deptCountPadstart;
 
@@ -41,12 +41,13 @@ $$ LANGUAGE plv8;
 const createCopiesId = `
 CREATE OR REPLACE FUNCTION get_book_copies_id()
 RETURNS TRIGGER AS $$
+
   const instituteName = NEW.institute_name
   const instituteCount = plv8.execute('SELECT COUNT(book_copy_id) FROM book_copies WHERE institute_name = $1', [instituteName])[0].count
   const instituteCountAsNum = Number(instituteCount) + 1;
 
   let bookCopyId = ''
-  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
 
   const instituteCountPadstart = String(instituteCountAsNum).padStart(4, '0');
   bookCopyId = instituteNameAbbr+instituteCountPadstart
@@ -55,11 +56,12 @@ RETURNS TRIGGER AS $$
 
   return NEW;
 $$ LANGUAGE plv8;
-`
+`;
 
 const createTitleId = `
 CREATE OR REPLACE FUNCTION create_book_titles_id()
 RETURNS TRIGGER AS $$
+
   const alphabetArr = [
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' 
@@ -93,7 +95,7 @@ RETURNS TRIGGER AS $$
 
   return NEW;
 $$ LANGUAGE plv8;
-`
+`;
 
 const updateStudentId = `
 CREATE OR REPLACE FUNCTION update_student_id() 
@@ -115,19 +117,20 @@ CREATE OR REPLACE FUNCTION update_student_id()
   const instituteCountPadstart = String(instituteCountAsNum).padStart(3, '0');
   const deptCountPadstart = String(deptCountAsNum).padStart(3, '0');
 
-  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
-  const deptNameAbbr = departmentName.split(" ").map((item) => (item[0] === item[0].toUpperCase()) ? item[0] : "").join("");
+  const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
+  const deptNameAbbr = departmentName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
 
   const studentId = instituteNameAbbr+instituteCountPadstart+'/'+deptNameAbbr+deptCountPadstart;
 
   plv8.execute('UPDATE students_table SET student_id = $1 WHERE student_uuid = $2', [studentId, OLD.student_uuid]);
 
 $$ LANGUAGE plv8;
-`
+`;
 
 const createJournalTitleIdFunction = `
 CREATE OR REPLACE FUNCTION generate_journal_title_id()
 RETURNS TRIGGER AS $$
+
   const instituteUUID = NEW.institute_uuid;
 
   const abbrResult = plv8.execute(
@@ -156,10 +159,10 @@ RETURNS TRIGGER AS $$
 $$ LANGUAGE plv8;
 `;
 
-
 const createJournalCopyId = `
 CREATE OR REPLACE FUNCTION generate_journal_copy_id()
 RETURNS TRIGGER AS $$
+
   const journalTitleUUID = NEW.journal_title_uuid;
 
   const titleResult = plv8.execute(
@@ -187,14 +190,13 @@ RETURNS TRIGGER AS $$
 $$ LANGUAGE plv8;
 `;
 
-
 const triggerUpdateStudentId = `
 CREATE OR REPLACE TRIGGER trigger_stup
 AFTER UPDATE OF department ON students_table
 FOR EACH ROW
 WHEN (OLD.department IS DISTINCT FROM NEW.department)
 EXECUTE PROCEDURE update_student_id()
-`
+`;
 
 const triggerCreateStudentId = `
 CREATE OR REPLACE TRIGGER trigger_stu
@@ -208,15 +210,14 @@ CREATE OR REPLACE TRIGGER trigger_bc
 After INSERT ON book_copies
 FOR EACH ROW
 EXECUTE FUNCTION get_book_copies_id();
-`
+`;
 
 const triggerCreateBookTitleId = `
 CREATE OR REPLACE TRIGGER trigger_bt
 AFTER INSERT ON book_titles
 FOR EACH ROW
 EXECUTE PROCEDURE create_book_titles_id()
-`
-
+`;
 
 const triggerCreateJournalTitleId = `
 DO $$
@@ -232,9 +233,7 @@ BEGIN
 END$$;
 `;
 
-
 const triggerCreateJournalCopyId = `
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -246,9 +245,7 @@ BEGIN
     EXECUTE FUNCTION generate_journal_copy_id();
   END IF;
 END$$;
-
-
-`
+`;
 
 export async function pgPLV8() {
   try {
@@ -277,14 +274,12 @@ export async function pgPLV8() {
     await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
     await clientTriggerAndFunction.query(triggerUpdateStudentId);
 
-
     // periodical id
     await clientTriggerAndFunction.query(createJournalTitleIdFunction);
     await clientTriggerAndFunction.query(triggerCreateJournalTitleId);
 
     await clientTriggerAndFunction.query(createJournalCopyId);
     await clientTriggerAndFunction.query(triggerCreateJournalCopyId);
-
 
     clientTriggerAndFunction.on('error', (err) => {
       console.log(err.message);

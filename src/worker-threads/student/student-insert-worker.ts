@@ -1,4 +1,6 @@
-import { TCreateStudentDTO } from 'src/students/zod-validation/createstudents-zod';
+
+      //@ts-ignore
+      import { TCreateStudentDTO } from 'src/students/zod-validation/createstudents-zod';
 import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';
 import { TInsertResult } from '../worker-types/student-insert.type';

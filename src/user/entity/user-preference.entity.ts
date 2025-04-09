@@ -20,9 +20,17 @@ export class UserPreference {
   @Column({ name: 'dark_mode', type: 'boolean', default: false })
   darkMode: boolean;
 
-  @CreateDateColumn({ name: 'createdAt' })
+  @Column({
+    name: 'createdAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updatedAt' })
+  @Column({
+    name: 'updatedAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 }

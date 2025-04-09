@@ -2,6 +2,8 @@ import { parentPort, workerData } from 'worker_threads';
 import {
   createStudentSchema,
   TCreateStudentDTO,
+  
+      //@ts-ignore
 } from 'src/students/zod-validation/createstudents-zod';
 
 const newArr: TCreateStudentDTO[] = [];

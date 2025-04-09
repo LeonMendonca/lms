@@ -6,9 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StudentsService } from 'src/students/students.service';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { Students } from 'src/students/students.entity';
+import { StudentsData } from 'src/students/entities/student.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([StudentNotification, Students])],
+  imports: [TypeOrmModule.forFeature([StudentNotification, Students, StudentsData])],
   controllers: [StudentNotifyController],
   providers: [StudentNotifyService, StudentsService, QueryBuilderService],
 })

@@ -123,12 +123,6 @@ export class UserService {
         const newInstitute = this.libraryRepository.create({
           organisation: response.data.user.organizationUuid,
           instituteUuid: uuid.uuid,
-          instituteName: response.data.user.institutes.find(
-            (institute) => institute.uuid === uuid.uuid,
-          )?.name,
-          instituteAbbr: response.data.user.institutes.find(
-            (institute) => institute.uuid === uuid.uuid,
-          )?.abbreviation || '',
           createdByUUID: response.data.user.employeeId,
         });
         return newInstitute;
@@ -145,8 +139,20 @@ export class UserService {
         where: { employeeId: response.data.user.employeeId },
       });
 
+      const completeLibraryDetails = libraryDetails.map((library) => ({
+        ...library,
+        instituteName: response.data.user.institutes.find(
+          (institute) => institute.uuid === library.instituteUuid,
+        )?.name,
+        instituteAbbr:response.data.user.institutes.find(
+          (institute) => institute.uuid === library.instituteUuid,
+        )?.abbreviation,
+        instituteHeader: "",
+        instituteLogo: ""
+      }))
+
       return {
-        data: { ...completeUser, ...userPreference, libraryDetails },
+        data: { ...completeUser, ...userPreference, libraryDetails: completeLibraryDetails },
         pagination: null,
         meta: { accessToken: response.data.token },
       };

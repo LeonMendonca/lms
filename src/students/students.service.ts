@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Students, TStudents } from './students.entity';
 import { StudentQueryValidator } from './students.query-validator';
 import type { UnionStudent } from './students.query-validator';
-import { TCreateStudentDTO } from './zod-validation/createstudents-zod';
 import {
   insertQueryHelper,
   updateQueryHelper,
@@ -28,6 +27,9 @@ import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.ty
 import { InquireLogs } from './entities/inquire-logs';
 import { validateTime } from 'src/misc/validate-time-format';
 import { DashboardCardtypes } from 'types/dashboard';
+import { StudentsData } from './entities/student.entity';
+import { TCreateStudentDTO } from './dto/student-create.dto';
+import { hash } from 'bcryptjs';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -51,8 +53,39 @@ export class StudentsService {
     @InjectRepository(Students)
     private studentsRepository: Repository<Students>,
 
+    @InjectRepository(StudentsData)
+    private studentsDataRepository: Repository<StudentsData>,
+
     private readonly queryBuilderService: QueryBuilderService,
   ) {}
+
+  async createStudent(
+    studentPayload: TCreateStudentDTO,
+  ): Promise<Data<StudentsData>> {
+    try {
+      const { mobileNumber, password } = studentPayload;
+      const hashedPassword = password
+        ? await hash(password, 10)
+        : await hash(mobileNumber, 10);
+
+      const newStudent = this.studentsDataRepository.create({
+        ...studentPayload,
+        password: hashedPassword,
+      });
+
+      const savedStudent = await this.studentsDataRepository.save(newStudent);
+
+      return {
+        data: savedStudent,
+        pagination: null,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error} while creating student.`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   async findAllStudents({
     page,
@@ -70,57 +103,84 @@ export class StudentsService {
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
     institute_uuid: string[];
-  }): Promise<DataWithPagination<Students>> {
+  }): Promise<DataWithPagination<StudentsData>> {
     const offset = (page - 1) * limit;
 
-    const params: (string | number)[] = [];
+    const queryBuilder =
+      this.studentsDataRepository.createQueryBuilder('students_info');
 
-    filter.push({
-      field: 'institute_uuid',
-      value: institute_uuid,
-      operator: '=',
+    queryBuilder.andWhere('students_info.isArchived = false');
+
+    if (institute_uuid && institute_uuid.length > 0) {
+      queryBuilder.andWhere(
+        'students_info.instituteUuid IN (:...institute_uuid)',
+        {
+          institute_uuid,
+        },
+      );
+    }
+
+    filter.forEach((filterItem) => {
+      const { field, value, operator } = filterItem;
+      if (operator === 'IN') {
+        queryBuilder.andWhere(`students_info.${field} IN (:...${field})`, {
+          [field]: value,
+        });
+      } else {
+        queryBuilder.andWhere(`students_info.${field} ${operator} :${field}`, {
+          [field]: value,
+        });
+      }
     });
 
-    const whereClauses = this.queryBuilderService.buildWhereClauses(
-      filter,
-      search,
-      params,
-    );
-    const orderByQuery = this.queryBuilderService.buildOrderByClauses(asc, dec);
+    search.forEach((searchItem) => {
+      const { field, value } = searchItem;
+      queryBuilder.andWhere(`students_info.${field} ILIKE :${field}`, {
+        [field]: `%${value}%`,
+      });
+    });
 
-    console.log({ whereClauses, orderByQuery, params });
+    if (asc.length > 0) {
+      asc.forEach((column) => {
+        queryBuilder.addOrderBy(`students_info.${column}`, 'ASC');
+      });
+    }
 
-    const students = await this.studentsRepository.query(
-      `SELECT * FROM students_table ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset],
-    );
+    if (dec.length > 0) {
+      dec.forEach((column) => {
+        queryBuilder.addOrderBy(`students_info.${column}`, 'DESC');
+      });
+    }
 
-    const total = await this.studentsRepository.query(
-      `SELECT COUNT(*) FROM students_table ${whereClauses}`,
-      params,
-    );
+    const total = await queryBuilder.getCount();
+
+    const students = await queryBuilder.skip(offset).take(limit).getMany();
 
     return {
       data: students,
       pagination: {
-        total: parseInt(total[0].count, 10),
+        total,
         page,
         limit,
-        totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
 
-  async getAllDepartments() {
+  async getAllDepartments(): Promise<Data<string[]>> {
     try {
-      console.log('Fetching departments...');
-      const departments = await this.studentsRepository.query(
-        'SELECT DISTINCT department FROM students_table WHERE is_archived = false',
-      );
+      const departments: { department: string }[] =
+        await this.studentsDataRepository
+          .createQueryBuilder('students_info')
+          .select('DISTINCT students_info.department') // Select distinct department
+          .where('students_info.isArchived = :isArchived', {
+            isArchived: false,
+          })
+          .getRawMany();
+
       return {
-        data:
-          departments?.map((dept: { department: string }) => dept.department) ||
-          [],
+        data: departments?.map((dept: { department: string }) => dept.department),
+        pagination: null,
       };
     } catch (error) {
       throw error;
@@ -159,46 +219,6 @@ export class StudentsService {
       return { ...result[0], reviews };
     } catch (error) {
       throw error;
-    }
-  }
-
-  async createStudent(studentPayload: TCreateStudentDTO): Promise<TStudents> {
-    try {
-      let queryData = insertQueryHelper(studentPayload, []);
-      const result: [Pick<TStudents, 'student_uuid'>] = await this.studentsRepository.query(
-        `INSERT INTO students_table (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING student_uuid`,
-        queryData.values,
-      );
-
-      const studentUuid = result[0]?.student_uuid;
-      if (!studentUuid) {
-        throw new HttpException(
-          'Failed to fetch created student',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      const student: TStudents[] = await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE student_uuid = $1`,
-        [studentUuid],
-      );
-
-      if (!student.length) {
-        throw new HttpException(
-          'Student not found after creation',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      delete student[0].password;
-
-      return student[0];
-    } catch (error) {
-      // console.log(error);
-      throw new HttpException(
-        `Error: ${error.message || error} while creating student.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
     }
   }
 
@@ -257,7 +277,7 @@ export class StudentsService {
           HttpStatus.NOT_FOUND,
         );
       }
-      
+
       const student = result[0][0];
       delete student.password;
 
@@ -914,38 +934,7 @@ export class StudentsService {
     }
   }
 
-  async studentLogin(studentCredPayload: TStudentCredZodType) {
-    try {
-      const jwtPayload = await this.studentsRepository.query(
-        `SELECT * FROM students_table WHERE (email = $1 OR student_id = $1) AND password = $2`,
-        [studentCredPayload.email_or_student_id, studentCredPayload.password],
-      );
-
-      if (!jwtPayload.length) {
-        throw new HttpException('Invalid Credential', HttpStatus.FORBIDDEN);
-      }
-
-      const jwtPayloadSelective = {
-        student_id: jwtPayload[0].student_id,
-        email: jwtPayload[0].email,
-      };
-
-      delete jwtPayload[0].password;
-
-      return {
-        token: { accessToken: setTokenFromPayload(jwtPayloadSelective) },
-        user: {
-          ...jwtPayload[0],
-          institute_image:
-            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
-          institute_header:
-            'https://admissionuploads.s3.amazonaws.com/3302d8ef-0a5d-489d-81f9-7b1f689427be_Tia_logo.png',
-        },
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
+  
 
   async studentDashboard(user: any) {
     try {
