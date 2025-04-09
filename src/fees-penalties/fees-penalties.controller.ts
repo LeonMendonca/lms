@@ -19,7 +19,7 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { FeesPenaltiesService } from './fees-penalties.service';
 import { createPenaltyZod, TCreatePenaltyZod } from './zod/create-penalty-zod';
 import { student } from 'src/students/students.entity';
-import { TokenAuthGuard } from 'src/guards/token.guard';
+import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
 
 interface AuthenticatedRequest extends Request {
@@ -68,14 +68,12 @@ export class FeesPenaltiesController {
     @Query('_ispenalised') isPenalty: string,
     @Query('_iscompleted') isCompleted: string,
   ) {
-    const student = await this.studentService.findStudentBy({
-      student_id: req.user.student_id,
-    });
+    const {data: student} = await this.studentService.findStudentBy(req.user.student_id);
     if (!student) {
       throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
     }
     return this.feesPenaltiesService.getStudentFee({
-      studentId: student?.student_uuid ?? '',
+      studentId: student?.studentUuid ?? '',
       isPenalty: JSON.parse(isPenalty || 'false'),
       isCompleted: JSON.parse(isCompleted || 'false'),
     });

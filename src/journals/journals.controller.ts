@@ -37,7 +37,6 @@ import {
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TPeriodicalCopyIdDTO } from './zod-validation/bulk-delete-periodical-copies-zod';
 import { issueLogSchema, TIssueLogDTO } from './zod-validation/issue-zod';
-import { BooksService } from 'src/books/books.service';
 
 @Controller('journals')
 export class JournalsController {

@@ -1,18 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, MoreThan, Repository } from 'typeorm';
-import { Students, TStudents } from './students.entity';
 import { CreateWorker } from 'src/worker-threads/worker-main-thread';
 import { Chunkify } from 'src/worker-threads/chunk-array';
 import { setTokenFromPayload } from 'utils/jwt/jwt-main';
 import { TUpdateResult } from 'src/worker-threads/student/student-archive-worker';
 import { isWithinXMeters } from './utilities/location-calculation';
-import {
-  StudentsVisitKey,
-} from './entities/student-visit-key';
+import { StudentsVisitKey } from './entities/student-visit-key';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { TInsertResult } from 'src/worker-threads/worker-types/student-insert.type';
-import { InquireLogs } from './entities/inquire-logs';
 import { validateTime } from 'src/misc/validate-time-format';
 import {
   DashboardCardtypes,
@@ -46,9 +42,6 @@ export interface Data<T> {
 @Injectable()
 export class StudentsService {
   constructor(
-    @InjectRepository(Students)
-    private studentsRepository: Repository<Students>,
-
     @InjectRepository(StudentsData)
     private studentsDataRepository: Repository<StudentsData>,
 
@@ -272,11 +265,12 @@ export class StudentsService {
     }
   }
 
-  async findStudentBy(studentUuid: string): Promise<Data<StudentsData>> {
+  async findStudentBy(identifier: string): Promise<Data<StudentsData>> {
     try {
       const student = await this.studentsDataRepository
         .createQueryBuilder('student_info')
-        .where('student.studentUuid = :id', { id: studentUuid })
+        .where('student.studentUuid = :identifier', { identifier })
+        .orWhere('student.barcode = :identifier', { identifier })
         .andWhere('student.isArchived = false')
         .getOne();
 
@@ -380,7 +374,7 @@ export class StudentsService {
     }
   }
 
-  // This is in Raw SQL because converting it to SQL would be difficult
+  // TODO: This is in Raw SQL because converting it to SQL would be difficult
   async adminDashboard(
     instituteUuid: string | null,
   ): Promise<Data<DashboardCardtypes>> {
@@ -502,6 +496,88 @@ export class StudentsService {
     }
   }
 
+  // TODO: This is in Raw SQL because converting it to SQL would be difficult
+  async adminDashboardCsvDownload(instituteUUID: string | null, type: string) {
+    try {
+      switch (type) {
+        case 'totalBooks':
+          const totalBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+            FROM book_copies bc LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false
+            ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+          `;
+          const totalBooks = await this.studentsDataRepository.query(
+            totalBooksQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalBooks;
+        case 'borrowedBooks':
+          const totalBorrowedBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available, ip_address, action, description
+            FROM book_logv2 bl
+            LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false
+            ${instituteUUID ? 'AND bc.institute_uuid = $1' : ''}
+          `;
+          const totalBorrowedBooks = await this.studentsDataRepository.query(
+            totalBorrowedBooksQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalBorrowedBooks;
+        case 'totalmembers':
+          const totalMembersQuery = `
+          SELECT studentUuid, barcode, email, firstName, middleName, lastName, courseName, mobileNumber, dateOfBirth, bloodGroup, gender, address, secPhoneNumber, terPhoneNumber,  rollNo, instituteName, department, yearOfAdmission, createdAt, profileImage, updatedAt
+          FROM students_info 
+          WHERE isArchived = false
+          ${instituteUUID ? 'AND institute_uuid = $1' : ''}
+        `;
+          const totalMembers = await this.studentsDataRepository.query(
+            totalMembersQuery,
+            instituteUUID ? [instituteUUID] : [],
+          );
+          return totalMembers;
+        case 'newBooks':
+          const newBooksQuery = `
+            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+            FROM book_copies bc
+            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+            WHERE bc.is_archived = false 
+              AND is_available = true 
+              AND bc.created_at >= NOW() - INTERVAL '1 month'
+          `;
+          return await this.studentsDataRepository.query(newBooksQuery);
+        case 'todayIssues':
+          const todayIssuesQuery = `
+          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+          FROM book_logv2 bl
+          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+          WHERE date >= CURRENT_DATE AND action = 'borrowed'
+        `;
+          return await this.studentsDataRepository.query(todayIssuesQuery);
+        case 'todayReturned':
+          const todayReturnedQuery = ` 
+          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
+          FROM book_logv2 bl
+          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
+          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
+          WHERE date >= CURRENT_DATE AND action = 'returned'
+          `;
+          return await this.studentsDataRepository.query(todayReturnedQuery);
+        case 'overdue':
+          const overdueQuery = `
+          SELECT fp.*, book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,bt.department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, bc.institute_name, bc.created_at, remarks, copy_description, is_available, st.barcode, st.email, st.firstName, st.middleName, st.lastName, st.courseName, st.dateOfBirth, st.gender, st.mobileNumber, st.bloodGroup, st.gender, st.address, st.secPhoneNumber, st.terPhoneNumber, st.rollNo, st.instituteName, st.department AS studentDepartment, st.yearOfAdmission, st.profileImage   FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid LEFT JOIN students_info st ON fp.borrower_uuid = st.studentUuid
+          WHERE penalty_amount > 0`;
+          return await this.studentsDataRepository.query(overdueQuery);
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // TODO: This is in Raw SQL because converting it to SQL would be difficult
   async studentDashboard(user: string): Promise<Data<StudentCardtypes>> {
     try {
       const student = await this.studentsDataRepository.query(
@@ -748,7 +824,120 @@ export class StudentsService {
     }
   }
 
-  // visit log
+  // TYPE ORM doesnt support UNION ALL in query builder, so using raw SQL
+  async getVisitAllLog({
+    page,
+    limit,
+    search,
+    asc,
+    dec,
+    filter,
+    instituteUuid,
+  }: {
+    page: number;
+    limit: number;
+    asc: string[];
+    dec: string[];
+    filter: { field: string; value: (string | number)[]; operator: string }[];
+    search: { field: string; value: string }[];
+    instituteUuid: string[];
+  }): Promise<DataWithPagination<VisitLog>> {
+    try {
+      const offset = (page - 1) * limit;
+
+      const params: (string | number)[] = [];
+
+      filter.push({
+        field: 'instituteUuid',
+        value: instituteUuid,
+        operator: '=',
+      });
+
+      const whereClauses = this.queryBuilderService.buildWhereClauses(
+        filter,
+        search,
+        params,
+      );
+      const orderByQuery = this.queryBuilderService.buildOrderByClauses(
+        asc,
+        (dec = ['logDate']),
+      );
+
+      // Optimized SQL Query with Pagination at Database Level
+      const logs = await this.studentsDataRepository.query(
+        `
+        SELECT * FROM (
+          SELECT 
+            vl.instituteUuid, 
+            vl.visitLogId AS id, 
+            st.barcode As studentId, 
+            NULL AS bookCopy, 
+            NULL AS bookTitle, 
+            vl.action AS action, 
+            NULL AS description, 
+            NULL AS ipAddress, 
+            vl.outTime AS outTime, 
+            st.studentName AS studentName, 
+            vl.inTime AS logDate, 
+            vl.inTime AS timestamp 
+            FROM visit_log vl
+            LEFT JOIN students_info st
+            ON vl.studentUuid = st.studentUuid
+          UNION ALL
+          SELECT 
+            bl.institute_uuid AS instituteUuid,  
+            bl.booklog_uuid AS id, 
+            st.barcode AS studentId, 
+            bl.new_book_copy AS bookCopy, 
+            bl.new_book_title AS bookTitle, 
+            bl.action AS action, 
+            bl.description AS description, 
+            bl.ip_address AS ipAddress,  
+            NULL AS outTime, 
+            st.studentName AS studentName,  
+            date AS logDate, 
+            time AS timestamp 
+          FROM book_logv2 bl 
+          LEFT JOIN students_info st
+          ON st.studentUuid = bl.borrower_uuid
+        ) AS combined_logs
+        ${whereClauses} ${orderByQuery}
+        LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `,
+        [...params, limit, offset],
+      );
+
+      // Fetch total count (for pagination)
+      const total = await this.studentsDataRepository.query(
+        `
+        SELECT COUNT(*) AS total FROM (
+          SELECT instituteUuid, visitLogId AS id FROM visit_log
+          UNION ALL
+          SELECT institute_uuid,  booklog_uuid AS id  FROM book_logv2 
+        ) AS combined_logs ${whereClauses}
+        `,
+        params,
+      );
+
+      const totalCount = parseInt(total[0].total, 10);
+
+      return {
+        data: logs,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async getCompleteVisitLog(
     {
       page,
@@ -772,7 +961,7 @@ export class StudentsService {
       fromTime: undefined,
       toTime: undefined,
     },
-  ) {
+  ): Promise<DataWithPagination<VisitLog>> {
     try {
       const offset = (page - 1) * limit;
 
@@ -801,46 +990,43 @@ export class StudentsService {
         }
       }
 
-      let queryDateAndTime = '';
+      const qb = this.visitLogRepository
+        .createQueryBuilder('visit_log')
+        .select([
+          'visit_log.visitLogId',
+          'visit_log.department',
+          'visit_log.studentUuid',
+          'visit_log.inTime',
+          'visit_log.outTime',
+          'visit_log.studentName',
+        ])
+        .orderBy('visit_log.inTime', 'DESC')
+        .skip(offset)
+        .take(limit);
 
       if (fromDateObj && toDateObj) {
-        queryDateAndTime += `AND in_time BETWEEN '${fromDateObj.toISOString().split('T')[0]}' AND '${toDateObj.toISOString().split('T')[0]}' `;
+        qb.andWhere('DATE(visit_log.inTime) BETWEEN :fromDate AND :toDate', {
+          fromDate: fromDateObj.toISOString().split('T')[0],
+          toDate: toDateObj.toISOString().split('T')[0],
+        });
       }
 
       if (fromTime && toTime) {
-        queryDateAndTime += `
-        AND CAST(in_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}' OR CAST(out_time AS TIME) BETWEEN '${fromTime}' AND '${toTime}'
-        `;
+        qb.andWhere(
+          `(CAST(visit_log.inTime AS TIME) BETWEEN :fromTime AND :toTime OR CAST(visit_log.outTime AS TIME) BETWEEN :fromTime AND :toTime)`,
+          { fromTime, toTime },
+        );
       }
 
-      // Optimized SQL Query with Pagination at Database Level
-      const logs = await this.studentsRepository.query(
-        `
-        SELECT visitlog_id, department, student_id, in_time, out_time, visitor_name AS visitor FROM visit_log WHERE 0=0 ${queryDateAndTime}
-        ORDER BY in_time DESC
-        LIMIT $1 OFFSET $2
-        `,
-        [limit, offset],
-      );
-
-      // Fetch total count (for pagination)
-      const total = await this.studentsRepository.query(
-        `
-        SELECT COUNT(*) FROM visit_log
-        `,
-      );
-
-      const totalCount = parseInt(total[0].count, 10);
-
-      // console.log({ totalCount, logs });
+      const [logs, total] = await qb.getManyAndCount();
 
       return {
         data: logs,
         pagination: {
-          total: totalCount ?? 0,
+          total,
           page,
           limit,
-          totalPages: Math.ceil(totalCount / limit) ?? 0,
+          totalPages: Math.ceil(total / limit),
         },
       };
     } catch (error) {
@@ -848,31 +1034,32 @@ export class StudentsService {
     }
   }
 
-  async getVisitAllLog({
+
+  // TYPE ORM doesnt support UNION ALL in query builder, so using raw SQL
+  async getVisitLogByStudentUUID({
+    studentUuid,
     page,
     limit,
     search,
     asc,
     dec,
     filter,
-    institute_uuid,
   }: {
+    studentUuid: string;
     page: number;
     limit: number;
     asc: string[];
     dec: string[];
     filter: { field: string; value: (string | number)[]; operator: string }[];
     search: { field: string; value: string }[];
-    institute_uuid: string[];
   }) {
     try {
       const offset = (page - 1) * limit;
-
       const params: (string | number)[] = [];
 
       filter.push({
-        field: 'institute_uuid',
-        value: institute_uuid,
+        field: 'studentUuid',
+        value: [studentUuid],
         operator: '=',
       });
 
@@ -883,89 +1070,56 @@ export class StudentsService {
       );
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        (dec = ['log_date']),
+        (dec = ['logDate']),
       );
 
-      // Optimized SQL Query with Pagination at Database Level
-      const logs = await this.studentsRepository.query(
+      const visitLogs = await this.studentsDataRepository.query(
         `
-        SELECT * FROM (
-          SELECT institute_uuid, visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, visitor_name AS visitor, in_time AS log_date, in_time AS timestamp FROM visit_log
-          UNION ALL
-          SELECT bl.institute_uuid ,  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address,  NULL AS out_time, st.student_name AS visitor,  date AS log_date, time AS timestamp FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid
-        ) AS combined_logs
-        ${whereClauses} ${orderByQuery}
+          SELECT * FROM (
+            SELECT 
+              vl.visitLogId AS id, 
+              st.barcode As studentId, 
+              NULL AS bookCopy, 
+              NULL AS bookTitle, 
+              vl.action AS action, 
+              NULL AS description, 
+              NULL AS ipAddress, 
+              vl.outTime AS outTime, 
+              st.studentName AS studentName, 
+              vl.inTime AS logDate, 
+              vl.inTime AS timestamp,
+              vl.studentUuid AS studentUuid
+              FROM visit_log vl
+              LEFT JOIN students_info st
+              ON vl.studentUuid = st.studentUuid 
+            UNION ALL
+            SELECT  
+              bl.booklog_uuid AS id, 
+              st.barcode AS studentId, 
+              bl.new_book_copy AS bookCopy, 
+              bl.new_book_title AS bookTitle, 
+              bl.action AS action,  
+              bl.description AS description, 
+              bl.ip_address AS ipAddress,  
+              NULL AS outTime, 
+              st.studentName AS studentName,  
+              date AS logDate, 
+              bl.borrower_uuid AS studentUuid
+              time AS timestamp 
+              FROM book_logv2 bl LEFT JOIN students_info st ON st.studentUuid = bl.borrower_uuid
+          ) AS combined_logs
+          ${whereClauses} ${orderByQuery}
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `,
         [...params, limit, offset],
       );
-
-      // Fetch total count (for pagination)
-      const total = await this.studentsRepository.query(
-        `
-        SELECT COUNT(*) AS total FROM (
-          SELECT institute_uuid, visitlog_id AS id FROM visit_log
-          UNION ALL
-          SELECT institute_uuid,  booklog_uuid AS id  FROM book_logv2 
-        ) AS combined_logs ${whereClauses}
-        `,
-        params,
-      );
-
-      console.log('Total is', total);
-
-      const totalCount = parseInt(total[0].total, 10);
-
-      return {
-        data: logs,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error}, something went wrong in fetching all logs!`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  //
-
-  async getVisitLogByStudentUUID({
-    student_id,
-    page,
-    limit,
-  }: {
-    student_id: string;
-    page: number;
-    limit: number;
-  }) {
-    try {
-      const offset = (page - 1) * limit;
-      const visitLogs = await this.studentsRepository.query(
-        `
-          SELECT * FROM (
-            SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, in_time AS log_date FROM visit_log WHERE student_uuid = $1
-            UNION ALL
-            SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address, NULL AS out_time,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid  WHERE borrower_uuid = $1
-          ) AS combined_logs
-          ORDER BY log_date DESC
-          LIMIT $2 OFFSET $3
-        `,
-        [student_id, limit, offset],
-      );
-      console.log(visitLogs);
-      const totalResult = await this.studentsRepository.query(
+      const totalResult = await this.studentsDataRepository.query(
         `SELECT COUNT(*) FROM (
-            SELECT visitlog_id AS id, student_id As student_id, NULL AS book_copy, NULL AS book_title, action AS action, NULL AS description, NULL AS ip_address, out_time AS out_time, in_time AS log_date FROM visit_log WHERE student_uuid = $1
+            SELECT visitLogId AS id, bl.studentUuid AS studentUuid FROM visit_log
             UNION ALL
-            SELECT  bl.booklog_uuid AS id, st.student_id AS student_id, bl.new_book_copy AS book_copy, bl.new_book_title AS book_title, bl.action AS action, bl.description AS description, bl.ip_address AS ip_address, NULL AS out_time,  date AS log_date FROM book_logv2 bl LEFT JOIN students_table st ON st.student_uuid = bl.borrower_uuid  WHERE borrower_uuid = $1
-          ) AS combined_logs2`,
-        [student_id],
+            SELECT  bl.booklog_uuid AS id, bl.borrower_uuid AS studentUuid FROM book_logv2
+          ) AS combined_logs2 ${whereClauses}`,
+        params,
       );
       if (visitLogs.length === 0) {
         throw new HttpException('no log data found', HttpStatus.NOT_FOUND);
@@ -984,256 +1138,6 @@ export class StudentsService {
         `Error: ${error.message} - Invalid student_id`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
-    }
-  }
-
-  async reportInquiryLog({
-    student,
-    type,
-    inquiryUuid,
-  }: {
-    student: any;
-    type: string;
-    inquiryUuid: string;
-  }): Promise<Data<InquireLogs>> {
-    try {
-      const result: InquireLogs[] = await this.studentsRepository.query(
-        `INSERT INTO inquire_logs (student_uuid, inquiry_type, inquiry_uuid) VALUES ($1, $2, $3) RETURNING *`,
-        [student.student_uuid, type, inquiryUuid],
-      );
-
-      if (!result.length) {
-        throw new HttpException(
-          'Failed to create visit log entry',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      return {
-        data: result[0],
-        pagination: null,
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error} while processing visit log entry.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async inquiryLogAction({
-    type,
-    report_uuid,
-  }: {
-    type: string;
-    report_uuid: string;
-  }): Promise<Data<{ success: boolean }>> {
-    try {
-      switch (type) {
-        case 'approve':
-          await this.studentsRepository.query(
-            `UPDATE inquire_logs SET is_resolved = true WHERE report_uuid = $1`,
-            [report_uuid],
-          );
-          break;
-        case 'reject':
-          await this.studentsRepository.query(
-            `UPDATE inquire_logs SET is_archived = true WHERE report_uuid = $1`,
-            [report_uuid],
-          );
-          break;
-      }
-      const meta: TStudents[] = await this.studentsRepository.query(
-        `SELECT inquiry_type, student_uuid FROM inquire_logs  WHERE report_uuid = $1`,
-        [report_uuid],
-      );
-      return {
-        data: { success: true },
-        pagination: null,
-        meta: meta[0],
-      };
-    } catch (error) {
-      throw new HttpException(
-        `Error: ${error.message || error} while processing visit log entry.`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async getInquiryLogByStudentUUID({
-    student_uuid,
-    page,
-    limit,
-  }: {
-    student_uuid: string;
-    page: number;
-    limit: number;
-  }) {
-    try {
-      const offset = (page - 1) * limit;
-      const inquiryLogs = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE student_uuid = $1 AND is_archived = false ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-        [student_uuid, limit, offset],
-      );
-
-      const total = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE student_uuid = $1 AND is_archived = false `,
-        [student_uuid],
-      );
-
-      if (inquiryLogs.length === 0) {
-        throw new HttpException(
-          'No inquiry log data found',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      return {
-        data: inquiryLogs,
-        pagination: {
-          total: total.length,
-          page,
-          limit,
-          totalPages: Math.ceil(total.length / limit),
-        },
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async getAllInquiry({ page, limit }: { page: number; limit: number }) {
-    try {
-      const offset = (page - 1) * limit;
-      const inquiryLogs = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE is_archived = false ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-
-      const total = await this.studentsRepository.query(
-        `SELECT * FROM inquire_logs WHERE is_archived = false `,
-      );
-
-      if (inquiryLogs.length === 0) {
-        throw new HttpException(
-          'No inquiry log data found',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      return {
-        data: inquiryLogs,
-        pagination: {
-          total: total.length,
-          page,
-          limit,
-          totalPages: Math.ceil(total.length / limit),
-        },
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async studentProfile(student_id: string) {
-    try {
-      const result = await this.studentsRepository.query(
-        `SELECT student_uuid, student_name, department, email, roll_no, year_of_admission, phone_no, address FROM students_table WHERE student_id= $1`,
-        [student_id],
-      );
-      if (result.length === 0) {
-        throw new HttpException(
-          'invalid Student ID !!',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const reviews = await this.studentsRepository.query(
-        `SELECT * FROM reviews WHERE student_uuid = '${result[0].student_uuid}' AND is_archived = false`,
-      );
-      return { ...result[0], reviews };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async adminDashboardCsvDownload(instituteUUID: string | null, type: string) {
-    try {
-      switch (type) {
-        case 'totalBooks':
-          const totalBooksQuery = `
-            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
-            FROM book_copies bc LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-            WHERE bc.is_archived = false
-            ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-          `;
-          const totalBooks = await this.studentsRepository.query(
-            totalBooksQuery,
-            instituteUUID ? [instituteUUID] : [],
-          );
-          return totalBooks;
-        case 'borrowedBooks':
-          const totalBorrowedBooksQuery = `
-            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available, ip_address, action, description
-            FROM book_logv2 bl
-            LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
-            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-            WHERE bc.is_archived = false
-            ${instituteUUID ? 'AND bc.institute_uuid = $1' : ''}
-          `;
-          const totalBorrowedBooks = await this.studentsRepository.query(
-            totalBorrowedBooksQuery,
-            instituteUUID ? [instituteUUID] : [],
-          );
-          return totalBorrowedBooks;
-        case 'totalmembers':
-          const totalMembersQuery = `
-          SELECT student_id, email, student_name, date_of_birth, gender, roll_no, institute_name, phone_no, address, department, year_of_admission, image_field, created_at
-          FROM students_table 
-          WHERE is_archived = false
-          ${instituteUUID ? 'AND institute_uuid = $1' : ''}
-        `;
-          const totalMembers = await this.studentsRepository.query(
-            totalMembersQuery,
-            instituteUUID ? [instituteUUID] : [],
-          );
-          return totalMembers;
-        case 'newBooks':
-          const newBooksQuery = `
-            SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
-            FROM book_copies bc
-            LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-            WHERE bc.is_archived = false 
-              AND is_available = true 
-              AND bc.created_at >= NOW() - INTERVAL '1 month'
-          `;
-          return await this.studentsRepository.query(newBooksQuery);
-        case 'todayIssues':
-          const todayIssuesQuery = `
-          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
-          FROM book_logv2 bl
-          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
-          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-          WHERE date >= CURRENT_DATE AND action = 'borrowed'
-        `;
-          return await this.studentsRepository.query(todayIssuesQuery);
-        case 'todayReturned':
-          const todayReturnedQuery = ` 
-          SELECT book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, institute_name, bc.created_at, remarks, copy_description, is_available 
-          FROM book_logv2 bl
-          LEFT JOIN book_copies bc ON bl.book_copy_uuid = bc.book_copy_uuid 
-          LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid
-          WHERE date >= CURRENT_DATE AND action = 'returned'
-          `;
-          return await this.studentsRepository.query(todayReturnedQuery);
-        case 'overdue':
-          const overdueQuery = `
-          SELECT fp.*, book_title_id,book_title,book_author,name_of_publisher,place_of_publication,year_of_publication,edition,isbn,no_of_pages,no_of_preliminary, subject,bt.department, call_number, author_mark,title_description, book_copy_id,  source_of_acquisition, date_of_acquisition, bill_no, language, inventory_number, accession_number, barcode, item_type, bc.institute_name, bc.created_at, remarks, copy_description, is_available, st.student_id, st.email, st.student_name, st.date_of_birth, st.gender, st.roll_no, st.institute_name, st.phone_no, st.address, st.department AS student_department, st.year_of_admission   FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN book_titles bt ON bc.book_title_uuid = bt.book_uuid LEFT JOIN students_table st ON fp.borrower_uuid = st.student_uuid
-          WHERE penalty_amount > 0`;
-          return await this.studentsRepository.query(overdueQuery);
-      }
-    } catch (error) {
-      throw error;
     }
   }
 }

@@ -5,7 +5,6 @@ import { Students } from './students/students.entity';
 import { StudentsModule } from './students/students.module';
 import { BookCopy } from './books_v2/entity/books_v2.copies.entity';
 import { BooksV2Module } from './books_v2/books_v2.module';
-import { BookLogModule } from './book_log/book_log.module';
 import { JournalsModule } from './journals/journals.module';
 import { JournalCopy } from './journals/entity/journals_copy.entity';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -28,12 +27,12 @@ import { UserModule } from './user/user.module';
 import { UserPreference } from './user/entity/user-preference.entity';
 import { Notes } from './notes/entities/notes.entity';
 import { NotesModule } from './notes/notes.module';
-import { InquireLogs } from './students/entities/inquire-logs';
 import { StudentNotifyModule } from './student-notify/student-notify.module';
 import { StudentNotification } from './student-notify/entities/student-notify.entity';
 import { UserAccessToken } from './user/entity/user-access.entity';
 import { StudentsData } from './students/entities/student.entity';
 import { InquiryModule } from './inquiry/inquiry.module';
+import { InquireLogs } from './inquiry/entities/inquire-logs';
 
 config({ path: '.env' });
 @Module({
@@ -49,33 +48,32 @@ config({ path: '.env' });
 
 
         Students,
-        BookCopy,
-        BookTitle,
+        // BookCopy,
+        // BookTitle,
         VisitLog,
         FeesPenalties,
-        RequestBook,
-        BookCopy,
-        BookTitle,
-        Booklog_v2,
+        // RequestBook,
+        // BookCopy,
+        // BookTitle,
+        // Booklog_v2,
         StudentsVisitKey,
         Review,
-        JournalLogs, 
-        JournalCopy, 
-        JournalTitle, 
+        // JournalLogs, 
+        // JournalCopy, 
+        // JournalTitle, 
         InstituteConfig,
         Notes,
         InquireLogs,
         StudentNotification,
       ],
       ssl: true,
-      synchronize: false,
+      synchronize: true,
     }),
     StudentsModule,
-    BooksV2Module,
-    BookLogModule,
-    JournalsModule,
+    // BooksV2Module,
+    // JournalsModule,
     NotificationsModule,
-    FeesPenaltiesModule,
+    // FeesPenaltiesModule,
     ConfigModule,
     CsvModule,
     ReviewsModule,

@@ -14,15 +14,11 @@ import {
   UseGuards,
   HttpCode,
   Request,
-  Patch,
 } from '@nestjs/common';
-
 import { StudentsService } from './students.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-
 import { putBodyValidationPipe } from 'src/pipes/put-body-validation.pipe';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
-import { TVisit_log } from './zod-validation/visitlog';
 import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { StudentsVisitKey } from './entities/student-visit-key';
 import {
@@ -30,7 +26,6 @@ import {
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
-import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 import {
   DashboardCardtypes,
   StudentCardtypes,
@@ -293,30 +288,13 @@ export class StudentsController {
     }
   }
 
-  protected async fetchData<T>(method: Function, ...args: any[]): Promise<T> {
-    try {
-      const response = await method(...args);
-      return response.data;
-    } catch (error) {
-      // Handle errors appropriately
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
   @Get('admin-dashboard')
   async adminDashboard(
-    @Query('_institute_uuid') institute_uuid: string | null,
+    @Query('_institute_uuid') instituteUuid: string | null,
   ): Promise<ApiResponse<DashboardCardtypes>> {
     // return this.fetchData(this.studentsService.adminDashboard, institute_uuid);
     try {
-      const { data } =
-        await this.studentsService.adminDashboard(institute_uuid);
+      const { data } = await this.studentsService.adminDashboard(instituteUuid);
       return {
         data,
         success: true,
@@ -339,8 +317,9 @@ export class StudentsController {
     @Request() req: AuthenticatedRequest,
   ): Promise<ApiResponse<StudentCardtypes>> {
     try {
-      const user = req.user.studentUuid;
-      const { data } = await this.studentsService.studentDashboard(user);
+      const { data } = await this.studentsService.studentDashboard(
+        req.user.studentUuid,
+      );
       return {
         data,
         pagination: null,
@@ -417,7 +396,7 @@ export class StudentsController {
         success: true,
         data,
         pagination: null,
-        meta
+        meta,
       };
     } catch (error) {
       if (!(error instanceof HttpException)) {
@@ -437,14 +416,25 @@ export class StudentsController {
     // @Request() req: AuthenticatedRequest,
     @Query('_institute_uuid') institute_uuid: string,
     @Query(new ParsePaginationPipe()) query: PaginationParserType,
-  ) {
+  ): Promise<ApiResponse<VisitLog[]>> {
     try {
-      return await this.studentsService.getVisitAllLog({
+      const { data, pagination } = await this.studentsService.getVisitAllLog({
         ...query,
-        institute_uuid: JSON.parse(institute_uuid || '[]'),
+        instituteUuid: JSON.parse(institute_uuid || '[]'),
       });
+      return {
+        data,
+        pagination,
+        success: true,
+      };
     } catch (error) {
-      console.log(error);
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
     }
   }
 
@@ -459,16 +449,22 @@ export class StudentsController {
 
     @Query('_from_time') fromTime: string,
     @Query('_to_time') toTime: string,
-  ) {
+  ): Promise<ApiResponse<VisitLog[]>> {
     try {
-      return await this.studentsService.getCompleteVisitLog({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-        fromDate: fromDate,
-        toDate: toDate,
-        fromTime: fromTime,
-        toTime: toTime,
-      });
+      const { data, pagination } =
+        await this.studentsService.getCompleteVisitLog({
+          page: page ? parseInt(page, 10) : 1,
+          limit: limit ? parseInt(limit, 10) : 10,
+          fromDate: fromDate,
+          toDate: toDate,
+          fromTime: fromTime,
+          toTime: toTime,
+        });
+      return {
+        data,
+        pagination,
+        success: true,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -485,22 +481,19 @@ export class StudentsController {
   @UseGuards(TokenAuthGuard)
   async getVisitlog(
     @Request() req: AuthenticatedRequest,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
-  ) {
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
+  ): Promise<ApiResponse<VisitLog[]>> {
     try {
-      const student = await this.studentsService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-      console.log(student);
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      return await this.studentsService.getVisitLogByStudentUUID({
-        student_id: student.student_uuid,
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      });
+      const { data, pagination } =
+        await this.studentsService.getVisitLogByStudentUUID({
+          ...query,
+          studentUuid: req.user.studentUuid,
+        });
+      return {
+        data,
+        pagination,
+        success: true,
+      };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -510,74 +503,70 @@ export class StudentsController {
   @UseGuards(TokenAuthGuard)
   async getActivity(
     @Request() req: AuthenticatedRequest,
-    @Query('_page') page: string = '1',
-    @Query('_limit') limit: string = '10',
-  ) {
+    @Query(new ParsePaginationPipe()) query: PaginationParserType,
+  ): Promise<ApiResponse<VisitLog[]>> {
     try {
-      const student = await this.studentsService.findStudentBy({
-        student_id: req.user.student_id,
-      });
-      console.log(student);
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      return await this.studentsService.getVisitLogByStudentUUID({
-        student_id: student.student_uuid,
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
-      });
+      const { data, pagination } =
+        await this.studentsService.getVisitLogByStudentUUID({
+          ...query,
+          studentUuid: req.user.studentUuid,
+        });
+      return {
+        data,
+        pagination,
+        success: true,
+      };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 
-
   @Post('visitlog')
-  async visitlog(@Body() createvlogpayload: TStudentVisitDTO) {
+  async visitlog(
+    @Body() { studentId }: TStudentVisitDTO,
+  ): Promise<ApiResponse<VisitLog>> {
     try {
-      const student = await this.studentsService.findStudentBy({
-        student_id: createvlogpayload.student_id,
-      });
-      if (!student) {
-        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-      }
-      if (createvlogpayload.action === 'entry') {
-        const data =
-          await this.studentsService.visitlogentry(createvlogpayload);
-        // await this.notifyService.createNotification(
-        //   student.student_uuid,
-        //   NotificationType.LIBRARY_ENTRY,
-        //   {}
-        // );
-        return data;
-      } else if (createvlogpayload.action === 'exit') {
-        const data = await this.studentsService.visitlogexit(createvlogpayload);
-        // await this.notifyService.createNotification(
-        //   student.student_uuid,
-        //   NotificationType.LIBRARY_EXIT,
-        //   {}
-        // );
-        return data;
-      } else {
+      if (!studentId) {
         throw new HttpException(
-          "Invalid action. Use 'entry' or 'exit'.",
+          'Student ID is required',
           HttpStatus.BAD_REQUEST,
         );
       }
+      const { data: studentData } =
+        await this.studentsService.findStudentBy(studentId);
+      if (!studentData) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+      try {
+        const { data, pagination } = await this.studentsService.visitlogentry({
+          studentUuid: studentData.studentUuid,
+        });
+        return {
+          data,
+          pagination,
+          success: true,
+          meta: { message: 'Entry Log' },
+        };
+      } catch (error) {
+        if (error?.message.includes('Previous entry not exited')) {
+          const { data, pagination } = await this.studentsService.visitlogexit({
+            studentUuid: studentData.studentUuid,
+          });
+          return {
+            data,
+            pagination,
+            success: true,
+            meta: { message: 'Entry Log' },
+          };
+        } else {
+          throw new HttpException(
+            'Invalid action type',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      }
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  @Get('student-profile')
-  async student_profile(@Query('_student_id') student_id: string) {
-    try {
-      return await this.studentsService.studentProfile(student_id);
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(error.message, HttpStatus.BAD_GATEWAY);
-      }
-      throw error;
     }
   }
 }
