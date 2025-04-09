@@ -15,6 +15,7 @@ import { genRuleId } from './id-generation/create-library_rule_id';
 import { LibraryConfig } from './entity/library_config.entity';
 import { TLibraryUpdateDTO } from './zod-validation/update-library_rules-zod';
 import axios, { AxiosResponse } from 'axios';
+import { TUpdateLibraryDTO } from './dto/update-library.dto';
 
 interface Data<T> {
   data: T;
@@ -36,9 +37,6 @@ export class ConfigService {
     private libraryConfigRepository: Repository<LibraryConfig>,
   ) {}
 
-  //  ------------- INSTITUTE CONFIGURATIONS ----------
-
-  // Get Institute Info
   async getAlllibraries(accessToken: string): Promise<Data<LibraryConfig[]>> {
     const response: AxiosResponse<{ organisationId: string }> = await axios.get(
       `${HR_URL}/addUser`,
@@ -57,6 +55,21 @@ export class ConfigService {
     const libraries = await this.libraryConfigRepository.find({
       where: { organisation: response.data.organisationId },
     });
+
+    return {
+      data: libraries,
+      pagination: null,
+    };
+  }
+
+  async getLibraryByUuid(libraryUuid: string): Promise<Data<LibraryConfig>> {
+    const libraries = await this.libraryConfigRepository.findOne({
+      where: { libraryRuleId: libraryUuid },
+    });
+
+    if (!libraries) {
+      throw new HttpException('Library not found', HttpStatus.NOT_FOUND);
+    }
 
     return {
       data: libraries,
@@ -215,32 +228,51 @@ export class ConfigService {
   }
 
   // Update Institute Info
-  async updateInstitute(updateInstitutePayload: TInstituteUpdateDTO) {
+  async updateInstitute(
+    libraryUuid: string,
+    updateLibraryPayload: TUpdateLibraryDTO,
+  ) {
     try {
-      // Generate query for update
-      const queryData = updateQueryHelper<TInstituteUpdateDTO>(
-        updateInstitutePayload,
-        [],
-      );
-
-      // Check if the institute exists and is not archived
-      const existingInstitute = await this.instituteConfigRepository.query(
-        `SELECT * FROM institute_config WHERE institute_id=$1 AND is_archived=false`,
-        [updateInstitutePayload.institute_id],
-      );
-
-      if (existingInstitute.length === 0) {
-        throw new HttpException('No Institute Found', HttpStatus.NOT_FOUND);
+      const existingLibrary = await this.libraryConfigRepository.findOne({
+        where: {
+          libraryRuleId: libraryUuid,
+          isArchived: false,
+        },
+      });
+      if (!existingLibrary) {
+        throw new HttpException(
+          'Library not found or is archived',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      const queryBuilder = this.libraryConfigRepository.createQueryBuilder();
+      const setFields: any = {};
+      for (const key in updateLibraryPayload) {
+        if (
+          updateLibraryPayload[key] !== undefined &&
+          key !== 'libraryRuleId'
+        ) {
+          setFields[key] = updateLibraryPayload[key];
+        }
       }
 
-      // Execute the update query with parameterized values
-      await this.instituteConfigRepository.query(
-        `UPDATE institute_config SET ${queryData.queryCol} WHERE institute_id=$${queryData.values.length + 1} AND is_archived=false`,
-        [...queryData.values, updateInstitutePayload.institute_id], // Add institute_id at the end
-      );
+      if (Object.keys(setFields).length > 0) {
+        await queryBuilder
+          .update()
+          .set(setFields) // Dynamically set fields
+          .where('libraryRuleId = :libraryId', { libraryUuid })
+          .andWhere('isArchived = :isArchived', { isArchived: false })
+          .execute();
+      } else {
+        throw new HttpException(
+          'No valid fields to update',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       return {
-        result: existingInstitute,
+        // @ts-ignore
+        result: {},
         statusCode: HttpStatus.OK,
         message: 'Institute Updated Successfully!',
       };

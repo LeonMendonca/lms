@@ -32,65 +32,31 @@ import {
   updateLibraryRuleSchema,
 } from './zod-validation/update-library_rules-zod';
 import { LibraryConfig } from './entity/library_config.entity';
-
+import { TUpdateLibraryDTO } from './dto/update-library.dto';
 
 export interface ApiResponse<T> {
-    success: boolean;
-    data?: T;
-    pagination: {} | null;
-    error?: string;
-    meta?: any;
-  }
+  success: boolean;
+  data?: T;
+  pagination: {} | null;
+  error?: string;
+  meta?: any;
+}
 
 @Controller('config')
 export class ConfigController {
   constructor(private configService: ConfigService) {}
 
-  //  ------------- INSTITUTE CONFIGURATIONS ----------
-
-  // Get Institute Info
-  @Get('get-all-libraries')
+  @Get()
   async getAlllibraries(
     @Headers('authorization') authorization: string,
   ): Promise<ApiResponse<LibraryConfig[]>> {
     try {
-        const { data } = await this.configService.getAlllibraries(authorization);
-        return {
-          success: true,
-          data,
-          pagination: null,
-        };
-      } catch (error) {
-        if (!(error instanceof HttpException)) {
-          throw new HttpException(
-            error.message,
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        } else {
-          throw error;
-        }
-      }
-  }
-
-  // Get Institute by id
-  @Get('get-institutebyid')
-  async getLibraryByUUID(@Query('institute_id') institute_id: string) {
-    return this.configService.getInstituteById(institute_id);
-  }
-
-  //  Get Institute Detail For user (admin)
-  @Get('get-institute-names')
-  async getInstituteName() {
-    return this.configService.getInstituteName();
-  }
-
-  // Create Institute
-  @Post('create-institute')
-  @UsePipes(new bodyValidationPipe(createInstituteSchema))
-  async createInstitute(@Body() institutePayload: TInstituteDTO) {
-    try {
-      const result = await this.configService.createInstitute(institutePayload);
-      return result;
+      const { data } = await this.configService.getAlllibraries(authorization);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -103,13 +69,37 @@ export class ConfigController {
     }
   }
 
-  // Update Institute Info
-  @Patch('update-institute')
-  @UsePipes(new bodyValidationPipe(updateInstituteSchema))
-  async updateInstitute(@Body() updateInstitutePayload: TInstituteUpdateDTO) {
+  @Get(':instituteId')
+  async getLibraryByUUID(@Param('instituteId') libraryUuid: string) {
     try {
+      const { data } = await this.configService.getLibraryByUuid(libraryUuid);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  @Patch(':instituteId')
+  @UsePipes(new bodyValidationPipe(updateInstituteSchema))
+  async updateInstitute(
+    @Param('instituteId') libraryUuid: string,
+    @Body() updateLibraryPayload: TUpdateLibraryDTO,
+  ) {
+    try {
+        // @ts-ignore
       const result = await this.configService.updateInstitute(
-        updateInstitutePayload,
+        updateLibraryPayload,
       );
       return result;
     } catch (error) {
@@ -122,6 +112,27 @@ export class ConfigController {
       throw error;
     }
   }
+
+  // Create Institute
+  //   @Post('create-institute')
+  //   @UsePipes(new bodyValidationPipe(createInstituteSchema))
+  //   async createInstitute(@Body() institutePayload: TInstituteDTO) {
+  //     try {
+  //       const result = await this.configService.createInstitute(institutePayload);
+  //       return result;
+  //     } catch (error) {
+  //       if (!(error instanceof HttpException)) {
+  //         throw new HttpException(
+  //           error.message,
+  //           HttpStatus.INTERNAL_SERVER_ERROR,
+  //         );
+  //       } else {
+  //         throw error;
+  //       }
+  //     }
+  //   }
+
+  // Update Institute Info
 
   // Delete (Archive) Institute
   @Put('delete-institute')
