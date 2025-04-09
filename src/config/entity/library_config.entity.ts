@@ -1,51 +1,71 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryColumn } from "typeorm";
-import { InstituteConfig } from "./institute_config.entity";
-
-const ROLE = {
-    STUDENT : "student",
-    STAFF : "staff"
-} as const
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('library_config')
 export class LibraryConfig {
-    @PrimaryColumn({ name: 'library_rule_id', type: 'varchar', length: 255 })
-    libraryRuleId: "library_rule_id" = "library_rule_id"
+  @PrimaryGeneratedColumn('uuid', { name: 'libraryRuleId' })
+  libraryRuleId: string;
 
-    @Column({ name: 'max_books_student', type: 'int', nullable: true })
-    maxBooksStudent: "max_books_student" = "max_books_student"
+  @Column({ name: 'instituteUuid', type: 'varchar' })
+  instituteUuid: string;
 
-    @Column({ name: 'max_books_staff', type: 'int', nullable: true })
-    maxBooksStaff: "max_books_staff" = "max_books_staff"
+  @Column({ name: 'instituteName', type: 'varchar', length: 255 })
+  instituteName: string;
 
-    @Column({ name: 'max_days', type: 'int'})
-    maxDays: "max_days" = "max_days"
+  @Column({
+    name: 'instituteAbbr',
+    type: 'varchar',
+    length: 255,
+    default: ''
+  })
+  instituteAbbr: string;
 
-    @Column({ name: 'late_fees_per_day', type: 'int' })
-    lateFeesPerDay: "late_fees_per_day" = "late_fees_per_day"
+  @Column({ name: 'maxBooksStudent', type: 'int', default: 1 })
+  maxBooksStudent: number;
 
-    @Column({ name: 'operating_hours', type: 'jsonb' })
-    operatingHours: "operating_hours" = "operating_hours"
+  @Column({ name: 'maxBooksStaff', type: 'int', default: 1 })
+  maxBooksStaff: number;
 
-    @Column({ name: 'created_at', type: 'date', default: () => 'CURRENT_DATE' })
-    createdAt: "created_at" = "created_at"
+  @Column({ name: 'maxDaysStudent', type: 'int', default: 7 })
+  maxDaysStudent: number;
 
-    @Column({ name: 'created_by_uuid', type: 'uuid', nullable:true })
-    createdByUUID: "created_by_uuid" = "created_by_uuid"
+  @Column({ name: 'maxDaysStaff', type: 'int', default: 7 })
+  maxDaysStaff: number; 
 
-    @Column({ name: "is_archived", type: 'boolean', default: false })
-    isArchived: "is_archived" = "is_archived"
+  @Column({ name: 'lateFeesPerDay', type: 'int', default: 10 })
+  lateFeesPerDay: number;
 
-    @Column({name:'email_notifications', type: 'jsonb'})
-    emailNotifications: "email_notifications" = "email_notifications"
+  @Column({
+    name: 'openingHour',
+    type: 'time',
+    default: '09:00:00',
+  })
+  openingHour: string;
 
-    // one rule belongs to one institute
-    @ManyToOne(() => InstituteConfig, (institute) => institute.instituteUUID)
-    @JoinColumn({ name: "institute_uuid" })
-    instituteUUID: 'institute_uuid' = 'institute_uuid';
-}
+  @Column({
+    name: 'closingHour',
+    type: 'time',
+    default: '17:00:00',
+  })
+  closingHour: string;
 
-const library_config = new LibraryConfig()
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
 
-export type TLibraryConfig = {
-    [P in keyof typeof library_config as typeof library_config[P]]: any
+  @UpdateDateColumn({ name: 'updatedAt' })
+  updatedAt: Date;
+
+  @Column({ name: 'createdByUUID', type: 'uuid', nullable: true })
+  createdByUUID: string;
+
+  @Column({ name: 'isArchived', type: 'boolean', default: false })
+  isArchived: boolean;
+
+  @Column({ name: 'emailNotifications', type: 'boolean', default: true })
+  emailNotifications: boolean;
 }

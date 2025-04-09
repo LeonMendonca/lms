@@ -11,8 +11,8 @@ export class UserAccessToken {
   @PrimaryGeneratedColumn('uuid', { name: 'accessUuid' })
   accessUuid: string;
 
-  @Column('uuid', { name: 'userUuid' })
-  userUuid: string;
+  @Column('uuid', { name: 'employeeId' })
+  employeeId: string;
 
   @Column({ type: 'varchar', name: 'userId', unique: true })
   userId: string;
@@ -28,4 +28,7 @@ export class UserAccessToken {
 
   @UpdateDateColumn({ name: 'updatedAt' })
   updatedAt: Date;
+
+  @Column({ name: 'userPreference', type: 'varchar' }) // Link by `userPreferenceUuid`
+  userPreference: string;
 }

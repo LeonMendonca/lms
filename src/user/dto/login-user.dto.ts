@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const loginUserSchemaZod = z.object({
-  email: z.string().nonempty(),
+  workEmail: z.string().nonempty(),
   password: z.string(),
 });
 
