@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -36,39 +37,28 @@ export enum NotificationType {
 
 @Entity('student_notifications')
 export class StudentNotification {
-  @PrimaryGeneratedColumn('uuid', { name: 'notification_uuid' })
-  notification_uuid: 'notification_uuid' = 'notification_uuid';
+  @PrimaryGeneratedColumn('uuid', { name: 'notificationUuid' })
+  notificationUuid: string;
 
-  @Column('uuid', { name: 'student_uuid' })
-  student_uuid: 'student_uuid' = 'student_uuid';
+  @Column('uuid', { name: 'studentUuid' })
+  studentUuid: string;
 
   @Column({
-    name: "type",
+    name: 'type',
     type: 'enum',
     enum: NotificationType,
   })
-  type: "type" = 'type';
+  type: string;
 
   @Column({ name: 'title', type: 'text' })
-  title: 'title' = 'title';
+  title: string;
 
   @Column({ name: 'message', type: 'text' })
-  message: 'message' = 'message';
+  message: string;
 
-  @Column({ name: 'is_read', type: 'boolean', default: false })
-  is_read: 'is_read' = 'is_read';
+  @Column({ name: 'isRead', type: 'boolean', default: false })
+  isRead: boolean;
 
-  @Column({
-    name: 'created_at',
-    type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  createdAt: 'created_at' = 'created_at';
-}
-
-export const studentnotification = new StudentNotification();
-
-//Type that represents the table Columns
-export type TStudentNotification = {
-  [P in keyof typeof studentnotification as typeof studentnotification[P]]: any;
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
 }

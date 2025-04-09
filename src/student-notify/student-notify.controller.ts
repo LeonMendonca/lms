@@ -28,7 +28,6 @@ export interface ApiResponse<T> {
 export class StudentNotifyController {
   constructor(
     private readonly studentNotifyService: StudentNotifyService,
-    private readonly studentService: StudentsService,
   ) {}
 
   @Get()
@@ -36,16 +35,9 @@ export class StudentNotifyController {
   async findStudentNotifications(
     @Req() request: AuthenticatedRequest,
   ): Promise<ApiResponse<StudentNotification[]>> {
-    const user = request.user;
-    const student = await this.studentService.findStudentBy({
-      student_id: user.student_id,
-    });
-    if (!student) {
-      throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-    }
     const { data, pagination } =
       await this.studentNotifyService.getStudentNotifications(
-        student.student_uuid,
+        request.user.studentUuid,
       );
     return {
       pagination,

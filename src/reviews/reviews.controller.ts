@@ -16,7 +16,6 @@ import { ReviewsService } from './reviews.service';
 import { TCreateReviewDTO } from './dto/create-review.dto';
 import { TUpdateReviewDTO } from './dto/update-review.dto';
 import { TokenAuthGuard } from 'src/guards/token.guard';
-import { StudentsService } from 'src/students/students.service';
 import { Review } from './entities/review.entity';
 
 interface AuthenticatedRequest extends Request {
@@ -34,7 +33,6 @@ interface ApiResponse<T> {
 export class ReviewsController {
   constructor(
     private readonly reviewsService: ReviewsService,
-    private readonly studentService: StudentsService,
   ) {}
 
   @Post()
@@ -44,12 +42,8 @@ export class ReviewsController {
     @Body() createReviewDto: TCreateReviewDTO,
   ): Promise<ApiResponse<Review>> {
     try {
-      console.log(req.user);
-      const student = await this.studentService.findStudentBy({
-        student_id: req.user.student_id,
-      });
       const { data } = await this.reviewsService.create(
-        student,
+        req.user.studentUuid,
         createReviewDto,
       );
       return {
@@ -76,11 +70,8 @@ export class ReviewsController {
     @Query('_book_uuid') book_uuid: string,
   ): Promise<ApiResponse<Review[]>> {
     try {
-      const student = await this.studentService.findStudentBy({
-        student_id: req.user.student_id,
-      });
       const { data } = await this.reviewsService.findAllReviewsForStudent(
-        student,
+        req.user.studentUuid,
         book_uuid,
       );
       return {
@@ -102,10 +93,10 @@ export class ReviewsController {
 
   @Get('admin')
   async findAllAdmin(
-    @Query('_book_uuid') book_uuid: string,
+    @Query('_book_uuid') bookUuid: string,
   ): Promise<ApiResponse<Review[]>> {
     try {
-      const { data } = await this.reviewsService.findAllAdmin(book_uuid);
+      const { data } = await this.reviewsService.findAllAdmin(bookUuid);
       return {
         success: true,
         data,
@@ -125,10 +116,10 @@ export class ReviewsController {
 
   @Patch()
   async approveReviews(
-    @Query('_review_uuid') review_uuid: string,
+    @Query('_review_uuid') reviewUuid: string,
   ): Promise<ApiResponse<Review>> {
     try {
-      const { data } = await this.reviewsService.approveByAdmin(review_uuid);
+      const { data } = await this.reviewsService.approveByAdmin(reviewUuid);
       return {
         success: true,
         data,
@@ -148,10 +139,10 @@ export class ReviewsController {
 
   @Delete()
   async deleteReviews(
-    @Query('_review_uuid') review_uuid: string,
+    @Query('_review_uuid') reviewUuid: string,
   ): Promise<ApiResponse<Review>> {
     try {
-      const { data } = await this.reviewsService.rejectByAdmin(review_uuid);
+      const { data } = await this.reviewsService.rejectByAdmin(reviewUuid);
       return {
         success: true,
         data,
@@ -171,12 +162,12 @@ export class ReviewsController {
 
   @Patch(':review_uuid')
   async update(
-    @Param('review_uuid') review_uuid: string,
+    @Param('review_uuid') reviewUuid: string,
     @Body() updateReviewDto: TUpdateReviewDTO,
   ): Promise<ApiResponse<Review>> {
     try {
       const review = await this.reviewsService.update(
-        review_uuid,
+        reviewUuid,
         updateReviewDto,
       );
       return {

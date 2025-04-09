@@ -1,10 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { TCreateReviewDTO } from './dto/create-review.dto';
 import { TUpdateReviewDTO } from './dto/update-review.dto';
-import {
-  insertQueryHelper,
-  updateQueryHelper,
-} from 'src/misc/custom-query-helper';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Review } from './entities/review.entity';
 import { Repository } from 'typeorm';
@@ -22,22 +18,17 @@ export class ReviewsService {
   ) {}
 
   async create(
-    user: any,
+    studentUuid: any,
     createReviewDto: TCreateReviewDTO,
   ): Promise<Data<Review>> {
     try {
-      let queryData = insertQueryHelper(
-        { ...createReviewDto, student_uuid: user.student_uuid },
-        [],
-      );
-      const result: Review[] = await this.reviewRepository.query(
-        `
-      INSERT INTO reviews (${queryData.queryCol}) values (${queryData.queryArg}) RETURNING *`,
-        queryData.values,
-      );
-      return { data: result[0], pagination: null };
+      const review = this.reviewRepository.create({
+        ...createReviewDto,
+        studentUuid: studentUuid,
+      });
+      const result = await this.reviewRepository.save(review);
+      return { data: result, pagination: null };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -46,20 +37,22 @@ export class ReviewsService {
   }
 
   async findAllReviewsForStudent(
-    user: any,
-    book_uuid: string,
+    studentUuid: string,
+    bookUuid: string,
   ): Promise<Data<Review[]>> {
     try {
-      const data: Review[] = await this.reviewRepository.query(
-        `SELECT * FROM reviews WHERE book_uuid = $1 AND is_archived = false AND (is_approved = true OR student_uuid = $2)`,
-        [book_uuid, user.student_uuid],
-      );
-      return {
-        data,
-        pagination: null,
-      };
+      const data = await this.reviewRepository
+        .createQueryBuilder('review')
+        .where('review.bookUuid = :bookUuid', { bookUuid })
+        .andWhere('review.isArchived = false')
+        .andWhere(
+          '(review.isApproved = true OR review.studentUuid = :studentUuid)',
+          { studentUuid: studentUuid },
+        )
+        .getMany();
+
+      return { data, pagination: null };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -67,18 +60,13 @@ export class ReviewsService {
     }
   }
 
-  async findAllAdmin(book_uuid: string): Promise<Data<Review[]>> {
+  async findAllAdmin(bookUuid: string): Promise<Data<Review[]>> {
     try {
-      const result: Review[] = await this.reviewRepository.query(
-        `SELECT * FROM reviews WHERE book_uuid = $1 AND is_archived = false`,
-        [book_uuid],
-      );
-      return {
-        data: result,
-        pagination: null,
-      };
+      const result = await this.reviewRepository.find({
+        where: { bookUuid, isArchived: false },
+      });
+      return { data: result, pagination: null };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -86,18 +74,15 @@ export class ReviewsService {
     }
   }
 
-  async approveByAdmin(review_uuid: string): Promise<Data<Review>> {
+  async approveByAdmin(reviewUuid: string): Promise<Data<Review>> {
     try {
-      const result: Review[] = await this.reviewRepository.query(
-        `UPDATE reviews SET is_approved = true WHERE review_uuid = $1 RETURNING *`,
-        [review_uuid],
-      );
-      return {
-        data: result[0],
-        pagination: null,
-      };
+      await this.reviewRepository.update({ reviewUuid }, { isApproved: true });
+      const updated = await this.reviewRepository.findOneBy({ reviewUuid });
+      if (!updated) {
+        throw new HttpException(`Review Not updated`, HttpStatus.NOT_FOUND);
+      }
+      return { data: updated, pagination: null };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -105,18 +90,15 @@ export class ReviewsService {
     }
   }
 
-  async rejectByAdmin(review_uuid: string): Promise<Data<Review>> {
+  async rejectByAdmin(reviewUuid: string): Promise<Data<Review>> {
     try {
-      const result: Review[] = await this.reviewRepository.query(
-        `UPDATE reviews SET is_archived = true WHERE review_uuid = $1 RETURNING *`,
-        [review_uuid],
-      );
-      return {
-        data: result[0],
-        pagination: null,
-      };
+      await this.reviewRepository.update({ reviewUuid }, { isArchived: true });
+      const updated = await this.reviewRepository.findOneBy({ reviewUuid });
+      if (!updated) {
+        throw new HttpException(`Review Not updated`, HttpStatus.NOT_FOUND);
+      }
+      return { data: updated, pagination: null };
     } catch (error) {
-      console.log(error);
       throw new HttpException(
         `Error: ${error.message || error} while creating student.`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -125,23 +107,23 @@ export class ReviewsService {
   }
 
   async update(
-    review_uuid: string,
+    reviewUuid: string,
     updateReviewDto: TUpdateReviewDTO,
   ): Promise<Data<Review>> {
     try {
-      let queryData = updateQueryHelper<TUpdateReviewDTO>(updateReviewDto, []);
-      console.log(queryData)
-      const result: Review[] = await this.reviewRepository.query(
-        `UPDATE reviews SET ${queryData.queryCol} WHERE review_uuid = $${queryData.values.length + 1} AND is_archived = false RETURNING *`,
-        [...queryData.values, review_uuid],
+      await this.reviewRepository.update(
+        { reviewUuid, isArchived: false },
+        updateReviewDto,
       );
-      if (!result.length) {
+      const updated = await this.reviewRepository.findOneBy({ reviewUuid });
+      if (!updated) {
         throw new HttpException(
-          'Student not found after update',
+          'Review not found after update',
           HttpStatus.NOT_FOUND,
         );
       }
-      return { data: result[0], pagination: null };
+
+      return { data: updated, pagination: null };
     } catch (error) {
       throw error;
     }

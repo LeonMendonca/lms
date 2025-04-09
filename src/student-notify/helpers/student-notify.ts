@@ -1,26 +1,5 @@
 import { NotificationType } from '../entities/student-notify.entity';
 
-//   BOOK_RETURNED = 'book_returned',
-//   BOOK_REISSUE_REQUESTED = 'book_reissue_requested',
-//   BOOK_REISSUE_APPROVED = 'book_reissue_approved',
-
-//   // Library entry/exit
-//   LIBRARY_ENTRY = 'library_entry',
-//   LIBRARY_EXIT = 'library_exit',
-
-//   // Notes related
-//   NOTES_REQUESTED = 'notes_requested',
-//   NOTES_APPROVED = 'notes_approved',
-//   NOTES_REJECTED = 'notes_rejected',
-
-//   // Fees/Penalties
-//   PENALTY_PAID = 'penalty_paid',
-//   PENALTY_OVERDUE = 'penalty_overdue',
-
-//   // Activity reporting
-//   ACTIVITY_REPORTED = 'activity_reported',
-//   ACTIVITY_RESOLVED = 'activity_resolved',
-
 export const generateNotificationContent = (
   type: NotificationType,
   data: Record<string, any>,
@@ -74,62 +53,6 @@ export const generateNotificationContent = (
         message: `Your reissue for "${data.bookTitle}" is rejected.`,
       };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     case NotificationType.LIBRARY_ENTRY:
       return {
         title: 'Library Entry Recorded',
@@ -141,14 +64,6 @@ export const generateNotificationContent = (
         title: 'Library Exit Recorded',
         message: `You have exited the library. We hope you had a productive time.`,
       };
-
-
-
-
-
-
-
-
 
     case NotificationType.NOTES_REQUESTED:
       return {
