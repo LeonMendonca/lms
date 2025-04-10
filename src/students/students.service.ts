@@ -22,6 +22,7 @@ import { TStudentUuidZod } from './dto/student-bulk-delete.dto';
 import { TStudentCredDTO } from './dto/student-login.dto';
 import { TStudentVisitDTO } from './dto/student-visit.dto';
 import { VisitLog } from './entities/visitlog.entity';
+import { IsUUID } from 'class-validator';
 
 export interface DataWithPagination<T> {
   data: T[];
@@ -189,7 +190,22 @@ export class StudentsService {
 
     const total = await queryBuilder.getCount();
 
-    const students = await queryBuilder.skip(offset).take(limit).getMany();
+    const students = await queryBuilder
+      .select([
+        'students_info.barCode',
+        'students_info.firstName',
+        'students_info.middleName',
+        'students_info.lastName',
+        'students_info.department',
+        'students_info.yearOfAdmission',
+        'students_info.email',
+        'students_info.mobileNumber',
+        'students_info.rollNo',
+        'students_info.studentUuid',
+      ])
+      .skip(offset)
+      .take(limit)
+      .getMany();
 
     return {
       data: students,
@@ -225,13 +241,13 @@ export class StudentsService {
   }
 
   async editStudent(
-    studentUuid: string,
+    barCode: string,
     editStudentPayload: TEditStudentDTO,
   ): Promise<Data<StudentsData>> {
     try {
       const existingStudent = await this.studentsDataRepository.findOne({
         where: {
-          studentUuid: studentUuid,
+          barCode,
           isArchived: false,
         },
       });
@@ -247,13 +263,13 @@ export class StudentsService {
         .createQueryBuilder()
         .update()
         .set(editStudentPayload)
-        .where('studentUuid = :studentUuid', { studentUuid })
+        .where('barCode = :barCode', { barCode })
         .andWhere('isArchived = false')
         .returning('*')
         .execute();
 
       const updatedStudent = await this.studentsDataRepository.findOneByOrFail({
-        studentUuid: studentUuid,
+        barCode,
       });
 
       return {
@@ -268,10 +284,9 @@ export class StudentsService {
   async findStudentBy(identifier: string): Promise<Data<StudentsData>> {
     try {
       const student = await this.studentsDataRepository
-        .createQueryBuilder('student_info')
-        .where('student.studentUuid = :identifier', { identifier })
-        .orWhere('student.barcode = :identifier', { identifier })
-        .andWhere('student.isArchived = false')
+        .createQueryBuilder('si')
+        .orWhere('si.barCode = :identifier', { identifier })
+        .andWhere('si.isArchived = false')
         .getOne();
 
       if (!student) {
@@ -1033,7 +1048,6 @@ export class StudentsService {
       throw error;
     }
   }
-
 
   // TYPE ORM doesnt support UNION ALL in query builder, so using raw SQL
   async getVisitLogByStudentUUID({

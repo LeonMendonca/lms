@@ -20,7 +20,7 @@ export type TUpdateResult = {
   const updatePayloadCount = arrOfUUID.length;
 
   let bulkQuery1 =
-    'UPDATE students_table SET isArchived = TRUE WHERE studentUuid IN ';
+    'UPDATE students_info SET "isArchived" = TRUE WHERE "barCode" IN ';
 
   let bulkQuery2 = '(';
   for (const element of arrOfUUID) {
@@ -29,11 +29,10 @@ export type TUpdateResult = {
   bulkQuery2 = bulkQuery2.slice(0, -1);
   bulkQuery2 += ')';
 
-  let bulkQuery3 = 'AND isArchived = FALSE RETURNING studentUuid';
+  let bulkQuery3 = ' AND "isArchived" = FALSE RETURNING "barCode"';
 
   const finalQuery = bulkQuery1 + bulkQuery2 + bulkQuery3;
 
-  // console.log("FINAL QUERY", finalQuery)
   try {
     const result = await client.query(finalQuery);
 

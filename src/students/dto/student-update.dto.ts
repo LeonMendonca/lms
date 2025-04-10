@@ -15,6 +15,7 @@ export const editStudentDto = z.object({
     terPhoneNumber: z.string().optional(),
     department: z.string().optional(),
     rollNo: z.string().optional(),
+    role: z.string().optional(),
     yearOfAdmission: z.string().optional(),
     profileImage: z.string().optional(),
 });

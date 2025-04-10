@@ -55,6 +55,9 @@ export class StudentsData {
 
   @Column({ name: 'rollNo', type: 'varchar', nullable: true })
   rollNo: string;
+  
+  @Column({ name: 'role', type: 'varchar', default: 'student' })
+  role: string;
 
   @Column({
     name: 'instituteName',

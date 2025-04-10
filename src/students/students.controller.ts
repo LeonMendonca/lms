@@ -85,6 +85,7 @@ export class StudentsController {
     }
   }
 
+  // Admin
   @Post()
   @UsePipes(new bodyValidationPipe(createStudentSchema))
   @HttpCode(HttpStatus.CREATED)

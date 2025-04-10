@@ -13,6 +13,8 @@ import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { StudentNotification } from 'src/student-notify/entities/student-notify.entity';
 import { StudentsData } from 'src/students/entities/student.entity';
+import { VisitLog } from 'src/students/entities/visitlog.entity';
+import { StudentsVisitKey } from 'src/students/entities/student-visit-key';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,6 +26,8 @@ import { StudentsData } from 'src/students/entities/student.entity';
       RequestBook,
       StudentNotification,
       StudentsData,
+      VisitLog,
+      StudentsVisitKey
     ]),
   ],
   controllers: [BooksV2Controller],

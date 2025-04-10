@@ -21,7 +21,7 @@ export class BookCopy {
   @Column({ name: 'supplierPrice', type: 'varchar', nullable: true })
   supplierPrice: string;
 
-  @Column({ name: 'dateReceipt', type: 'datetime', nullable: true })
+  @Column({ name: 'dateReceipt', type: 'timestamp', nullable: true })
   dateReceipt: Date;
 
   @Column({ name: 'sourceOfAcquisition', type: 'varchar', nullable: true })
@@ -30,7 +30,7 @@ export class BookCopy {
   @Column({ name: 'billNo', type: 'varchar', nullable: true })
   billNo: string;
 
-  @Column({ name: 'billDate', type: 'datetime', nullable: true })
+  @Column({ name: 'billDate', type: 'timestamp', nullable: true })
   billDate: Date;
 
   @Column({ name: 'keyNo', type: 'varchar', nullable: true })
@@ -57,7 +57,7 @@ export class BookCopy {
   @Column({ name: 'loaned', type: 'boolean' })
   loaned: boolean;
 
-  @Column({ name: 'loanReturnDate', type: 'datetime' })
+  @Column({ name: 'loanReturnDate', type: 'timestamp' })
   loanReturnDate: Date;
 
   @Column({ name: 'donated', type: 'boolean' })
