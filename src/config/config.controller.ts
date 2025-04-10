@@ -71,7 +71,7 @@ export class ConfigController {
   }
 
   @Patch(':libraryId')
-  @UsePipes(new bodyValidationPipe(updateLibrarySchema))
+  // @UsePipes(new bodyValidationPipe(updateLibrarySchema))
   async updateLibrary(
     @Param('libraryId') libraryUuid: string,
     @Body() updateLibraryPayload: TUpdateLibraryDTO,

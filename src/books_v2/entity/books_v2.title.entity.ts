@@ -10,119 +10,111 @@ import { BookCopy } from './books_v2.copies.entity';
 
 @Entity('book_titles')
 export class BookTitle {
-  @PrimaryGeneratedColumn('uuid', { name: 'book_uuid' })
-  bookUUID: 'book_uuid' = 'book_uuid';
+  @PrimaryGeneratedColumn('uuid', { name: 'bookUuid' })
+  bookUuid: string;
 
   @Column({
-    name: 'book_title_id',
+    name: 'bookTitleId',
     type: 'varchar',
     length: 255,
-    unique: true,
-    nullable: true,
+    nullable: true
   })
-  bookTitleId: 'book_title_id' = 'book_title_id';
+  bookTitleId: string;
 
-  @Column({ name: 'book_title', type: 'varchar', length: 255 })
-  bookTitle: 'book_title' = 'book_title';
+  @Column({ name: 'accessionNumber', type: 'varchar', nullable: true })
+  accessionNumber: string;
 
-  @Column({ name: 'book_author', type: 'varchar', length: 255 })
-  bookAuthor: 'book_author' = 'book_author';
+  @Column({ name: 'categoryName', type: 'varchar', nullable: true })
+  categoryName: string;
 
-  @Column({ name: 'name_of_publisher', type: 'varchar', length: 255 })
-  nameOfPublisher: 'name_of_publisher' = 'name_of_publisher';
+  @Column({ name: 'classificationNumber', type: 'varchar', nullable: true })
+  classificationNumber: string;
 
-  @Column({ name: 'institute_uuids', type: 'jsonb', default: '[]' })
-  instituteUUIDs: 'institute_uuids' = 'institute_uuids';
+  @Column({ name: 'author1', type: 'varchar', nullable: true })
+  author1: string;
 
-  @Column({ name: 'place_of_publication', type: 'varchar', length: 255 })
-  placeOfPublication: 'place_of_publication' = 'place_of_publication';
+  @Column({ name: 'author2', type: 'varchar', nullable: true })
+  author2: string;
 
-  @Column({ name: 'year_of_publication', type: 'date' })
-  yearOfPublication: 'year_of_publication' = 'year_of_publication';
+  @Column({ name: 'otherAuthors', type: 'varchar', nullable: true })
+  otherAuthors: string;
 
-  @Column({ name: 'edition', type: 'varchar', length: 255 })
-  edition: 'edition' = 'edition';
+  @Column({ name: 'authorType1', type: 'varchar', nullable: true })
+  authorType1: string;
 
-  @Column({ name: 'isbn', type: 'varchar', length: 255 })
-  isbn: 'isbn' = 'isbn';
+  @Column({ name: 'authorType2', type: 'varchar', nullable: true })
+  authorType2: string;
 
-  @Column({ name: 'no_of_pages', type: 'integer', nullable: true })
-  noPages: 'no_of_pages' = 'no_of_pages';
+  @Column({ name: 'otherAuthorsType', type: 'varchar', nullable: true })
+  otherAuthorsType: string;
 
-  @Column({ name: 'no_of_preliminary', type: 'integer', nullable: true })
-  noPreliminary: 'no_of_preliminary' = 'no_of_preliminary';
+  @Column({ name: 'bookTitle', type: 'varchar', nullable: true })
+  bookTitle: string;
 
-  @Column({ name: 'subject', type: 'varchar', length: 255 })
-  subject: 'subject' = 'subject';
+  @Column({ name: 'publisher', type: 'varchar', nullable: true })
+  publisher: string;
 
-  @Column({ name: 'department', type: 'varchar', length: 255 })
-  department: 'department' = 'department';
+  @Column({ name: 'place', type: 'varchar', nullable: true })
+  place: string;
 
-  @Column({ name: 'call_number', type: 'varchar', length: 255, nullable: true })
-  callNumber: 'call_number' = 'call_number';
+  @Column({ name: 'yearOfPublication', type: 'varchar', nullable: true })
+  yearOfPublication: string;
 
-  @Column({ name: 'author_mark', type: 'varchar', length: 255 })
-  authorMark: 'author_mark' = 'author_mark';
+  @Column({ name: 'romanPages', type: 'varchar', nullable: true })
+  romanPages: string;
 
-  @Column({
-    name: 'is_archived',
-    default: false,
-    type: 'boolean',
-    nullable: true,
-  })
-  isArchived: 'is_archived' = 'is_archived';
+  @Column({ name: 'numbericPages', type: 'varchar', nullable: true })
+  numbericPages: string;
 
-  @Column({ name: 'total_count', type: 'int', nullable: true, default: 1 })
-  totalCount: 'total_count' = 'total_count';
+  @Column({ name: 'isbn', type: 'varchar' })
+  isbn: string;
 
-  @Column({ name: 'available_count', type: 'int', nullable: true, default: 1 })
-  availableCount: 'available_count' = 'available_count';
+  @Column({ name: 'instituteName', type: 'varchar' })
+  instituteName: string;
 
-  @CreateDateColumn({ name: 'created_at', type: 'date' })
-  createdAt: 'created_at' = 'created_at';
+  @Column({ name: 'instituteUuid', type: 'uuid' })
+  instituteUuid: string;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: 'updated_at' = 'updated_at';
+  @Column({ name: 'keyWords', type: 'simple-array' })
+  keyWords: string[];
 
-  @Column({ name: 'title_images', type: 'simple-array', nullable: true })
-  titleImages: 'title_images' = 'title_images';
+  @Column({ name: 'titleRemarks', type: 'simple-array' })
+  titleRemarks: string[];
 
-  @Column({ name: 'title_additional_fields', type: 'json', nullable: true })
-  titleAdditionalFields: 'title_additional_fields' = 'title_additional_fields';
+  @Column({ name: 'subjectName', type: 'varchar' })
+  subjectName: string;
 
-  @Column({ name: 'title_description', type: 'text', nullable: true })
-  titleDescription: 'title_description' = 'title_description';
+  @Column({ name: 'subSubjectName', type: 'varchar' })
+  subSubjectName: string;
+
+  @Column({ name: 'language', type: 'varchar' })
+  language: string;
+
+  @Column({ name: 'bookSeries', type: 'varchar' })
+  bookSeries: string;
+
+  @Column({ name: 'departent', type: 'varchar' })
+  departent: string;
+
+  @Column({ name: 'edition', type: 'varchar' })
+  edition: string;
+  
+  @Column({ name: 'titleImages', type: 'varchar', nullable: true })
+  titleImages: string;
+
+  @Column({ name: 'totalCount', type: 'int',  default: 1 })
+  totalCount: number;
+
+  @Column({ name: 'availableCount', type: 'int', default: 1 })
+  availableCount: number;
+
+  @CreateDateColumn({ name: 'createdAt'})
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updatedAt' })
+  updatedAt: Date;
 
   //Relationships
-  @OneToMany(() => BookCopy, (bookcopy) => bookcopy.bookTitleUUID)
-  bookCopies: 'book_copies' = 'book_copies';
+  @OneToMany(() => BookCopy, (bookcopy) => bookcopy.bookTitleUuidRel)
+  bookCopiesUuidRel: BookCopy[];
 }
-
-export const book_title = new BookTitle();
-
-//Type that represents the table Columns
-export type TBookTitle = {
-  [P in keyof typeof book_title as (typeof book_title)[P]]: any;
-};
-
-export const bookTitleObject = {
-  book_title: 'book_title_placeholder',
-  book_author: 'book_author_placeholder',
-  name_of_publisher: 'name_of_publisher_placeholder',
-  institute_uuids: 'institute_uuids_placeholder',
-  place_of_publication: 'place_of_publication_placeholder',
-  year_of_publication: 'year_of_publication_placeholder',
-  edition: 'edition_placeholder',
-  isbn: 'isbn_placeholder',
-  no_of_pages: 'no_of_pages_placeholder',
-  no_of_preliminary: 'no_of_preliminary_placeholder',
-  subject: 'subject_placeholder',
-  department: 'department_placeholder',
-  call_number: 'call_number_placeholder',
-  author_mark: 'author_mark_placeholder',
-  total_count: 'total_count_placeholder',
-  available_count: 'available_count_placeholder',
-  title_images: 'title_images_placeholder',
-  title_additional_fields: 'title_additional_fields_placeholder',
-  title_description: 'title_description_placeholder',
-} as const;

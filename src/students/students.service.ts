@@ -593,7 +593,7 @@ export class StudentsService {
         `SELECT COUNT(*) FROM book_titles WHERE is_archived = false AND created_at >= NOW() - INTERVAL '1 month'`,
       );
       const yearlyBorrow = await this.studentsDataRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 WHERE borrower_uuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
+        `SELECT COUNT(*) FROM book_logv2 WHERE borrowerUuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
           AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
         [student[0].student_uuid],
       );
@@ -899,7 +899,7 @@ export class StudentsService {
             time AS timestamp 
           FROM book_logv2 bl 
           LEFT JOIN students_info st
-          ON st.studentUuid = bl.borrower_uuid
+          ON st.studentUuid = bl.borrowerUuid
         ) AS combined_logs
         ${whereClauses} ${orderByQuery}
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -1104,9 +1104,9 @@ export class StudentsService {
               NULL AS outTime, 
               st.studentName AS studentName,  
               date AS logDate, 
-              bl.borrower_uuid AS studentUuid
+              bl.borrowerUuid AS studentUuid
               time AS timestamp 
-              FROM book_logv2 bl LEFT JOIN students_info st ON st.studentUuid = bl.borrower_uuid
+              FROM book_logv2 bl LEFT JOIN students_info st ON st.studentUuid = bl.borrowerUuid
           ) AS combined_logs
           ${whereClauses} ${orderByQuery}
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -1117,7 +1117,7 @@ export class StudentsService {
         `SELECT COUNT(*) FROM (
             SELECT visitLogId AS id, bl.studentUuid AS studentUuid FROM visit_log
             UNION ALL
-            SELECT  bl.booklog_uuid AS id, bl.borrower_uuid AS studentUuid FROM book_logv2
+            SELECT  bl.booklog_uuid AS id, bl.borrowerUuid AS studentUuid FROM book_logv2
           ) AS combined_logs2 ${whereClauses}`,
         params,
       );

@@ -14,8 +14,24 @@ import { StudentNotifyService } from 'src/student-notify/student-notify.service'
 import { StudentNotification } from 'src/student-notify/entities/student-notify.entity';
 import { StudentsData } from 'src/students/entities/student.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([BookTitle, BookCopy, Students, Booklog_v2, FeesPenalties, RequestBook, StudentNotification, StudentsData])],
+  imports: [
+    TypeOrmModule.forFeature([
+      BookTitle,
+      BookCopy,
+      Students,
+      Booklog_v2,
+      FeesPenalties,
+      RequestBook,
+      StudentNotification,
+      StudentsData,
+    ]),
+  ],
   controllers: [BooksV2Controller],
-  providers: [BooksV2Service, StudentsService, QueryBuilderService, StudentNotifyService],
+  providers: [
+    BooksV2Service,
+    StudentsService,
+    QueryBuilderService,
+    StudentNotifyService,
+  ],
 })
 export class BooksV2Module {}

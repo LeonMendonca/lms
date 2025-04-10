@@ -1,10 +1,7 @@
-import { Students } from 'src/students/students.entity';
-import { PrimaryGeneratedColumn, Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { PrimaryGeneratedColumn, Entity, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { BookTitle } from './books_v2.title.entity';
 import { BookCopy } from './books_v2.copies.entity';
-import { FeesPenalties } from 'src/fees-penalties/entity/fees-penalties.entity';
-
-
+import { StudentsData } from 'src/students/entities/student.entity';
 
 @Entity('book_logv2')
 export class Booklog_v2 {
@@ -12,62 +9,47 @@ export class Booklog_v2 {
   booklogId: "booklog_id" = "booklog_id"
 
   //student uuid
-  @ManyToOne(() => Students, (students) => students.studentUUID)
-  @JoinColumn({ name: "borrower_uuid" })
-  borrowerUUID: 'borrower_uuid' = 'borrower_uuid';
+  @ManyToOne(() => StudentsData, (students) => students.studentUuid)
+  @JoinColumn({ name: "borrowerUuid" })
+  borrowerUuid: StudentsData;
 
-  @ManyToOne(() => BookTitle, (book_title) => book_title.bookUUID)
-  @JoinColumn({ name: "book_title_uuid" })
-  bookUUID: 'book_title_uuid' = 'book_title_uuid';
+  @ManyToOne(() => BookTitle, (book_title) => book_title.bookUuid)
+  @JoinColumn({ name: "bookUuuid" })
+  bookUuuid: BookTitle;
 
-  @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUUID)
+  @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUuid)
+  @JoinColumn({ name: 'bookCopyUuid' })
+  bookCopyUuid: BookCopy;
 
-  @JoinColumn({ name: 'book_copy_uuid' })
-  bookCopyUUID: 'book_copy_uuid' = 'book_copy_uuid';
+  @Column({ name: 'oldBookCopy', type: 'json' })
+  oldBookCopy: Record<string, any>;
 
-  @Column({ name: 'old_book_copy', type: 'json' })
-  oldBookCopy: 'old_book_copy' = "old_book_copy";
-
-  @Column({ name: 'new_book_copy', type: 'json' })
-  newBookCopy: 'new_book_copy' = "new_book_copy";
+  @Column({ name: 'newBookCopy', type: 'json' })
+  newBookCopy: Record<string, any>;
 
 
-  @Column({ name: 'old_book_title', type: 'json' })
-  oldBookTitle: 'old_book_copy' = "old_book_copy";
+  @Column({ name: 'oldBookTitle', type: 'json' })
+  oldBookTitle: Record<string, any>;
 
-  @Column({ name: 'new_book_title', type: 'json' })
-  newBookTitle: 'old_book_copy' = "old_book_copy";
+  @Column({ name: 'newBookTitle', type: 'json' })
+  newBookTitle: Record<string, any>;
 
   @Column({ name: 'action', type: 'varchar', length: 255 })
-  action: "action" = 'action';
+  action: string;
 
   @Column({ name: 'description', type: 'varchar', length: 255 })
-  description: 'description' = 'description';
+  description: string;
 
-  @Column({ name: 'time', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  time: 'time' = 'time';
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
 
-  @Column({ name: 'date', type: 'date', default: () => 'CURRENT_DATE' })
-  date: 'date' = 'date';
-
-
-  @Column({ name: 'ip_address', type: 'varchar', length: 255, nullable: true })
-  ipAddress: 'ip_address' = 'ip_address';
-
-  @ManyToOne(() => FeesPenalties, (fees_penalties) => fees_penalties.fpUUID)
-  @JoinColumn({ name: 'fp_uuid' })
-  fpUUID: 'fp_uuid' = 'fp_uuid';
+  @Column({ name: 'ipAddress', type: 'varchar', length: 255, nullable: true })
+  ipAddress: string
   
-  @Column({ name: 'institute_uuid', type: 'uuid', nullable: true })
-  instituteUuid: 'institute_uuid' = 'institute_uuid';
+  @Column({ name: 'instituteUuid', type: 'uuid', nullable: true })
+  instituteUuid: string;
 
-  @Column({ name: 'institute_name', type: 'varchar', nullable: true })
-  instituteName: 'institute_name' = 'institute_name';
+  @Column({ name: 'instituteName', type: 'varchar', nullable: true })
+  instituteName: string;
 
-}
-
-export const booklogV2 = new Booklog_v2();
-
-export type TBooklog_v2 = {
-  [P in keyof typeof booklogV2 as typeof booklogV2[P]]: any;
 }

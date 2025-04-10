@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+const notificationSchema = z.object({
+  bookBorrowing: z.boolean(),
+  bookReturning: z.boolean(),
+  checkIn: z.boolean(),
+  checkOut: z.boolean(),
+  penalties: z.boolean(),
+});
+
 export const updateLibrarySchema = z.object({
   maxBooksStudent: z.number().optional(),
   maxBooksStaff: z.number().optional(),
@@ -8,7 +16,8 @@ export const updateLibrarySchema = z.object({
   lateFeesPerDay: z.number().optional(),
   openingHour: z.string().optional(),
   closingHour: z.string().optional(),
-  emailNotifications: z.boolean().optional(),
+  emailNotificationStudent: notificationSchema.optional(),
+  emailNotificationAdmin: notificationSchema.optional(),
 });
 
 export type TUpdateLibraryDTO = z.infer<typeof updateLibrarySchema>;

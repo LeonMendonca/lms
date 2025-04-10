@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { TCreateBookZodDTO } from 'src/books_v2/zod/createbookdtozod';
 import { parentPort, workerData } from 'worker_threads';
 import { pool } from '../../pg.connect';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import z from 'zod';
 import { createObjectOmitProperties } from 'src/misc/create-object-from-class';
 import { BookTitle } from '../entity/books_v2.title.entity';

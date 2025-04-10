@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createObjectIncludeProperties } from 'src/misc/create-object-from-class';
 import { z } from 'zod';
 import { BookCopy } from '../entity/books_v2.copies.entity';

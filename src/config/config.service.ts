@@ -99,7 +99,7 @@ export class ConfigService {
       const data = await queryBuilder
         .update()
         .set(setFields) // Dynamically set fields
-        .where('libraryRuleId = :libraryId', { libraryUuid })
+        .where('libraryRuleId = :libraryUuid', { libraryUuid })
         .andWhere('isArchived = :isArchived', { isArchived: false })
         .execute();
 
