@@ -67,7 +67,7 @@ config({ path: '.env' });
         StudentNotification,
       ],
       ssl: true,
-      synchronize: false,
+      synchronize: true,
     }),
     StudentsModule,
     BooksV2Module,

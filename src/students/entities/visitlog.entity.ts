@@ -33,7 +33,6 @@ export class VisitLog {
   @Column({
     name: 'outTime',
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP',
     nullable: true,
   })
   outTime: Date;

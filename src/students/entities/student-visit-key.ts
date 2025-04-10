@@ -13,13 +13,18 @@ export class StudentsVisitKey {
   @Column({ name: 'studentUuid', type: 'varchar', length: 255 })
   studentUuid: string;
 
-  @CreateDateColumn({ name: 'createdAt' })
+  
+  @Column({
+    name: 'createdAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @Column({ name: 'longitude' })
+  @Column({ name: 'longitude', type: 'double precision' })
   longitude: number;
-
-  @Column({ name: 'latitude' })
+  
+  @Column({ name: 'latitude', type: 'double precision' })
   latitude: number;
 
   @Column({ name: 'action', nullable: true })

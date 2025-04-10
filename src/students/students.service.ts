@@ -16,7 +16,7 @@ import {
 } from 'src/students/types/dashboard';
 import { StudentsData } from './entities/student.entity';
 import { TCreateStudentDTO } from './dto/student-create.dto';
-import { hash } from 'bcryptjs';
+import { compare, hash } from 'bcryptjs';
 import { TEditStudentDTO } from './dto/student-update.dto';
 import { TStudentUuidZod } from './dto/student-bulk-delete.dto';
 import { TStudentCredDTO } from './dto/student-login.dto';
@@ -61,10 +61,9 @@ export class StudentsService {
 
       const student = await this.studentsDataRepository
         .createQueryBuilder('student')
-        .where('(student.email = :email OR student.student_id = :email)', {
+        .where('(student.email = :email OR student.barCode = :email)', {
           email,
         })
-        .andWhere('student.password = :password', { password })
         .getOne();
 
       if (!student) {
@@ -72,6 +71,12 @@ export class StudentsService {
           'Invalid Email or Username',
           HttpStatus.FORBIDDEN,
         );
+      }
+
+      const isCorrectPassword = await compare(password, student.password);
+
+      if (!isCorrectPassword) {
+        throw new HttpException('Invalid Credentials', HttpStatus.FORBIDDEN);
       }
 
       const jwtPayloadSelective = {
@@ -389,7 +394,6 @@ export class StudentsService {
     }
   }
 
-  // TODO: This is in Raw SQL because converting it to SQL would be difficult
   async adminDashboard(
     instituteUuid: string | null,
   ): Promise<Data<DashboardCardtypes>> {
@@ -406,7 +410,7 @@ export class StudentsService {
         Array.isArray(instituteUUIDsJSON) && instituteUUIDsJSON.length > 0;
 
       const whereInstituteClause = useInstituteFilter
-        ? `AND instituteUuid = ANY($1)`
+        ? `AND "instituteUuid" = ANY($1)`
         : '';
 
       const instituteParams = useInstituteFilter ? [instituteUUIDsJSON] : [];
@@ -414,7 +418,7 @@ export class StudentsService {
       const totalBooksQuery = `
         SELECT COUNT(*) 
           FROM book_copies 
-          WHERE is_archived = false
+          WHERE "isArchived" = false
           ${whereInstituteClause}
         `;
 
@@ -427,9 +431,9 @@ export class StudentsService {
       const totalBorrowedBooksQuery = `
         SELECT COUNT(*) 
           FROM book_logv2 
-          LEFT JOIN book_copies ON book_logv2.book_copy_uuid = book_copies.book_copy_uuid 
-          WHERE book_copies.is_archived = false
-          ${whereInstituteClause.replace('institute_uuid', 'book_copies.institute_uuid')}
+          LEFT JOIN book_copies ON book_logv2."bookCopyUuid" = book_copies."bookCopyUuid" 
+          WHERE book_copies."isArchived" = false
+          ${whereInstituteClause.replace('"instituteUuid"', 'book_copies."instituteUuid"')}
         `;
 
       const totalBorrowedBooks = await this.studentsDataRepository.query(
@@ -439,8 +443,8 @@ export class StudentsService {
 
       const totalMembersQuery = `
       SELECT COUNT(*) 
-        FROM studentUuid 
-        WHERE isArchived = false
+        FROM students_info
+        WHERE "isArchived" = false
         ${whereInstituteClause}
       `;
 
@@ -452,16 +456,16 @@ export class StudentsService {
       const newBooksQuery = `
         SELECT COUNT(*) 
           FROM book_copies 
-          WHERE is_archived = false 
-            AND is_available = true 
-            AND created_at >= NOW() - INTERVAL '1 month'
+          WHERE "isArchived" = false 
+            AND "isAvailable" = true 
+            AND "createdAt" >= NOW() - INTERVAL '1 month'
         `;
       const newBooks = await this.studentsDataRepository.query(newBooksQuery);
 
       const todayIssuesQuery = `
         SELECT COUNT(*) 
           FROM book_logv2 
-          WHERE date >= CURRENT_DATE AND action = 'borrowed'
+          WHERE "createdAt" >= CURRENT_DATE AND action = 'borrowed'
         `;
       const todayIssues =
         await this.studentsDataRepository.query(todayIssuesQuery);
@@ -469,7 +473,7 @@ export class StudentsService {
       const todayReturnedQuery = `
         SELECT COUNT(*) 
           FROM book_logv2 
-          WHERE date >= CURRENT_DATE AND action = 'returned'
+          WHERE "createdAt" >= CURRENT_DATE AND action = 'returned'
         `;
       const todayReturned =
         await this.studentsDataRepository.query(todayReturnedQuery);
@@ -484,9 +488,9 @@ export class StudentsService {
       const trendingQuery = `
         SELECT COUNT(*) 
         FROM book_copies 
-        WHERE is_archived = false 
-          AND is_available = true 
-          AND created_at >= NOW() - INTERVAL '1 month'
+        WHERE "isArchived" = false 
+          AND "isAvailable" = true 
+          AND "createdAt" >= NOW() - INTERVAL '1 month'
       `;
       const trending = await this.studentsDataRepository.query(trendingQuery);
 
@@ -596,20 +600,20 @@ export class StudentsService {
   async studentDashboard(user: string): Promise<Data<StudentCardtypes>> {
     try {
       const student = await this.studentsDataRepository.query(
-        `SELECT studentUuid FROM students_info WHERE studentUuid = $1`,
+        `SELECT "studentUuid" FROM students_info WHERE "studentUuid" = $1`,
         [user],
       );
 
       const totalBooks = await this.studentsDataRepository.query(
-        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false`,
+        `SELECT COUNT(*) FROM book_titles`,
       );
 
       const newBooks = await this.studentsDataRepository.query(
-        `SELECT COUNT(*) FROM book_titles WHERE is_archived = false AND created_at >= NOW() - INTERVAL '1 month'`,
+        `SELECT COUNT(*) FROM book_titles WHERE "createdAt" >= NOW() - INTERVAL '1 month'`,
       );
       const yearlyBorrow = await this.studentsDataRepository.query(
-        `SELECT COUNT(*) FROM book_logv2 WHERE borrowerUuid = $1 AND date >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
-          AND date < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
+        `SELECT COUNT(*) FROM book_logv2 WHERE "borrowerUuid" = $1 AND "createdAt" >= DATE_TRUNC('year', NOW()) + INTERVAL '5 months' - INTERVAL '1 year'
+          AND "createdAt" < DATE_TRUNC('year', NOW()) + INTERVAL '5 months'`,
         [student[0].student_uuid],
       );
       const totalBorrowedBooks = await this.studentsDataRepository.query(
@@ -663,7 +667,7 @@ export class StudentsService {
   }: TStudentVisitDTO): Promise<Data<VisitLog>> {
     try {
       const student = await this.studentsDataRepository.findOne({
-        where: { studentUuid },
+        where: [{ studentUuid }, { barCode: studentUuid }],
       });
 
       if (!student) {
@@ -671,7 +675,7 @@ export class StudentsService {
       }
 
       const lastEntry = await this.visitLogRepository.findOne({
-        where: { studentUuid },
+        where: { studentUuid: student.studentUuid },
         order: { inTime: 'DESC' },
       });
 
@@ -761,7 +765,11 @@ export class StudentsService {
         where: {
           studentKeyUuid,
           isUsed: false,
-          createdAt: MoreThan(new Date(Date.now() - 3 * 60 * 1000)), // 3 minutes ago
+          createdAt: MoreThan(
+            new Date(
+              Date.now() - 3 * 60 * 1000 - 5 * 60 * 60 * 1000 - 30 * 60 * 1000,
+            ),
+          ),
         },
       });
 
@@ -817,7 +825,11 @@ export class StudentsService {
       const status = await this.studentsVisitRepository.findOne({
         where: {
           studentKeyUuid,
-          createdAt: MoreThan(new Date(Date.now() - 3 * 60 * 1000)),
+          createdAt: MoreThan(
+            new Date(
+              Date.now() - 3 * 60 * 1000 - 5 * 60 * 60 * 1000 - 30 * 60 * 1000,
+            ),
+          ),
         },
       });
       if (!status) {
@@ -863,7 +875,7 @@ export class StudentsService {
       const params: (string | number)[] = [];
 
       filter.push({
-        field: 'instituteUuid',
+        field: '"instituteUuid"',
         value: instituteUuid,
         operator: '=',
       });
@@ -875,7 +887,7 @@ export class StudentsService {
       );
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        (dec = ['logDate']),
+        (dec = ['"logDate"']),
       );
 
       // Optimized SQL Query with Pagination at Database Level
@@ -883,38 +895,38 @@ export class StudentsService {
         `
         SELECT * FROM (
           SELECT 
-            vl.instituteUuid, 
-            vl.visitLogId AS id, 
-            st.barcode As studentId, 
-            NULL AS bookCopy, 
-            NULL AS bookTitle, 
+            vl."instituteUuid", 
+            vl."visitLogId" AS id, 
+            st."barCode" As "studentId", 
+            NULL AS "bookCopy", 
+            NULL AS "bookTitle", 
             vl.action AS action, 
             NULL AS description, 
-            NULL AS ipAddress, 
-            vl.outTime AS outTime, 
-            st.studentName AS studentName, 
-            vl.inTime AS logDate, 
-            vl.inTime AS timestamp 
+            NULL AS "ipAddress", 
+            vl."outTime" AS "outTime", 
+            st."firstName" AS "studentName", 
+            vl."inTime" AS "logDate", 
+            vl."inTime" AS timestamp 
             FROM visit_log vl
             LEFT JOIN students_info st
-            ON vl.studentUuid = st.studentUuid
+            ON vl."studentUuid" = st."studentUuid"
           UNION ALL
           SELECT 
-            bl.institute_uuid AS instituteUuid,  
-            bl.booklog_uuid AS id, 
-            st.barcode AS studentId, 
-            bl.new_book_copy AS bookCopy, 
-            bl.new_book_title AS bookTitle, 
+            bl."instituteUuid" AS "instituteUuid",  
+            bl."booklogId" AS id, 
+            st."barCode" AS "studentId", 
+            bl."newBookCopy" AS "bookCopy", 
+            bl."newBookTitle" AS "bookTitle", 
             bl.action AS action, 
             bl.description AS description, 
-            bl.ip_address AS ipAddress,  
-            NULL AS outTime, 
-            st.studentName AS studentName,  
-            date AS logDate, 
-            time AS timestamp 
+            bl."ipAddress" AS "ipAddress",  
+            NULL AS "outTime", 
+            st."firstName" AS "studentName",  
+            bl."createdAt" AS "logDate", 
+            bl."createdAt" AS timestamp 
           FROM book_logv2 bl 
           LEFT JOIN students_info st
-          ON st.studentUuid = bl.borrowerUuid
+          ON st."studentUuid" = bl."borrowerUuid"
         ) AS combined_logs
         ${whereClauses} ${orderByQuery}
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -926,9 +938,9 @@ export class StudentsService {
       const total = await this.studentsDataRepository.query(
         `
         SELECT COUNT(*) AS total FROM (
-          SELECT instituteUuid, visitLogId AS id FROM visit_log
+          SELECT "instituteUuid", "visitLogId" AS id FROM visit_log
           UNION ALL
-          SELECT institute_uuid,  booklog_uuid AS id  FROM book_logv2 
+          SELECT "instituteUuid",  "booklogId" AS id  FROM book_logv2 
         ) AS combined_logs ${whereClauses}
         `,
         params,
@@ -1072,7 +1084,7 @@ export class StudentsService {
       const params: (string | number)[] = [];
 
       filter.push({
-        field: 'studentUuid',
+        field: '"studentUuid"',
         value: [studentUuid],
         operator: '=',
       });
@@ -1084,43 +1096,41 @@ export class StudentsService {
       );
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        (dec = ['logDate']),
+        (dec = ['"logDate"']),
       );
 
       const visitLogs = await this.studentsDataRepository.query(
         `
           SELECT * FROM (
             SELECT 
-              vl.visitLogId AS id, 
-              st.barcode As studentId, 
-              NULL AS bookCopy, 
-              NULL AS bookTitle, 
+              vl."visitLogId" AS id, 
+              st."barCode" As "studentId", 
+              NULL AS "bookCopy", 
+              NULL AS "bookTitle", 
               vl.action AS action, 
               NULL AS description, 
-              NULL AS ipAddress, 
-              vl.outTime AS outTime, 
-              st.studentName AS studentName, 
-              vl.inTime AS logDate, 
-              vl.inTime AS timestamp,
-              vl.studentUuid AS studentUuid
+              NULL AS "ipAddress", 
+              vl."outTime" AS "outTime", 
+              st."firstName" AS "studentName", 
+              vl."inTime" AS "logDate", 
+              vl."studentUuid" AS "studentUuid"
               FROM visit_log vl
               LEFT JOIN students_info st
-              ON vl.studentUuid = st.studentUuid 
+              ON vl."studentUuid" = st."studentUuid" 
             UNION ALL
             SELECT  
-              bl.booklog_uuid AS id, 
-              st.barcode AS studentId, 
-              bl.new_book_copy AS bookCopy, 
-              bl.new_book_title AS bookTitle, 
+              bl."booklogId" AS id, 
+              st."barCode" AS "studentId", 
+              bl."newBookCopy" AS "bookCopy", 
+              bl."newBookTitle" AS "bookTitle", 
               bl.action AS action,  
               bl.description AS description, 
-              bl.ip_address AS ipAddress,  
-              NULL AS outTime, 
-              st.studentName AS studentName,  
-              date AS logDate, 
-              bl.borrowerUuid AS studentUuid
-              time AS timestamp 
-              FROM book_logv2 bl LEFT JOIN students_info st ON st.studentUuid = bl.borrowerUuid
+              bl."ipAddress" AS "ipAddress",  
+              NULL AS "outTime", 
+              st."firstName" AS "studentName",  
+              bl."createdAt" AS "logDate", 
+              bl."borrowerUuid" AS "studentUuid"
+              FROM book_logv2 bl LEFT JOIN students_info st ON st."studentUuid" = bl."borrowerUuid"
           ) AS combined_logs
           ${whereClauses} ${orderByQuery}
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -1129,9 +1139,9 @@ export class StudentsService {
       );
       const totalResult = await this.studentsDataRepository.query(
         `SELECT COUNT(*) FROM (
-            SELECT visitLogId AS id, bl.studentUuid AS studentUuid FROM visit_log
+            SELECT "visitLogId" AS id, vl."studentUuid" AS "studentUuid" FROM visit_log vl
             UNION ALL
-            SELECT  bl.booklog_uuid AS id, bl.borrowerUuid AS studentUuid FROM book_logv2
+            SELECT  bl."booklogId" AS id, bl."borrowerUuid" AS "studentUuid" FROM book_logv2 bl
           ) AS combined_logs2 ${whereClauses}`,
         params,
       );

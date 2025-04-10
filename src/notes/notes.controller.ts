@@ -151,7 +151,7 @@ export class NotesController {
       const { data } = await this.notesService.rejectByAdmin(notesUuid);
       await this.notifyService.createNotification(
         data.studentUuid,
-        NotificationType.NOTES_APPROVED,
+        NotificationType.NOTES_REJECTED,
         {
           courseName: data.noteTitle,
         },

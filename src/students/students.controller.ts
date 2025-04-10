@@ -175,120 +175,7 @@ export class StudentsController {
       }
     }
   }
-
-  @Get(':student_uuid')
-  async getStudentDetail(
-    @Param('student_uuid') studentUuid: string,
-  ): Promise<ApiResponse<StudentsData>> {
-    try {
-      const { data } = await this.studentsService.findStudentBy(studentUuid);
-      return {
-        data,
-        pagination: null,
-        success: true,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  @Post('bulk-create')
-  @UsePipes(
-    new bulkBodyValidationPipe<
-      TCreateStudentDTO,
-      {
-        validated_array: TCreateStudentDTO[];
-        invalid_data_count: number;
-      }
-    >('student/student-zod-body-worker'),
-  )
-  async bulkCreateStudent(
-    @Body()
-    studentZodValidatedObject: {
-      validated_array: TCreateStudentDTO[];
-      invalid_data_count: number;
-    },
-  ): Promise<
-    ApiResponse<{
-      invalid_data: number;
-      inserted_data: number;
-      duplicate_data_pl: number;
-      duplicate_date_db: number;
-      unique_data: number;
-    }>
-  > {
-    try {
-      const { data } = await this.studentsService.bulkCreate(
-        studentZodValidatedObject,
-      );
-      return {
-        data,
-        pagination: null,
-        success: true,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  @Delete('bulk-delete')
-  @UsePipes(
-    new bulkBodyValidationPipe<
-      TStudentUuidZod,
-      {
-        validated_array: TStudentUuidZod[];
-        invalid_data_count: number;
-      }
-    >('student/student-zod-uuid-worker'),
-  )
-  async bulkDeleteStudent(
-    @Body()
-    studentZodValidatedUUIDObject: {
-      validated_array: TStudentUuidZod[];
-      invalid_data_count: number;
-    },
-  ): Promise<
-    ApiResponse<{
-      invalid_data: number;
-      archived_data: number;
-      failed_archived_data: number;
-    }>
-  > {
-    try {
-      const { data } = await this.studentsService.bulkDelete(
-        studentZodValidatedUUIDObject,
-      );
-      return {
-        data,
-        pagination: null,
-        success: true,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      } else {
-        throw error;
-      }
-    }
-  }
-
+  
   @Get('admin-dashboard')
   async adminDashboard(
     @Query('_institute_uuid') instituteUuid: string | null,
@@ -311,7 +198,7 @@ export class StudentsController {
       throw error;
     }
   }
-
+  
   @Get('student-dashboard')
   @UseGuards(TokenAuthGuard)
   async studentDashboard(
@@ -336,35 +223,7 @@ export class StudentsController {
       throw error;
     }
   }
-
-  @Post('student-visit-key')
-  @UseGuards(TokenAuthGuard)
-  async studentVisitKey(
-    @Request() req: AuthenticatedRequest,
-    @Body('longitude') longitude: string,
-    @Body('latitude') latitude: string,
-  ): Promise<ApiResponse<StudentsVisitKey>> {
-    try {
-      const { data } = await this.studentsService.createStudentVisitKey(
-        req.user.studentUuid,
-        parseFloat(latitude),
-        parseFloat(longitude),
-      );
-      return {
-        success: true,
-        data,
-        pagination: null,
-      };
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
+  
 
   @Get('verify-student-visit-key/:student_key_uuid')
   async getStudentVisitKey(
@@ -519,6 +378,149 @@ export class StudentsController {
       };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get(':student_uuid')
+  async getStudentDetail(
+    @Param('student_uuid') studentUuid: string,
+  ): Promise<ApiResponse<StudentsData>> {
+    try {
+      const { data } = await this.studentsService.findStudentBy(studentUuid);
+      return {
+        data,
+        pagination: null,
+        success: true,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  @Post('bulk-create')
+  @UsePipes(
+    new bulkBodyValidationPipe<
+      TCreateStudentDTO,
+      {
+        validated_array: TCreateStudentDTO[];
+        invalid_data_count: number;
+      }
+    >('student/student-zod-body-worker'),
+  )
+  async bulkCreateStudent(
+    @Body()
+    studentZodValidatedObject: {
+      validated_array: TCreateStudentDTO[];
+      invalid_data_count: number;
+    },
+  ): Promise<
+    ApiResponse<{
+      invalid_data: number;
+      inserted_data: number;
+      duplicate_data_pl: number;
+      duplicate_date_db: number;
+      unique_data: number;
+    }>
+  > {
+    try {
+      const { data } = await this.studentsService.bulkCreate(
+        studentZodValidatedObject,
+      );
+      return {
+        data,
+        pagination: null,
+        success: true,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  @Delete('bulk-delete')
+  @UsePipes(
+    new bulkBodyValidationPipe<
+      TStudentUuidZod,
+      {
+        validated_array: TStudentUuidZod[];
+        invalid_data_count: number;
+      }
+    >('student/student-zod-uuid-worker'),
+  )
+  async bulkDeleteStudent(
+    @Body()
+    studentZodValidatedUUIDObject: {
+      validated_array: TStudentUuidZod[];
+      invalid_data_count: number;
+    },
+  ): Promise<
+    ApiResponse<{
+      invalid_data: number;
+      archived_data: number;
+      failed_archived_data: number;
+    }>
+  > {
+    try {
+      const { data } = await this.studentsService.bulkDelete(
+        studentZodValidatedUUIDObject,
+      );
+      return {
+        data,
+        pagination: null,
+        success: true,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        throw error;
+      }
+    }
+  }
+
+
+  @Post('student-visit-key')
+  @UseGuards(TokenAuthGuard)
+  async studentVisitKey(
+    @Request() req: AuthenticatedRequest,
+    @Body('longitude') longitude: string,
+    @Body('latitude') latitude: string,
+  ): Promise<ApiResponse<StudentsVisitKey>> {
+    try {
+      const { data } = await this.studentsService.createStudentVisitKey(
+        req.user.studentUuid,
+        parseFloat(latitude),
+        parseFloat(longitude),
+      );
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
     }
   }
 

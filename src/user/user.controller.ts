@@ -1,10 +1,14 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpException,
   HttpStatus,
+  Param,
+  Patch,
   Post,
+  Query,
   UsePipes,
 } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -12,6 +16,7 @@ import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { createUserSchemaZod, TCreateUserDTO } from './dto/create-user.dto';
 import { loginUserSchemaZod, TLoginUserDTO } from './dto/login-user.dto';
 import { UserAccessToken } from './entity/user-access.entity';
+import { EmployeeInput } from './types/user-response.types';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -64,6 +69,82 @@ export class UserController {
         await this.userService.userLogin(studentCredPayload);
       return {
         meta,
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('getAllEmployees')
+  @UsePipes(new bodyValidationPipe(loginUserSchemaZod))
+  async getAllEmployees(
+    @Query("instituteUuid") instituteUuid: string ,
+    @Query("module") module: string 
+  ): Promise<ApiResponse<UserAccessToken>> {
+    try {
+      const { data, meta } =
+        await this.userService.getAllUsersFromInstitute(instituteUuid, module);
+      return {
+        meta,
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('employeeDetails')
+  @UsePipes(new bodyValidationPipe(loginUserSchemaZod))
+  async employeeDetails(
+    @Query("employeeUuid") employeeUuid: string ,
+    @Query("module") module: string 
+  ): Promise<ApiResponse<UserAccessToken>> {
+    try {
+      const { data } =
+        await this.userService.getEmployeeDetails(employeeUuid, module);
+      return {
+        success: true,
+        data,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Patch(':employeeUuid')
+  async patchUser(
+    @Param("employeeUuid") employeeUuid: string,
+    @Body() patchData: EmployeeInput,
+    @Headers('authorization') authorization: string,
+  ): Promise<ApiResponse<UserAccessToken>> {
+    try {
+      const { data } =
+        await this.userService.patchUsersDetails(employeeUuid, patchData, authorization);
+      return {
         success: true,
         data,
         pagination: null,

@@ -6,7 +6,11 @@ import { TCreateUserDTO } from './dto/create-user.dto';
 import { TLoginUserDTO } from './dto/login-user.dto';
 import { UserAccessToken } from './entity/user-access.entity';
 import { UserPreference } from './entity/user-preference.entity';
-import { CreateUserResponse, UserResponse } from './types/user-response.types';
+import {
+  CreateUserResponse,
+  EmployeeInput,
+  UserResponse,
+} from './types/user-response.types';
 import axios, { AxiosResponse } from 'axios';
 
 interface Data<T> {
@@ -16,8 +20,7 @@ interface Data<T> {
 }
 
 // TODO: GLOBAL VARIABLES
-const HR_URL =
-  process.env.HR_URL || 'https://hr-backend-navy.vercel.app/api/auth/';
+const HR_URL = process.env.HR_URL || 'https://hr-backend-navy.vercel.app/api';
 
 @Injectable()
 export class UserService {
@@ -38,24 +41,24 @@ export class UserService {
   ): Promise<Data<{ message: string }>> {
     try {
       const response: AxiosResponse<CreateUserResponse> = await axios.post(
-        `${HR_URL}/addUser`,
+        `${HR_URL}/auth/addUser`,
         {
           ...userPayload,
-        }, {
+        },
+        {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization' : accessToken
+            Authorization: accessToken,
           },
-        }
+        },
       );
-
 
       if (!response?.data) {
         throw new HttpException(
           'HR Module failed to create user',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
-      }      
+      }
 
       return {
         data: { message: 'User created successfully!' },
@@ -69,7 +72,7 @@ export class UserService {
   async userLogin(userCredPayload: TLoginUserDTO): Promise<Data<any>> {
     try {
       const response: AxiosResponse<UserResponse> = await axios.post(
-        `${HR_URL}/login`,
+        `${HR_URL}/auth/login`,
         {
           ...userCredPayload,
         },
@@ -128,7 +131,10 @@ export class UserService {
         return newInstitute;
       });
 
-      const savedInstitutes = newInstitutes.length > 0 ? await this.libraryRepository.save(newInstitutes) : [];
+      const savedInstitutes =
+        newInstitutes.length > 0
+          ? await this.libraryRepository.save(newInstitutes)
+          : [];
 
       const libraryDetails = [...existingInstitutes, ...savedInstitutes];
 
@@ -144,17 +150,115 @@ export class UserService {
         instituteName: response.data.user.institutes.find(
           (institute) => institute.uuid === library.instituteUuid,
         )?.name,
-        instituteAbbr:response.data.user.institutes.find(
+        instituteAbbr: response.data.user.institutes.find(
           (institute) => institute.uuid === library.instituteUuid,
         )?.abbreviation,
-        instituteHeader: "",
-        instituteLogo: ""
-      }))
+        instituteHeader: '',
+        instituteLogo: '',
+      }));
 
       return {
-        data: { ...completeUser, ...userPreference, libraryDetails: completeLibraryDetails },
+        data: {
+          ...completeUser,
+          ...userPreference,
+          libraryDetails: completeLibraryDetails,
+        },
         pagination: null,
         meta: { accessToken: response.data.token },
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllUsersFromInstitute(instituteUuid: string, module: string): Promise<Data<any>> {
+    try {
+      const response: AxiosResponse<UserResponse> = await axios.get(
+        `${HR_URL}/users/getAllEmployeeDetailsInInstituteModule?module=${module}&instituteUuid=${instituteUuid}`,
+      );
+
+      if (!response?.data) {
+        throw new HttpException(
+          'HR Module failed to create user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return {
+        data: response.data,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getUsersDetails(employeeUuid: string, module: string) {
+    try {
+      const response: AxiosResponse<UserResponse> = await axios.get(
+        `${HR_URL}/users?module=${module}&employeeUuid=${employeeUuid}`,
+      );
+
+      if (!response?.data) {
+        throw new HttpException(
+          'HR Module failed to create user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return {
+        data: response.data,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getEmployeeDetails(employeeUuid: string, module: string): Promise<Data<any>> {
+    try {
+      const response: AxiosResponse<UserResponse> = await axios.get(
+        `${HR_URL}/users?employeeUuid=${employeeUuid}&module=${module}`,
+      );
+      if (!response.data) {
+        throw new HttpException(
+          'HR Module failed to create user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return {
+        data: response.data,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async patchUsersDetails(
+    employeeUuid: string,
+    data: EmployeeInput,
+    accessToken: string,
+  ): Promise<Data<any>> {
+    try {
+      const response: AxiosResponse<UserResponse> = await axios.patch(
+        `${HR_URL}/users/${employeeUuid}`,
+        data,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: accessToken,
+          },
+        },
+      );
+
+      if (!response?.data) {
+        throw new HttpException(
+          'HR Module failed to create user',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return {
+        data: response.data,
+        pagination: null,
       };
     } catch (error) {
       throw error;
