@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
 export const createBookSchema = z.object({
-    bookUuid: z.string().uuid().optional(),
-    bookTitleId: z.string().max(255),
+    bookTitleId: z.string().max(255).optional(),
     accessionNumber: z.string().optional(),
     categoryName: z.string().optional(),
     classificationNumber: z.string().optional(),
@@ -49,7 +48,7 @@ export const createBookSchema = z.object({
     isAvailable: z.boolean().optional(),
     isArchived: z.boolean().optional(),
     loaned: z.boolean().optional(),
-    loanReturnDate: z.date().optional(),
+    loanReturnDate: z.string().optional(),
     donated: z.boolean().optional(),
     bookNumber: z.string().optional(),
     bookSize: z.string().optional(),

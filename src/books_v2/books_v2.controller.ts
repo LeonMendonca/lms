@@ -3,40 +3,35 @@ import {
   Get,
   Post,
   Body,
-  Put,
   Delete,
   Query,
   UsePipes,
   HttpException,
   HttpStatus,
-  ParseUUIDPipe,
-  Patch,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { BooksV2Service } from './books_v2.service';
 import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
-import { createBookSchema, TCreateBookZodDTO } from './zod/createbookdtozod';
+import { TCreateBookZodDTO } from './zod/createbookdtozod';
 import type { Request } from 'express';
 import {
   booklogV2Schema,
 } from './zod/create-booklogv2-zod';
 import { bulkBodyValidationPipe } from 'src/pipes/bulk-body-validation.pipe';
 import { TbookUUIDZod } from './zod/bookuuid-zod';
-import { StudentsService } from 'src/students/students.service';
 import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { RequestBook } from './entity/request-book.entity';
 import {
   PaginationParserType,
   ParsePaginationPipe,
 } from 'src/pipes/pagination-parser.pipe';
-import { StudentNotifyService } from 'src/student-notify/student-notify.service';
 import { BookTitle } from './entity/books_v2.title.entity';
 import { BookCopy } from './entity/books_v2.copies.entity';
 import { Booklog_v2 } from './entity/book_logv2.entity';
 import { TRequestDTO } from './dto/book-request.dto';
 import { TRequestActionDTO } from './dto/book-req-action.dto';
-import { TCreateBookDTO } from './dto/book-create.dto';
+import { createBookSchema, TCreateBookDTO } from './dto/book-create.dto';
 import { TCreateBooklogActionDTO } from './dto/booklog-create.dto';
 
 interface AuthenticatedRequest extends Request {

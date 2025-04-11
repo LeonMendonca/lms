@@ -34,64 +34,66 @@ CREATE OR REPLACE FUNCTION create_student_id()
 $$ LANGUAGE plv8;
 `;
 
-// const createCopiesId = `
-// CREATE OR REPLACE FUNCTION get_book_copies_id()
-// RETURNS TRIGGER AS $$
+const createCopiesId = `
+CREATE OR REPLACE FUNCTION get_book_copies_id()
+RETURNS TRIGGER AS $$
 
-//   const instituteName = NEW.institute_name
-//   const instituteCount = plv8.execute('SELECT COUNT(book_copy_id) FROM book_copies WHERE institute_name = $1', [instituteName])[0].count
-//   const instituteCountAsNum = Number(instituteCount) + 1;
+  const titleUuid = NEW.bookTitleUuidRel;
 
-//   let bookCopyId = ''
-//   const instituteNameAbbr = instituteName.split(" ").map((item) => (item[0] === item[0]?.toUpperCase()) ? item[0] : "").join("");
+  const titleResult = plv8.execute(
+    'SELECT "bookTitleId" FROM book_titles WHERE "bookUuid" = $1',
+    titleUuid
+  );
 
-//   const instituteCountPadstart = String(instituteCountAsNum).padStart(4, '0');
-//   bookCopyId = instituteNameAbbr+instituteCountPadstart
+  const bookTitleId = titleResult[0].bookTitleId;
 
-//   plv8.execute('UPDATE book_copies SET book_copy_id = $1 WHERE book_copy_uuid = $2', [bookCopyId, NEW.book_copy_uuid])
+  const countResult = plv8.execute(
+    'SELECT COUNT(*) FROM book_copies WHERE "bookTitleUuidRel" = $1',
+    titleUuid
+  );
 
-//   return NEW;
-// $$ LANGUAGE plv8;
-// `;
+  const count = parseInt(countResult[0].count, 10);
+  const paddedSerial = count.toString().padStart(3, '0');
 
-// const createTitleId = `
-// CREATE OR REPLACE FUNCTION create_book_titles_id()
-// RETURNS TRIGGER AS $$
+  const bookCopyNumber = bookTitleId+"/"+paddedSerial;
 
-//   const alphabetArr = [
-//     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
-//     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' 
-//   ];
+  plv8.execute(
+    'UPDATE book_copies SET "barcode" = $1 WHERE "bookCopyUuid" = $2',
+    bookCopyNumber,
+    NEW.bookCopyUuid
+  );
 
-//   const numberOfPadding = 5;
-//   let paddingZero = ''.padStart(numberOfPadding, '0')
+  return NEW;
+$$ LANGUAGE plv8;
+`;
 
-//   let maxBookId = plv8.execute('SELECT MAX(book_title_id) FROM book_titles')[0].max
+const createTitleId = `
+CREATE OR REPLACE FUNCTION create_book_titles_id()
+  RETURNS TRIGGER AS $$
+
+  const instituteName = NEW.instituteName || 'TSDC';
+  const prefix = instituteName.match(/[A-Z]/g)?.join('') || '';  
+  const finalPrefix = prefix.length > 0 ? prefix : 'X';  
   
-//   let numFromId = '';
-//   let alphaFromId = '';
-//   let incByOne = 0;
-  
-//   if(!maxBookId) {
-//     maxBookId = 'A-00000';
-//   } else {
-//     alphaFromId = maxBookId.split('-')[0];
-//     numFromId = maxBookId.split('-')[1];
-//     incByOne = Number(numFromId) + 1;
-//   }
-  
-//   if(String(incByOne).length > String(numFromId).length) {
-//     let indexOfNextAlphabet = alphabetArr.indexOf(alphaFromId) + 1
-//     maxBookId = alphabetArr[indexOfNextAlphabet]+'-'+paddingZero
-//   } else {
-//     maxBookId = alphaFromId+'-'+(Number(numFromId)+1).toString().padStart(numberOfPadding, '0')
-//   }
-  
-//   plv8.execute('UPDATE book_titles SET book_title_id = $1 WHERE book_uuid = $2', maxBookId, NEW.book_uuid);
+  let maxBookId = plv8.execute('SELECT COUNT(*) FROM book_titles WHERE "instituteUuid" = $1', NEW.instituteUuid)[0].count;
 
-//   return NEW;
-// $$ LANGUAGE plv8;
-// `;
+  const paddingLength = 6;
+  let paddingZero = ''.padStart(paddingLength, '0');
+
+  let serialNumber = 1;  
+  if (maxBookId) {
+    let currentSerial = maxBookId;
+    serialNumber = parseInt(currentSerial, 10) + 1;
+  }
+
+  maxBookId = finalPrefix + serialNumber.toString().padStart(paddingLength, '0'); 
+
+  plv8.execute('UPDATE book_titles SET "bookTitleId" = $1 WHERE "bookUuid" = $2', maxBookId, NEW.bookUuid);
+
+  return NEW;
+
+$$ LANGUAGE plv8;
+`;
 
 // const updateStudentId = `
 // CREATE OR REPLACE FUNCTION update_student_id() 
@@ -201,19 +203,19 @@ FOR EACH ROW
 EXECUTE PROCEDURE create_student_id()
 `;
 
-// const triggerCreateBookCopiesId = `
-// CREATE OR REPLACE TRIGGER trigger_bc
-// After INSERT ON book_copies
-// FOR EACH ROW
-// EXECUTE FUNCTION get_book_copies_id();
-// `;
+const triggerCreateBookCopiesId = `
+CREATE OR REPLACE TRIGGER trigger_bc
+After INSERT ON book_copies
+FOR EACH ROW
+EXECUTE FUNCTION get_book_copies_id();
+`;
 
-// const triggerCreateBookTitleId = `
-// CREATE OR REPLACE TRIGGER trigger_bt
-// AFTER INSERT ON book_titles
-// FOR EACH ROW
-// EXECUTE PROCEDURE create_book_titles_id()
-// `;
+const triggerCreateBookTitleId = `
+CREATE OR REPLACE TRIGGER trigger_bt
+AFTER INSERT ON book_titles
+FOR EACH ROW
+EXECUTE PROCEDURE create_book_titles_id()
+`;
 
 // const triggerCreateJournalTitleId = `
 // DO $$
@@ -261,13 +263,13 @@ export async function pgPLV8() {
   } finally {
     const clientTriggerAndFunction = await pool.connect();
     await clientTriggerAndFunction.query(createStudentId);
-    // await clientTriggerAndFunction.query(createTitleId);
-    // await clientTriggerAndFunction.query(createCopiesId);
+    await clientTriggerAndFunction.query(createTitleId);
+    await clientTriggerAndFunction.query(createCopiesId);
     // await clientTriggerAndFunction.query(updateStudentId);
 
     await clientTriggerAndFunction.query(triggerCreateStudentId);
-    // await clientTriggerAndFunction.query(triggerCreateBookTitleId);
-    // await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
+    await clientTriggerAndFunction.query(triggerCreateBookTitleId);
+    await clientTriggerAndFunction.query(triggerCreateBookCopiesId);
     // await clientTriggerAndFunction.query(triggerUpdateStudentId);
 
     // periodical id

@@ -171,7 +171,10 @@ export class UserService {
     }
   }
 
-  async getAllUsersFromInstitute(instituteUuid: string, module: string): Promise<Data<any>> {
+  async getAllUsersFromInstitute(
+    instituteUuid: string,
+    module: string,
+  ): Promise<Data<any>> {
     try {
       const response: AxiosResponse<UserResponse> = await axios.get(
         `${HR_URL}/users/getAllEmployeeDetailsInInstituteModule?module=${module}&instituteUuid=${instituteUuid}`,
@@ -213,10 +216,20 @@ export class UserService {
     }
   }
 
-  async getEmployeeDetails(employeeUuid: string, module: string): Promise<Data<any>> {
+  async getEmployeeDetails(
+    employeeUuid: string,
+    module: string,
+    accessToken: string,
+  ): Promise<Data<any>> {
     try {
       const response: AxiosResponse<UserResponse> = await axios.get(
         `${HR_URL}/users?employeeUuid=${employeeUuid}&module=${module}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: accessToken,
+          },
+        },
       );
       if (!response.data) {
         throw new HttpException(
@@ -229,6 +242,7 @@ export class UserService {
         pagination: null,
       };
     } catch (error) {
+      console.log(error)
       throw error;
     }
   }
@@ -239,6 +253,7 @@ export class UserService {
     accessToken: string,
   ): Promise<Data<any>> {
     try {
+      console.log("here")
       const response: AxiosResponse<UserResponse> = await axios.patch(
         `${HR_URL}/users/${employeeUuid}`,
         data,
@@ -261,6 +276,7 @@ export class UserService {
         pagination: null,
       };
     } catch (error) {
+      console.log(error)
       throw error;
     }
   }

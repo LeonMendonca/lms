@@ -45,34 +45,34 @@ export class BookCopy {
   @Column({ name: 'instituteUuid', type: 'uuid' })
   instituteUuid: string;
 
-  @Column({ name: 'copyRemarks', type: 'simple-array' })
+  @Column({ name: 'copyRemarks', type: 'simple-array', nullable: true })
   copyRemarks: string[];
 
-  @Column({ name: 'isAvailable', type: 'boolean' })
+  @Column({ name: 'isAvailable', type: 'boolean', default: true })
   isAvailable: boolean;
 
-  @Column({ name: 'isArchived', type: 'boolean' })
+  @Column({ name: 'isArchived', type: 'boolean', default: false })
   isArchived: boolean;
 
-  @Column({ name: 'loaned', type: 'boolean' })
+  @Column({ name: 'loaned', type: 'boolean', default: false })
   loaned: boolean;
 
-  @Column({ name: 'loanReturnDate', type: 'timestamp' })
+  @Column({ name: 'loanReturnDate', type: 'timestamp', nullable: true })
   loanReturnDate: Date;
 
-  @Column({ name: 'donated', type: 'boolean' })
+  @Column({ name: 'donated', type: 'boolean', default: false })
   donated: boolean;
 
-  @Column({ name: 'bookNumber', type: 'varchar' })
+  @Column({ name: 'bookNumber', type: 'varchar', nullable: true })
   bookNumber: string;
 
-  @Column({ name: 'bookSize', type: 'varchar' })
+  @Column({ name: 'bookSize', type: 'varchar', nullable: true })
   bookSize: string;
 
-  @Column({ name: 'isBound', type: 'boolean' })
+  @Column({ name: 'isBound', type: 'boolean', default: false })
   isBound: boolean;
 
-  @Column({ name: 'lockStatus', type: 'boolean' })
+  @Column({ name: 'lockStatus', type: 'boolean', default: false })
   lockStatus: boolean;
 
   @Column({
@@ -91,10 +91,10 @@ export class BookCopy {
   })
   bindInfo: string;
 
-  @Column({ name: 'grantName', type: 'varchar' })
+  @Column({ name: 'grantName', type: 'varchar', nullable: true })
   grantName: string;
 
-  @Column({ name: 'bookCondition', type: 'varchar' })
+  @Column({ name: 'bookCondition', type: 'varchar', nullable: true })
   bookCondition: string;
 
   @CreateDateColumn({ name: 'createdAt'})
@@ -108,5 +108,5 @@ export class BookCopy {
 
   @ManyToOne(() => BookTitle, (bookTitle) => bookTitle.bookCopiesUuidRel)
   @JoinColumn({ name: 'bookTitleUuidRel' })
-  bookTitleUuidRel: BookTitle;
+  bookTitleUuidRel: string;
 }

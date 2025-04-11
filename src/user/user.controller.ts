@@ -17,6 +17,7 @@ import { createUserSchemaZod, TCreateUserDTO } from './dto/create-user.dto';
 import { loginUserSchemaZod, TLoginUserDTO } from './dto/login-user.dto';
 import { UserAccessToken } from './entity/user-access.entity';
 import { EmployeeInput } from './types/user-response.types';
+import { access } from 'fs';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -85,7 +86,6 @@ export class UserController {
   }
 
   @Get('getAllEmployees')
-  @UsePipes(new bodyValidationPipe(loginUserSchemaZod))
   async getAllEmployees(
     @Query("instituteUuid") instituteUuid: string ,
     @Query("module") module: string 
@@ -111,14 +111,15 @@ export class UserController {
   }
 
   @Get('employeeDetails')
-  @UsePipes(new bodyValidationPipe(loginUserSchemaZod))
+  // @UsePipes(new bodyValidationPipe(loginUserSchemaZod))
   async employeeDetails(
     @Query("employeeUuid") employeeUuid: string ,
-    @Query("module") module: string 
+    @Query("module") module: string,
+    @Headers('authorization') authorization: string,
   ): Promise<ApiResponse<UserAccessToken>> {
     try {
       const { data } =
-        await this.userService.getEmployeeDetails(employeeUuid, module);
+        await this.userService.getEmployeeDetails(employeeUuid, module, authorization);
       return {
         success: true,
         data,

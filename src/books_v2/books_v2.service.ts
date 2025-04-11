@@ -77,11 +77,10 @@ export class BooksV2Service {
       const offset = (page - 1) * limit;
       const queryBuilder =
         this.booktitleRepository.createQueryBuilder('book_titles');
-      queryBuilder.andWhere('book_titles.isArchived = false');
 
       if (instituteUuid && instituteUuid.length > 0) {
         queryBuilder.andWhere(
-          'book_titles.instituteUuid IN (:...instituteUuid)',
+          'book_titles."instituteUuid" IN (:...instituteUuid)',
           {
             instituteUuid,
           },
@@ -161,7 +160,7 @@ export class BooksV2Service {
       const queryBuilder = this.booktitleRepository.createQueryBuilder('book');
 
       if (bookUuid) {
-        queryBuilder.andWhere('book.bookUuid = :bookUuid', { bookUuid });
+        queryBuilder.andWhere('book."bookUuid" = :bookUuid', { bookUuid });
       }
 
       if (isbn) {
@@ -169,7 +168,7 @@ export class BooksV2Service {
       }
 
       if (titlename) {
-        queryBuilder.andWhere('book.bookTitle ILIKE :titlename', {
+        queryBuilder.andWhere('book."bookTitle" ILIKE :titlename', {
           titlename: `%${titlename}%`,
         });
       }
@@ -183,18 +182,18 @@ export class BooksV2Service {
       const reviews = await this.booktitleRepository.query(
         `
         SELECT 
-          re.starRating, 
-          re.reviewText, 
-          re.createdAt, 
-          st.firstName, 
-          st.barCode 
+          re."starRating", 
+          re."reviewText", 
+          re."createdAt", 
+          st."firstName", 
+          st."barCode" 
         FROM reviews re 
-        LEFT JOIN students_info st ON re.studentUuid = st.studentUuid 
-        WHERE re.bookUuid = $1 AND re.isApproved = true`,
+        LEFT JOIN students_info st ON re."studentUuid" = st."studentUuid" 
+        WHERE re."bookUuid" = $1 AND re."isApproved" = true`,
         [book.bookUuid],
       );
 
-      return { data: { ...book[0], reviews }, pagination: null };
+      return { data: { ...book, reviews }, pagination: null };
     } catch (error) {
       console.log(error);
       throw new HttpException(
@@ -291,18 +290,17 @@ export class BooksV2Service {
     try {
       const offset = (page - 1) * limit;
 
-      const titleQuery = this.booktitleRepository
-        .createQueryBuilder('book_titles')
-        .select(['book_titles.bookUuid', 'book_titles.bookTitleId']);
+      const titleQuery = this.booktitleRepository.createQueryBuilder('book');
 
       if (bookUuid) {
-        titleQuery.andWhere('book_titles.bookUuid = :bookUuid', { bookUuid });
+        titleQuery.andWhere('book."bookUuid" = :bookUuid', { bookUuid });
       }
       if (isbn) {
-        titleQuery.andWhere('book_titles.isbn = :isbn', { isbn });
+        titleQuery.andWhere('book.isbn = :isbn', { isbn });
+        console.log('hert');
       }
       if (titlename) {
-        titleQuery.andWhere('book_titles.bookTitle ILIKE :titlename', {
+        titleQuery.andWhere('book."bookTitle" ILIKE :titlename', {
           titlename: `${titlename}%`,
         });
       }
@@ -314,24 +312,33 @@ export class BooksV2Service {
       }
 
       filter.push({
-        field: 'book_copies.isArchived',
+        field: 'book_copies."isArchived"',
         value: ['false'],
         operator: '=',
       });
       filter.push({
-        field: 'book_copies.bookTitleUuidRel',
+        field: 'book_copies."bookTitleUuidRel"',
         value: [book.bookUuid],
         operator: '=',
       });
 
-      dec.push('book_copies.createdAt');
+      dec.push('book_copies."createdAt"');
 
       const queryBuilder = this.bookcopyRepository
         .createQueryBuilder('book_copies')
-        .innerJoinAndSelect('book_copies.bookTitleUuidRel', 'book_titles');
+        .leftJoin(
+          'book_titles',
+          'bt',
+          'bt."bookUuid" = book_copies."bookTitleUuidRel"',
+        )
+        .addSelect('book_copies') // selects all columns from book_copies
+        .addSelect('bt');
 
       filter.forEach(({ field, value, operator }) => {
-        const paramKey = field.replace('.', '_'); // ensure unique param names
+        const paramKey = field
+          .replace('.', '_')
+          .replace('"', '')
+          .replace('"', ''); // ensure unique param names
         if (operator === 'IN') {
           queryBuilder.andWhere(`${field} IN (:...${paramKey})`, {
             [paramKey]: value,
@@ -355,9 +362,7 @@ export class BooksV2Service {
       dec.forEach((col) => queryBuilder.addOrderBy(col, 'DESC'));
 
       const total = await queryBuilder.getCount();
-
-      // Paginate
-      const books = await queryBuilder.skip(offset).take(limit).getMany();
+      const books = await queryBuilder.skip(offset).take(limit).getRawMany();
 
       if (books.length === 0) {
         throw new HttpException('Book not found', HttpStatus.NOT_FOUND);
@@ -372,6 +377,7 @@ export class BooksV2Service {
         },
       };
     } catch (error) {
+      console.log(error);
       throw new HttpException(
         'Error fetching books',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -383,9 +389,9 @@ export class BooksV2Service {
     try {
       const queryBuilder = this.bookcopyRepository.createQueryBuilder('copy');
 
-      queryBuilder.where('copy.isArchived = false');
+      queryBuilder.where('copy."isArchived" = false');
 
-      queryBuilder.andWhere('copy.barcode = :id', { id: Number(identifier) });
+      queryBuilder.andWhere('copy.barcode = :id', { id: identifier });
 
       const data = await queryBuilder.getOne();
 
@@ -535,7 +541,7 @@ export class BooksV2Service {
               {
                 studentUuid: existingRequest.studentUuid,
                 barcode: existingRequest.barcode,
-                action: 'return'
+                action: 'return',
               },
               existingRequest.ipAddress,
               'returned',
@@ -548,7 +554,7 @@ export class BooksV2Service {
               {
                 studentUuid: existingRequest.studentUuid,
                 barcode: existingRequest.barcode,
-                action: 'borrow'
+                action: 'borrow',
               },
               existingRequest.ipAddress,
               'borrowed',
@@ -561,7 +567,7 @@ export class BooksV2Service {
               {
                 studentUuid: existingRequest.studentUuid,
                 barcode: existingRequest.barcode,
-                action: 'return'
+                action: 'return',
               },
               existingRequest.ipAddress,
               'return',
@@ -605,16 +611,18 @@ export class BooksV2Service {
       } else {
         bookTitle.totalCount += 1;
         bookTitle.availableCount += 1;
-        bookTitle.updatedAt = new Date();
 
         await this.booktitleRepository.save(bookTitle);
       }
+
       const newBookCopy = this.bookcopyRepository.create({
         ...createBookPayload,
-        bookTitleUuidRel: bookTitle,
+        bookTitleUuidRel: bookTitle.bookUuid,
       });
+      console.log('here');
 
       await this.bookcopyRepository.save(newBookCopy);
+      console.log('here');
       return { data: bookTitle, pagination: null };
     } catch (error) {
       throw error;
@@ -882,10 +890,8 @@ export class BooksV2Service {
           }
           // TODO: Add a check for number of borrows per sole
           let bookTitle = await this.booktitleRepository.findOne({
-            // @ts-expect-error
             where: {
               bookUuid: bookCopy.bookTitleUuidRel,
-              isArchived: false,
             },
           });
           if (!bookTitle) {
@@ -915,10 +921,8 @@ export class BooksV2Service {
           }
           // TODO: Add a check for number of borrows per sole
           const bookTitleLib = await this.booktitleRepository.findOne({
-            // @ts-expect-error
             where: {
               bookUuid: bookCopy.bookTitleUuidRel,
-              isArchived: false,
             },
           });
           if (!bookTitleLib) {
@@ -973,10 +977,8 @@ export class BooksV2Service {
           bookCopy.updatedAt = new Date();
           await this.bookcopyRepository.save(bookCopy);
           const bookTitleRet = await this.booktitleRepository.findOne({
-            // @ts-expect-error
             where: {
               bookUuid: bookCopy.bookTitleUuidRel,
-              isArchived: false,
             },
           });
           if (!bookTitleRet) {
@@ -1001,8 +1003,6 @@ export class BooksV2Service {
     }
   }
 
-  
-
   // async getCurrentBorrowedOfStudent({
   //   student_id,
   //   page,
@@ -1015,8 +1015,8 @@ export class BooksV2Service {
   //   try {
   //     const offset = (page - 1) * limit;
   //     const result: any[] = await this.booklogRepository.query(
-  //       `SELECT bt.book_title, bt.book_uuid, bc.barcode, bt.department, fp.created_at FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN 
-  //       book_titles bt ON bc.book_title_uuid = bt.book_uuid 
+  //       `SELECT bt.book_title, bt.book_uuid, bc.barcode, bt.department, fp.created_at FROM fees_penalties fp LEFT JOIN book_copies bc ON fp.copy_uuid = bc.book_copy_uuid LEFT JOIN
+  //       book_titles bt ON bc.book_title_uuid = bt.book_uuid
   //       WHERE fp.is_completed = false AND fp.borrower_uuid = $1 ORDER BY fp.created_at DESC  LIMIT $2 OFFSET $3
   //       `,
   //       //         ` SELECT  book_copies.book_copy_id, book_titles.book_title, fees_penalties.created_at, fees_penalties.returned_at, book_titles.department FROM book_titles INNER JOIN book_copies ON book_titles.book_uuid= book_copies.book_title_uuid
