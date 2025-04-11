@@ -18,32 +18,32 @@ export class Booklog_v2 {
   //student uuid
   @ManyToOne(() => StudentsData, (students) => students.studentUuid)
   @JoinColumn({ name: 'borrowerUuid' })
-  borrowerUuid: StudentsData;
+  borrowerUuid: string;
 
   @ManyToOne(() => BookTitle, (book_title) => book_title.bookUuid)
   @JoinColumn({ name: 'bookUuuid' })
-  bookUuuid: BookTitle;
+  bookUuuid: string;
 
   @ManyToOne(() => BookCopy, (book_copy) => book_copy.bookCopyUuid)
   @JoinColumn({ name: 'bookCopyUuid' })
-  bookCopyUuid: BookCopy;
+  bookCopyUuid: string;
 
-  @Column({ name: 'oldBookCopy', type: 'json' })
+  @Column({ name: 'oldBookCopy', type: 'json', nullable: true })
   oldBookCopy: Record<string, any>;
 
-  @Column({ name: 'newBookCopy', type: 'json' })
+  @Column({ name: 'newBookCopy', type: 'json', nullable: true })
   newBookCopy: Record<string, any>;
 
-  @Column({ name: 'oldBookTitle', type: 'json' })
+  @Column({ name: 'oldBookTitle', type: 'json', nullable: true})
   oldBookTitle: Record<string, any>;
 
-  @Column({ name: 'newBookTitle', type: 'json' })
+  @Column({ name: 'newBookTitle', type: 'json', nullable: true })
   newBookTitle: Record<string, any>;
 
   @Column({ name: 'action', type: 'varchar', length: 255 })
   action: string;
 
-  @Column({ name: 'description', type: 'varchar', length: 255 })
+  @Column({ name: 'description', type: 'varchar', length: 255, nullable: true })
   description: string;
 
   @CreateDateColumn({ name: 'createdAt' })
@@ -57,4 +57,10 @@ export class Booklog_v2 {
 
   @Column({ name: 'instituteName', type: 'varchar', nullable: true })
   instituteName: string;
+
+  @Column({ name: 'isReturned', type: 'boolean', default: false })
+  isReturned: boolean;
+
+  @Column({ name: 'expectedDate', type: 'date', nullable: true })
+  expectedDate: Date;
 }

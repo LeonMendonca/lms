@@ -1,14 +1,15 @@
 import { HttpException, HttpStatus, Injectable, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { FeesPenalties } from './entity/fees-penalties.entity';
-import { TUpdateFeesPenaltiesZod } from 'src/books_v2/zod/update-fp-zod';
-import { JournalCopy } from 'src/journals/entity/journals_copy.entity';
-import { JournalLogs } from 'src/journals/entity/journals_log.entity';
-import { JournalTitle } from 'src/journals/entity/journals_title.entity';
-import { student, Students } from 'src/students/students.entity';
-import { TCreatePenaltyZod } from './zod/create-penalty-zod';
-import { chownSync } from 'fs';
+import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
+import { TPayFeeDTO } from './dto/fees-paid.dto';
+
+export interface Data<T> {
+  data: T;
+  pagination: null;
+  meta?: any;
+}
 
 @Injectable()
 export class FeesPenaltiesService {
@@ -16,525 +17,132 @@ export class FeesPenaltiesService {
     @InjectRepository(FeesPenalties)
     private feesPenaltiesRepository: Repository<FeesPenalties>,
 
-    @InjectRepository(JournalLogs)
-    private journalLogRepository: Repository<JournalLogs>,
-
-    @InjectRepository(JournalCopy)
-    private journalsCopyRepository: Repository<JournalCopy>,
-
-    @InjectRepository(JournalTitle)
-    private journalsTitleRepository: Repository<JournalTitle>,
-
-    @InjectRepository(Students)
-    private studentsRepository: Repository<Students>,
+    @InjectRepository(Booklog_v2)
+    private bookLogPenalty: Repository<Booklog_v2>,
   ) {}
 
   async getStudentFee({
-    studentId,
-    isPenalty,
-    isCompleted,
+    studentUuid,
   }: {
-    studentId: string;
-    isPenalty?: boolean;
-    isCompleted?: boolean;
-  }) {
+    studentUuid: string;
+  }): Promise<Data<Booklog_v2[]>> {
     try {
-      // If no parameters are provided, return a message
-      if (!studentId && !isPenalty && !isCompleted) {
-        return { message: 'Provide at least one parameter for searching' };
-      }
-
-      // Construct WHERE conditions dynamically
-      let query = `SELECT * FROM fees_penalties WHERE 1=1`; // 1=1 makes it easier to append conditions
-      const params: any[] = [];
-
-      if (studentId) {
-        query += ` AND borrower_uuid = $${params.length + 1}`;
-        params.push(studentId);
-      }
-      if (isPenalty !== undefined) {
-        query += ` AND is_penalised = $${params.length + 1}`;
-        params.push(isPenalty);
-      }
-      if (isCompleted !== undefined) {
-        query += ` AND is_completed = $${params.length + 1}`;
-        params.push(isCompleted);
-      }
-
-      // Execute the query
-      const penalties = await this.feesPenaltiesRepository.query(query, params);
-
-      if (penalties.length) {
-        return { penalties };
-      } else {
-        return { message: 'No Penalty Found' };
-      }
-    } catch (error) {
-      return { error: error.message || 'An error occurred' };
-    }
-  }
-
-  async getFullFeeList(
-    { page, limit }: { page: number; limit: number } = {
-      page: 1,
-      limit: 10,
-    },
-  ) {
-    try {
-      const offset = (page - 1) * limit;
-
-      //   const result = await this.journalsTitleRepository.query(
-      //     `
-      //     SELECT
-      //       st.student_id AS "student_id",
-      //       st.student_name AS "student_name",
-      //       st.department AS "department",
-      //       jc.journal_copy_id AS "id",
-      //       jt.category AS "category",
-      //       fp.penalty_amount,
-      //       fp.paid_amount,
-      //       fp.is_penalised,
-      //       fp.is_completed,
-      //       fp.created_at AS "created_id",
-      //       fp.return_date
-      //     FROM fees_penalties fp
-      //     INNER JOIN students_table st ON st.student_uuid = fp.borrower_uuid
-      //     INNER JOIN journal_copy jc ON jc.journal_copy_uuid = fp.copy_uuid
-      //     INNER JOIN journal_titles jt ON jt.journal_uuid = jc.journal_title_uuid
-      //     WHERE st.is_archived = false AND jc.is_archived = false
-      //     LIMIT $1 OFFSET $2
-      //     `,
-      //     [limit, offset]
-      //   );
-      const result = await this.feesPenaltiesRepository.query(
-        `SELECT * FROM fees_penalties LIMIT $1 OFFSET $2`,
-        [limit, offset],
-      );
-
-      console.log(result);
-
-      const total = await this.journalsTitleRepository.query(
-        `SELECT COUNT(*) as count FROM fees_penalties WHERE is_penalised = TRUE`,
-        );
-
-    //   const total = await this.journalsTitleRepository.query(
-    //     `
-    //         SELECT COUNT(*) as count
-    //         FROM fees_penalties fp
-    //         INNER JOIN students_table st ON st.student_uuid = fp.borrower_uuid
-    //         INNER JOIN journal_copy jc ON jc.journal_copy_uuid = fp.copy_uuid
-    //         INNER JOIN journal_titles jt ON jt.journal_uuid = jc.journal_title_uuid
-    //         WHERE st.is_archived = false AND jc.is_archived = false
-    //         `,
-    //   );
-
-      //   if (result.length === 0) {
-      //     throw new HttpException(
-      //       { message: 'No data found!!' },
-      //       HttpStatus.ACCEPTED,
-      //     );
-      //   }
-
-      return {
-        data: result,
-        pagination: {
-          page,
-          limit,
-          total: parseInt(total[0].count, 10),
-          totalPage: Math.ceil(parseInt(total[0].count, 10) / limit),
+      const pendingPenalties = await this.bookLogPenalty.find({
+        where: {
+          borrowerUuid: studentUuid,
+          action: 'borrowed',
+          expectedDate: LessThan(new Date()),
+          isReturned: false,
         },
+      });
+
+      return {
+        data: pendingPenalties,
+        pagination: null,
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async getFullFeeListStudentBooks(student_id: string) {
+  async getStudentPaidFee({
+    studentUuid,
+  }: {
+    studentUuid: string;
+  }): Promise<Data<FeesPenalties[]>> {
     try {
-      if (!student_id) {
-        return { message: 'Enter Student Id' };
-      }
-      if (student_id.length === 0) {
-        return { message: 'Enter Student Id' };
-      }
-      const result = await this.journalsTitleRepository.query(
-        `SELECT 
-                    students_table.student_id,
-                    book_copies.book_copy_id,
-                    students_table.student_name, 
-                    students_table.department,
-                    book_titles.subject, 
-                    fees_penalties.return_date, 
-                    fees_penalties.created_at, 
-                    fees_penalties.penalty_amount 
-                FROM fees_penalties
-                INNER JOIN students_table 
-                    ON fees_penalties.borrower_uuid = students_table.student_uuid 
-                INNER JOIN book_copies 
-                    ON fees_penalties.book_copy_uuid = book_copies.book_copy_uuid
-                INNER JOIN book_titles 
-                    ON book_titles.book_uuid = book_copies.book_title_uuid
-                WHERE students_table.student_id = $1`,
-        [student_id],
-      );
-      if (result.length === 0) {
-        throw new HttpException(
-          { message: 'No data found!!' },
-          HttpStatus.ACCEPTED,
-        );
-      }
-      return result;
-    } catch (error) {
-      return { error: error };
-    }
-  }
-
-  async getFullFeeListStudentPeriodicals(student_id: string) {
-    try {
-      if (!student_id) {
-        return { message: 'Enter Student Id' };
-      }
-      if (student_id.length === 0) {
-        return { message: 'Enter Student Id' };
-      }
-      // journal_titles.return_date,
-      // journal_titles.subject,
-      const result = await this.journalsTitleRepository.query(
-        `SELECT 
-                    students_table.student_id,
-                    journal_copy.journal_copy_id,
-                    students_table.student_name, 
-                    students_table.department,
-                    fees_penalties.return_date, 
-                    fees_penalties.created_at, 
-                    fees_penalties.penalty_amount 
-                FROM fees_penalties
-                INNER JOIN students_table 
-                    ON fees_penalties.borrower_uuid = students_table.student_uuid 
-                INNER JOIN journal_copy 
-                    ON fees_penalties.copy_uuid = journal_copy.journal_copy_uuid
-                INNER JOIN journal_titles 
-                    ON journal_titles.journal_uuid = journal_copy.journal_title_uuid
-                WHERE students_table.student_id = $1`,
-        [student_id],
-      );
-      if (result.length === 0) {
-        throw new HttpException(
-          { message: 'No data found!!' },
-          HttpStatus.ACCEPTED,
-        );
-      }
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async generateFeeReport(start: Date, end: Date, page: number, limit: number) {
-    try {
-      const offset = (page - 1) * limit;
-
-      const result = await this.journalsTitleRepository.query(
-        `SELECT * FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 LIMIT $3 OFFSET $4 ;`,
-        [start, end, limit, offset],
-      );
-      const total = await this.journalsTitleRepository.query(
-        `SELECT count (*) FROM fees_penalties WHERE updated_at BETWEEN $1 AND $2 ;`,
-        [start, end],
-      );
-      if (result.length === 0) {
-        throw new HttpException(
-          { message: 'No data found!!' },
-          HttpStatus.ACCEPTED,
-        );
-      }
-      return {
-        data: result,
-        pagination: {
-          total: parseInt(total[0].count, 10),
-          page,
-          limit,
-          totalPages: Math.ceil(parseInt(total[0].count, 10) / limit),
+      const pendingPenalties = await this.feesPenaltiesRepository.find({
+        where: {
+          borrowerUuid: studentUuid,
         },
-      };
-      //  console.log(result);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async payStudentFee(updateFeesPayload: TUpdateFeesPenaltiesZod) {
-    try {
-      const studentAndBookCopiesPayloadWithFeesPenalties: {
-        student_uuid: string;
-        book_copy_uuid: string;
-        penalty_amount: number;
-        return_date: Date;
-        returned_at: Date;
-        paid_amount: number;
-        is_penalised: boolean;
-        is_completed: boolean;
-      }[] = await this.studentsRepository.query(
-        `SELECT student_uuid, 
-                book_copies.book_copy_uuid, 
-                penalty_amount, return_date, 
-                returned_at, paid_amount, 
-                is_penalised, 
-                is_completed 
-                FROM fees_penalties 
-                INNER JOIN students_table ON fees_penalties.borrower_uuid = students_table.student_uuid 
-                INNER JOIN book_copies ON fees_penalties.copy_uuid = book_copies.book_copy_uuid 
-                WHERE students_table.is_archived = FALSE
-                AND students_table.student_id = $1 
-                AND book_copies.is_archived = FALSE
-                AND book_copies.book_copy_id = $2 
-                AND penalty_amount > paid_amount
-                AND is_completed = FALSE
-                AND is_penalised = TRUE
-                AND returned_at IS NOT NULL`,
-        [updateFeesPayload.student_id, updateFeesPayload.copy_id],
-      );
-
-      if (!studentAndBookCopiesPayloadWithFeesPenalties.length) {
-        throw new HttpException(
-          'Cannot find Student or Book, maybe archived or No penalty or Not returned',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Extract necessary values
-      const record = studentAndBookCopiesPayloadWithFeesPenalties[0];
-
-      // Accumulate total paid amount
-      const accumulatedPaidAmount =
-        updateFeesPayload.paid_amount + record.paid_amount;
-
-      // Determine if penalty is cleared
-      const isPenalised = accumulatedPaidAmount < record.penalty_amount; // True if penalty remains
-      const isCompleted = !isPenalised; // True if penalty is fully paid
-
-      // FIX: Add WHERE clause to prevent updating all records
-      await this.feesPenaltiesRepository.query(
-        `UPDATE fees_penalties 
-                 SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
-                 WHERE student_uuid = $5 AND book_copy_uuid = $6`,
-        [
-          updateFeesPayload.payment_method,
-          accumulatedPaidAmount,
-          true,
-          isCompleted,
-          record.student_uuid,
-          record.book_copy_uuid,
-        ],
-      );
-
+      });
       return {
-        statusCode: HttpStatus.OK,
-        message: 'Penalty paid successfully!',
+        data: pendingPenalties,
+        pagination: null,
       };
     } catch (error) {
       throw error;
     }
   }
 
-  async payStudentFeeForPeriodicals(feesPayload: TCreatePenaltyZod) {
+  async getFullFeeList({
+    instituteUuid,
+  }: {
+    instituteUuid: string;
+  }): Promise<Data<Booklog_v2[]>> {
     try {
-      console.log('feesPayload: ', feesPayload);
-
-      const data = await this.journalsCopyRepository.query(
-        `SELECT journal_copy_uuid FROM journal_copy WHERE journal_copy_id = $1`,
-        [feesPayload.journal_copy_id],
-      );
-      const student = await this.studentsRepository.query(
-        `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-        [feesPayload.student_id],
-      );
-      console.log(student);
-      console.log(data);
-
-      const penaltyPayload: {
-        student_id: string;
-        journal_copy_id: string;
-        penalty_amount: number;
-        return_date: Date;
-        paid_amount: number;
-        is_penalied: boolean;
-        is_completed: boolean;
-      }[] = await this.studentsRepository.query(
-        `
-                SELECT 
-                  s.student_id,
-                  jc.journal_copy_id,
-                  fp.penalty_amount,
-                  fp.return_date,
-                  fp.paid_amount,
-                  fp.is_penalised,
-                  fp.is_completed
-                FROM fees_penalties fp
-                INNER JOIN students_table s ON fp.borrower_uuid = s.student_uuid
-                INNER JOIN journal_copy jc ON fp.journal_copy_uuid = jc.journal_copy_uuid
-                WHERE s.is_archived = FALSE
-                  AND s.student_id = $1
-                  AND jc.is_archived = FALSE
-                  AND jc.journal_copy_id = $2
-                  AND fp.penalty_amount > fp.paid_amount
-                  AND fp.is_completed = FALSE
-                  AND fp.is_penalised = TRUE
-                  AND fp.returned_at IS NOT NULL
-                `,
-        [feesPayload.student_id, feesPayload.journal_copy_id],
-      );
-
-      if (!penaltyPayload.length) {
-        throw new HttpException(
-          'Cannot find Student or Book, maybe archived or No penalty or Not returned',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const record = penaltyPayload[0];
-
-      // Accumulate total paid amount
-      const accumulatedPaidAmount =
-        feesPayload.paid_amount + record.paid_amount;
-
-      // Determine if penalty is cleared
-      const isPenalised = accumulatedPaidAmount < record.penalty_amount; // True if penalty remains
-      const isCompleted = !isPenalised; // True if penalty is fully paid
-
-      // FIX: Add WHERE clause to prevent updating all records
-      await this.feesPenaltiesRepository.query(
-        `UPDATE fees_penalties 
-                 SET payment_method = $1, paid_amount = $2, is_penalised = $3, is_completed = $4
-                 WHERE borrower_uuid = $5 AND copy_uuid = $6`,
-        [
-          feesPayload.payment_method,
-          accumulatedPaidAmount,
-          true,
-          isCompleted,
-          student[0].student_uuid,
-          record.journal_copy_id,
-        ],
-      );
+      const pendingPenalties = await this.bookLogPenalty.find({
+        where: {
+          instituteUuid: instituteUuid,
+          action: 'borrowed',
+          expectedDate: LessThan(new Date()),
+          isReturned: false,
+        },
+      });
 
       return {
-        statusCode: HttpStatus.OK,
-        message: 'Penalty paid successfully!',
+        data: pendingPenalties,
+        pagination: null,
       };
     } catch (error) {
-      return { error: error };
+      throw error;
     }
   }
 
-  // -------- FILTER ROUTES -----------
+  async getFullPaidFeeList({
+    instituteUuid,
+  }: {
+    instituteUuid: string;
+  }): Promise<Data<FeesPenalties[]>> {
+    try {
+      const pendingPenalties = await this.feesPenaltiesRepository.find({
+        where: {
+          instituteUuid: instituteUuid,
+        },
+      });
 
-  // Get penalties which are yet to be paid
-  async getPenaltiesToBePaid() {
-    const result = await this.feesPenaltiesRepository.query(
-      `SELECT *, (penalty_amount - paid_amount) AS remaining_penalty
-            FROM fees_penalties
-            WHERE (penalty_amount - paid_amount) > 0 
-            AND is_completed=false`,
-    );
-    if (!result.length) {
-      return { message: 'No Penalties To Be Paid' };
-    } else {
-      return result;
+      return {
+        data: pendingPenalties,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
     }
   }
 
-  // Get penalties that are paid
-  async getCompletedPenalties() {
-    const result = await this.feesPenaltiesRepository.query(
-      `SELECT *, (penalty_amount - paid_amount) AS remaining_penalty
-            FROM fees_penalties
-            WHERE (penalty_amount - paid_amount) = 0 
-            AND is_completed=true`,
-    );
-    if (!result.length) {
-      return { message: 'No Penalties Found' };
-    } else {
-      return result;
+  async payStuentFee(
+    booklogId: string,
+    payStudentPayload: TPayFeeDTO,
+  ): Promise<Data<FeesPenalties>> {
+    try {
+      const log = await this.bookLogPenalty.findOne({
+        where: {
+          booklogId: booklogId,
+          isReturned: false,
+        },
+      });
+      if (!log) {
+        throw new HttpException(
+          'Penalty might already have been paid',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      const payPenalty = this.feesPenaltiesRepository.create({
+        ...payStudentPayload,
+        bookCopyUuid: log.bookCopyUuid,
+        borrowerUuid: log.borrowerUuid,
+        bookLogData: log,
+      });
+      const savePaidPenalty =
+        await this.feesPenaltiesRepository.save(payPenalty);
+      return {
+        data: payPenalty,
+        pagination: null,
+        meta: { log },
+      };
+    } catch (error) {
+      throw error;
     }
   }
 
-  async getStudentPenalties(student_id: string) {
-    if (!student_id) {
-      throw new HttpException('Student ID is required', HttpStatus.BAD_REQUEST);
-    }
-
-    // Get all penalties for the student
-    const penalties = await this.feesPenaltiesRepository.query(
-      `SELECT fp.*
-               FROM fees_penalties fp
-               INNER JOIN students_table s ON fp.borrower_uuid = s.student_uuid
-               WHERE s.student_id = $1`,
-      [student_id],
-    );
-
-    if (!penalties.length) {
-      throw new HttpException('No penalty records found', HttpStatus.NOT_FOUND);
-    }
-
-    const completed = penalties.filter((p) => p.is_completed === true);
-    const notCompleted = penalties.filter((p) => p.is_completed === false);
-
-    return {
-      penalties,
-      completed,
-      notCompleted,
-    };
-  }
-
-  // Get pending penalties for a particular sutdent
-  async getPenaltiesToBePaidForStudent(student_id: string) {
-    if (!student_id) {
-      throw new HttpException('Enter Student Id', HttpStatus.NOT_FOUND);
-    }
-    const student_uuid = await this.studentsRepository.query(
-      `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-      [student_id],
-    );
-    if (!student_id.length) {
-      throw new HttpException(
-        'Student With Given Id Not Found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    const result = await this.feesPenaltiesRepository.query(
-      `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND is_completed=false`,
-      [student_uuid[0].student_uuid],
-    );
-    if (!result.length) {
-      return { message: 'Student Has No Penalties' };
-    } else {
-      return result;
-    }
-  }
-
-  // Get completed penalties for a particular student
-  async getPendingPenaltiesForStudent(student_id: string) {
-    if (!student_id) {
-      throw new HttpException('Enter Student Id', HttpStatus.NOT_FOUND);
-    }
-    const student_uuid = await this.studentsRepository.query(
-      `SELECT student_uuid FROM students_table WHERE student_id = $1`,
-      [student_id],
-    );
-    if (!student_id.length) {
-      throw new HttpException(
-        'Student With Given Id Not Found',
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    const result = await this.feesPenaltiesRepository.query(
-      `SELECT * FROM fees_penalties WHERE borrower_uuid = $1 AND is_completed=true`,
-      [student_uuid[0].student_uuid],
-    );
-    if (!result.length) {
-      throw new HttpException('No Data Found', HttpStatus.NOT_FOUND);
-    } else {
-      return result;
-    }
-  }
 }

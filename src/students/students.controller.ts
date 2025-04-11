@@ -57,7 +57,6 @@ interface AuthenticatedRequest extends Request {
 export class StudentsController {
   constructor(
     private studentsService: StudentsService,
-    private readonly notifyService: StudentNotifyService,
   ) {}
 
   @Post('login')

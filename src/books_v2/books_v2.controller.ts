@@ -32,7 +32,7 @@ import { Booklog_v2 } from './entity/book_logv2.entity';
 import { TRequestDTO } from './dto/book-request.dto';
 import { TRequestActionDTO } from './dto/book-req-action.dto';
 import { createBookSchema, TCreateBookDTO } from './dto/book-create.dto';
-import { TCreateBooklogActionDTO } from './dto/booklog-create.dto';
+import { booklogActionSchema, TCreateBooklogActionDTO } from './dto/booklog-create.dto';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -441,7 +441,7 @@ export class BooksV2Controller {
 
   //Implements Borrow and Return
   @Post('bookAction') // done
-  @UsePipes(new bodyValidationPipe(booklogV2Schema))
+  @UsePipes(new bodyValidationPipe(booklogActionSchema))
   async updateBookLog(
     @Body() booklogPayload: TCreateBooklogActionDTO,
     @Req() request: Request,

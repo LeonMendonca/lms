@@ -26,6 +26,8 @@ export enum NotificationType {
   NOTES_REJECTED = 'notes_rejected',
 
   // Fees/Penalties
+  RETURN_REMINDER = 'return_reminder',
+  PENALTY_REMINDER = 'penalty_reminder',
   PENALTY_ADDED = 'penalty_added',
   PENALTY_PAID = 'penalty_paid',
   PENALTY_OVERDUE = 'penalty_overdue',

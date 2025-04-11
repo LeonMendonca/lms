@@ -12,10 +12,32 @@ import { Students } from 'src/students/students.entity';
 import { StudentsService } from 'src/students/students.service';
 import { QueryBuilderService } from 'src/query-builder/query-builder.service';
 import { StudentsData } from 'src/students/entities/student.entity';
+import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
+import { LibraryConfig } from 'src/config/entity/library_config.entity';
+import { VisitLog } from 'src/students/entities/visitlog.entity';
+import { StudentsVisitKey } from 'src/students/entities/student-visit-key';
+import { BooksV2Service } from 'src/books_v2/books_v2.service';
+import { RequestBook } from 'src/books_v2/entity/request-book.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FeesPenalties, JournalCopy, JournalTitle, JournalLogs, BookCopy, BookTitle, Students, StudentsData])],
+  imports: [
+    TypeOrmModule.forFeature([
+      FeesPenalties,
+      JournalCopy,
+      JournalTitle,
+      JournalLogs,
+      BookCopy,
+      BookTitle,
+      Students,
+      StudentsData,
+      Booklog_v2,
+      LibraryConfig,
+      VisitLog,
+      StudentsVisitKey,
+      RequestBook
+    ]),
+  ],
   controllers: [FeesPenaltiesController],
-  providers: [FeesPenaltiesService, StudentsService, QueryBuilderService]
+  providers: [FeesPenaltiesService, StudentsService, QueryBuilderService, BooksV2Service],
 })
-export class FeesPenaltiesModule { }
+export class FeesPenaltiesModule {}

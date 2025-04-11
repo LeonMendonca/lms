@@ -33,10 +33,12 @@ import { UserAccessToken } from './user/entity/user-access.entity';
 import { StudentsData } from './students/entities/student.entity';
 import { InquiryModule } from './inquiry/inquiry.module';
 import { InquireLogs } from './inquiry/entities/inquire-logs';
+import { ScheduleModule } from '@nestjs/schedule';
 
 config({ path: '.env' });
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_URL,
@@ -51,7 +53,7 @@ config({ path: '.env' });
         BookCopy,
         BookTitle,
         VisitLog,
-        // FeesPenalties,
+        FeesPenalties,
         RequestBook,
         // BookCopy,
         // BookTitle,
@@ -67,13 +69,13 @@ config({ path: '.env' });
         StudentNotification,
       ],
       ssl: true,
-      synchronize: false,
+      synchronize: true,
     }),
     StudentsModule,
     BooksV2Module,
     // JournalsModule,
     NotificationsModule,
-    // FeesPenaltiesModule,
+    FeesPenaltiesModule,
     ConfigModule,
     CsvModule,
     ReviewsModule,

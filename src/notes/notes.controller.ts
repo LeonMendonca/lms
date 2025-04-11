@@ -17,8 +17,6 @@ import { TCreateNotesDTO } from './dto/create-notes.dto';
 import { TUpdateNotesDTO } from './dto/update-notes.dto';
 import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { Notes } from './entities/notes.entity';
-import { StudentNotifyService } from 'src/student-notify/student-notify.service';
-import { NotificationType } from 'src/student-notify/entities/student-notify.entity';
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
@@ -35,7 +33,6 @@ interface ApiResponse<T> {
 export class NotesController {
   constructor(
     private readonly notesService: NotesService,
-    private readonly notifyService: StudentNotifyService,
   ) {}
 
   // # Student
@@ -122,13 +119,6 @@ export class NotesController {
   ): Promise<ApiResponse<Notes>> {
     try {
       const { data } = await this.notesService.approveByAdmin(notesUuid);
-      await this.notifyService.createNotification(
-        data.studentUuid,
-        NotificationType.NOTES_APPROVED,
-        {
-          courseName: data.noteTitle,
-        },
-      );
       return {
         success: true,
         data,
@@ -152,13 +142,6 @@ export class NotesController {
   ): Promise<ApiResponse<Notes>> {
     try {
       const { data } = await this.notesService.rejectByAdmin(notesUuid);
-      await this.notifyService.createNotification(
-        data.studentUuid,
-        NotificationType.NOTES_REJECTED,
-        {
-          courseName: data.noteTitle,
-        },
-      );
       return {
         success: true,
         data,

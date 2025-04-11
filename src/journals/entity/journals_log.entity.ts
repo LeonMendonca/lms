@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { Students } from "src/students/students.entity";
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { JournalTitle } from "./journals_title.entity";

@@ -307,6 +307,24 @@ export class StudentsService {
     }
   }
 
+  async findStudentByUuid(identifier: string): Promise<Data<StudentsData>> {
+    try {
+      const student = await this.studentsDataRepository.query(
+        `SELECT * FROM students_info WHERE "studentUuid" = $1`[identifier],
+      );
+      if (!student) {
+        throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
+      }
+
+      return {
+        data: student,
+        pagination: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async bulkCreate(studentZodValidatedObject: {
     validated_array: TCreateStudentDTO[];
     invalid_data_count: number;
@@ -783,7 +801,7 @@ export class StudentsService {
       const { latitude, longitude, studentUuid } = studentKey;
 
       if (
-        true || 
+        true ||
         isWithinXMeters(lib_latitude, lib_longitude, latitude, longitude, 30)
       ) {
         try {

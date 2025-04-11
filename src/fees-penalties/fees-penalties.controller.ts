@@ -5,91 +5,51 @@ import {
   HttpException,
   HttpStatus,
   Post,
-  Put,
   Query,
   Request,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
-import {
-  updateFeesPenaltiesZod,
-  TUpdateFeesPenaltiesZod,
-} from 'src/books_v2/zod/update-fp-zod';
-import { bodyValidationPipe } from 'src/pipes/body-validation.pipe';
 import { FeesPenaltiesService } from './fees-penalties.service';
-import { createPenaltyZod, TCreatePenaltyZod } from './zod/create-penalty-zod';
-import { student } from 'src/students/students.entity';
 import { TokenAuthGuard } from '../../utils/guards/token.guard';
 import { StudentsService } from 'src/students/students.service';
+import { Booklog_v2 } from 'src/books_v2/entity/book_logv2.entity';
+import { TPayFeeDTO } from './dto/fees-paid.dto';
+import { BooksV2Service } from 'src/books_v2/books_v2.service';
+import { FeesPenalties } from './entity/fees-penalties.entity';
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  pagination: {} | null;
+  error?: string;
+}
 
 interface AuthenticatedRequest extends Request {
   user?: any; // Ideally, replace `any` with your `User` type
 }
+
 @Controller('fees-penalties')
 export class FeesPenaltiesController {
   constructor(
     private feesPenaltiesService: FeesPenaltiesService,
+    private readonly bookV2Service: BooksV2Service,
     private readonly studentService: StudentsService,
-  ) { }
+  ) {}
 
-  @Put('pay-student-fee')
-  @UsePipes(new bodyValidationPipe(updateFeesPenaltiesZod))
-  async payStudentFee(@Body() feesPayload: TUpdateFeesPenaltiesZod) {
-    try {
-      return await this.feesPenaltiesService.payStudentFee(feesPayload);
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
-
-  @Post('pay-student-fee-periodicals') //jigisha
-  @UsePipes(new bodyValidationPipe(createPenaltyZod))
-  async payStudentFeeForPeriodicals(@Body() feesPayload: TCreatePenaltyZod) {
-    try {
-      return await this.feesPenaltiesService.payStudentFeeForPeriodicals(
-        feesPayload,
-      );
-    } catch (error) {
-      return { error: error };
-    }
-  }
-
-  @Get('get-student-fee') // done
+  @Get('student')
   @UseGuards(TokenAuthGuard)
-  async getStudentFeeHistory(
+  async getStudentsFees(
     @Request() req: AuthenticatedRequest,
-    @Query('_student_id') studentId: string,
-    @Query('_ispenalised') isPenalty: string,
-    @Query('_iscompleted') isCompleted: string,
-  ) {
-    const {data: student} = await this.studentService.findStudentBy(req.user.student_id);
-    if (!student) {
-      throw new HttpException('Student not found', HttpStatus.NOT_FOUND);
-    }
-    return this.feesPenaltiesService.getStudentFee({
-      studentId: student?.studentUuid ?? '',
-      isPenalty: JSON.parse(isPenalty || 'false'),
-      isCompleted: JSON.parse(isCompleted || 'false'),
-    });
-  }
-
-
-  @Get('get-full-feelist') // done
-  async getFullFeeList(
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
-  ) {
+  ): Promise<ApiResponse<Booklog_v2[]>> {
     try {
-      return await this.feesPenaltiesService.getFullFeeList({
-        page: page ? parseInt(page, 10) : 1,
-        limit: limit ? parseInt(limit, 10) : 10,
+      const { data } = await this.feesPenaltiesService.getStudentFee({
+        studentUuid: req.user.studentUuid,
       });
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -101,78 +61,108 @@ export class FeesPenaltiesController {
     }
   }
 
-  @Get('generate-fee-report')
-  async generateFeeReport(
-    @Query('start') start: string,
-    @Query('end') end: string,
-    @Query('_page') page: string,
-    @Query('_limit') limit: string,
+  @Get('admin')
+  async getStudentsAdminFees(
+    @Query('_institute_uuid') instituteUuid: string,
+  ): Promise<ApiResponse<Booklog_v2[]>> {
+    try {
+      const { data } = await this.feesPenaltiesService.getFullFeeList({
+        instituteUuid: JSON.parse(instituteUuid || '[]'),
+      });
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('admin-paid')
+  async getStudentsAdminPaidFees(
+    @Query('_institute_uuid') instituteUuid: string,
+  ): Promise<ApiResponse<FeesPenalties[]>> {
+    try {
+      const { data } = await this.feesPenaltiesService.getFullPaidFeeList({
+        instituteUuid: JSON.parse(instituteUuid || '[]'),
+      });
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Get('student-paid')
+  @UseGuards(TokenAuthGuard)
+  async getStudentsPaidFees(
+    @Request() req: AuthenticatedRequest,
+  ): Promise<ApiResponse<FeesPenalties[]>> {
+    try {
+      const { data } = await this.feesPenaltiesService.getStudentPaidFee({
+        studentUuid: req.user.studentUuid,
+      });
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
+    } catch (error) {
+      if (!(error instanceof HttpException)) {
+        throw new HttpException(
+          error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      throw error;
+    }
+  }
+
+  @Post()
+  async payStudentFee(
+    @Query('_book_log_id') booklogId: string,
+    @Body() payStudentPayload: TPayFeeDTO,
   ) {
     try {
-      // Default to last 30 days if not provided
-      const now = new Date();
-      const defaultStart = new Date(now);
-      defaultStart.setDate(now.getDate() - 30);
-
-      const startDate = start ? new Date(start) : defaultStart;
-      const endDate = end ? new Date(end) : now;
-
-      // Validate dates
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        throw new HttpException('Invalid "start" or "end" date format', HttpStatus.BAD_REQUEST);
-      }
-
-      const pageNumber = page ? parseInt(page, 10) : 1;
-      const limitNumber = limit ? parseInt(limit, 10) : 10;
-
-      return await this.feesPenaltiesService.generateFeeReport(
-        startDate,
-        endDate,
-        pageNumber,
-        limitNumber,
+      const { data, meta } = await this.feesPenaltiesService.payStuentFee(
+        booklogId,
+        payStudentPayload,
       );
-    } catch (error) {
-      if (!(error instanceof HttpException)) {
-        throw new HttpException(
-          error.message || 'Internal Server Error',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      throw error;
-    }
-  }
+      const barcode = meta?.log?.newBookCopy?.barcode;
+      const { data: student } = await this.studentService.findStudentByUuid(
+        data.borrowerUuid,
+      );
 
-
-  // -------- FILTER ROUTES -----------
-
-
-  // Get penalties which are yet to be paid 
-  @Get('get-pending-penalties')
-  async getPenaltiesToBePaid() {
-    return await this.feesPenaltiesService.getPenaltiesToBePaid()
-  }
-
-  // Get penalties which are paid 
-  @Get('get-completed-penalties')
-  async getCompletedPenalties() {
-    return await this.feesPenaltiesService.getCompletedPenalties()
-  }
-
-
-
-  // --------- STUDENT ROUTES ---------------
-
-
-  @Get('filtered')
-  async getStudentPenalties(@Query('student_id') student_id: string) {
-    return this.feesPenaltiesService.getStudentPenalties(student_id)
-  }
-
-  // Get Full Feelist for a particular student - working
-  @Get('get-full-feelist-student')
-  async getFullFeeListStudent(@Query('student_id') student_id: string) {
-    try {
-      return await this.feesPenaltiesService.getFullFeeListStudentPeriodicals(student_id); // getFullFeeListStudentBooks
+      await this.bookV2Service.bookActions(
+        {
+          barCode: student.barCode,
+          barcode,
+          action: 'returned',
+        },
+        '',
+        'returned',
+      );
+      return {
+        data,
+        success: true,
+        pagination: null,
+      };
     } catch (error) {
       if (!(error instanceof HttpException)) {
         throw new HttpException(
@@ -183,19 +173,4 @@ export class FeesPenaltiesController {
       throw error;
     }
   }
-
-  // Get pending penalties for a particular sutdent  - working
-  @Get('get-pending-penalties-for-student')
-  async getPenaltiesToBePaidForStudent(@Query('student_id') student_id: string) {
-    return await this.feesPenaltiesService.getPenaltiesToBePaidForStudent(student_id)
-  }
-
-
-  // Get completed penalties for a particular sutdent - working
-  @Get('get-completed-penalties-for-student')
-  async getPendingPenaltiesForStudent(@Query('student_id') student_id: string) {
-    return await this.feesPenaltiesService.getPendingPenaltiesForStudent(student_id)
-  }
-
-
 }

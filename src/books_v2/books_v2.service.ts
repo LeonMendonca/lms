@@ -18,6 +18,7 @@ import { TRequestActionDTO } from './dto/book-req-action.dto';
 import { TCreateBookDTO } from './dto/book-create.dto';
 import { TCreateBooklogActionDTO } from './dto/booklog-create.dto';
 import { StudentsData } from 'src/students/entities/student.entity';
+import { LibraryConfig } from 'src/config/entity/library_config.entity';
 
 export interface Data<T> {
   data: T;
@@ -461,21 +462,21 @@ export class BooksV2Service {
         .leftJoin(
           'book_titles',
           'book_titles',
-          'book_titles.bookUuid = book_copies.bookTitleUuidRel',
+          'book_titles."bookUuid" = book_copies."bookTitleUuidRel"',
         )
-        .addSelect(['book_titles.book_title'])
+        .addSelect(['book_titles."bookTitle"'])
         .where('book_copies.barcode = :barcode', {
           barcode: requestBookIssuePayload.barcode,
         })
-        .andWhere('book_copies.is_archived = false');
+        .andWhere('book_copies."isArchived" = false');
 
       if (
         requestBookIssuePayload.requestType === 'return' ||
         requestBookIssuePayload.requestType === 'reissue'
       ) {
-        queryBuilder.andWhere('book_copies.isAvailable = false');
+        queryBuilder.andWhere('book_copies."isAvailable" = false');
       } else {
-        queryBuilder.andWhere('book_copies.isAvailable = true');
+        queryBuilder.andWhere('book_copies."isAvailable" = true');
       }
 
       const bookCopy = await queryBuilder.getRawOne();
@@ -500,11 +501,12 @@ export class BooksV2Service {
           HttpStatus.BAD_REQUEST,
         );
       }
-
       const newRequest = this.requestBooklogRepository.create({
         ...requestBookIssuePayload,
+        bookCopyId: bookCopy.book_copies_bookCopyUuid,
         ipAddress,
         studentUuid,
+        status: 'pending',
       });
 
       const data = await this.requestBooklogRepository.save(newRequest);
@@ -534,14 +536,22 @@ export class BooksV2Service {
       if (!existingRequest) {
         throw new HttpException('Request not found', HttpStatus.NOT_FOUND);
       }
+      const student = await this.studentDataRepository.findOne({
+        where: {
+          studentUuid: existingRequest.studentUuid
+        }
+      })
+      if (!student) {
+        throw new HttpException('Student Barcode not set', HttpStatus.NOT_FOUND);
+      }
       switch (existingRequest.requestType) {
         case 'return':
           if (status === 'approved') {
             await this.bookActions(
               {
-                studentUuid: existingRequest.studentUuid,
+                barCode: student.barCode,
                 barcode: existingRequest.barcode,
-                action: 'return',
+                action: 'returned',
               },
               existingRequest.ipAddress,
               'returned',
@@ -552,9 +562,18 @@ export class BooksV2Service {
           if (status === 'approved') {
             await this.bookActions(
               {
-                studentUuid: existingRequest.studentUuid,
+                barCode: student.barCode,
                 barcode: existingRequest.barcode,
-                action: 'borrow',
+                action: 'returned',
+              },
+              existingRequest.ipAddress,
+              'returned',
+            );
+            await this.bookActions(
+              {
+                barCode: student.barCode,
+                barcode: existingRequest.barcode,
+                action: 'borrowed',
               },
               existingRequest.ipAddress,
               'borrowed',
@@ -565,12 +584,12 @@ export class BooksV2Service {
           if (status === 'approved') {
             await this.bookActions(
               {
-                studentUuid: existingRequest.studentUuid,
+                barCode: student.barCode,
                 barcode: existingRequest.barcode,
-                action: 'return',
+                action: 'borrowed',
               },
               existingRequest.ipAddress,
-              'return',
+              'borrowed',
             );
           }
           break;
@@ -690,7 +709,11 @@ export class BooksV2Service {
       //   value: instituteUuid,
       //   operator: '=',
       // });
-      filter.push({ field: 'cr."isArchived"', value: ['false'], operator: '=' });
+      filter.push({
+        field: 'cr."isArchived"',
+        value: ['false'],
+        operator: '=',
+      });
       filter.push({
         field: 'cr."isCompleted"',
         value: ['false'],
@@ -860,14 +883,14 @@ export class BooksV2Service {
   }
 
   async bookActions(
-    { studentUuid, barcode }: TCreateBooklogActionDTO,
+    { barCode, barcode }: TCreateBooklogActionDTO,
     ipAddress: string,
     status: string, // 'borrowed' | 'returned' | 'in_library_borrowed'
   ): Promise<Data<{ message: string }>> {
     try {
       const student = await this.studentDataRepository.findOne({
         where: {
-          studentUuid,
+          barCode,
           isArchived: false,
         },
       });
@@ -879,16 +902,43 @@ export class BooksV2Service {
       const bookCopy = await this.bookcopyRepository.findOne({
         where: {
           barcode,
-          isAvailable:
-            status === 'borrowed' || status === 'in_library_borrowed',
+          isAvailable: status === 'borrowed',
           isArchived: false,
         },
       });
+
+      const libraryConfig: LibraryConfig[] =
+        await this.bookcopyRepository.query(
+          `SELECT * FROM library_config WHERE "instituteUuid" = $1`,
+          [student.instituteUuid],
+        );
+
+      // maxBorrows is likely inside an array (since `.query()` returns raw SQL results)
+      const maxBorrows = libraryConfig[0]?.maxBooksStudent ?? 1;
+      const returnDays = libraryConfig[0]?.maxDaysStudent ?? 1;
+
+      console.log(student.studentUuid, maxBorrows);
+      const studentPreviousBorrows = await this.booklogRepository
+        .createQueryBuilder('booklog')
+        .where('booklog."borrowerUuid" = :uuid', { uuid: student.studentUuid })
+        .orderBy('booklog."createdAt"', 'DESC') // Replace with actual column name
+        .limit(maxBorrows)
+        .getMany();
 
       switch (status) {
         case 'borrowed':
           if (!bookCopy) {
             throw new HttpException('Cannot find Book', HttpStatus.NOT_FOUND);
+          }
+          console.log("here")
+
+          const allBorrowed =
+            studentPreviousBorrows.length === maxBorrows &&
+            studentPreviousBorrows.every((log) => log.action === 'borrowed');
+          if (allBorrowed) {
+            throw new Error(
+              'Student has already taken the maximum number of books.',
+            );
           }
           // TODO: Add a check for number of borrows per sole
           let bookTitle = await this.booktitleRepository.findOne({
@@ -902,20 +952,25 @@ export class BooksV2Service {
               HttpStatus.NOT_FOUND,
             );
           }
+          bookCopy.isAvailable = false;
+          bookCopy.updatedAt = new Date();
+          const newBookCopy = await this.bookcopyRepository.save(bookCopy);
+          bookTitle.availableCount -= 1;
+          bookTitle.updatedAt = new Date();
+          const newBookTitle = await this.booktitleRepository.save(bookTitle);
+          const returnDate = new Date();
+          returnDate.setDate(returnDate.getDate() + returnDays);
+          returnDate.setHours(0, 0, 0, 0);
           let bookLog = this.booklogRepository.create({
-            // @ts-expect-error
             borrowerUuid: student.studentUuid,
             bookCopyUuid: bookCopy.bookCopyUuid,
             action: 'borrowed',
             ipAddress,
+            newBookCopy,
+            newBookTitle,
+            expectedDate: returnDate,
           });
           await this.booklogRepository.save(bookLog);
-          bookCopy.isAvailable = false;
-          bookCopy.updatedAt = new Date();
-          await this.bookcopyRepository.save(bookCopy);
-          bookTitle.availableCount -= 1;
-          bookTitle.updatedAt = new Date();
-          await this.booktitleRepository.save(bookTitle);
           break;
         case 'in_library_borrowed':
           if (!bookCopy) {
@@ -934,7 +989,6 @@ export class BooksV2Service {
             );
           }
           const bookLogLib = this.booklogRepository.create({
-            // @ts-expect-error
             borrowerUuid: student.studentUuid,
             bookCopyUuid: bookCopy.bookCopyUuid,
             action: 'in_library_borrowed',
@@ -952,32 +1006,33 @@ export class BooksV2Service {
           if (!bookCopy) {
             throw new HttpException('Book isnt Borrowed', HttpStatus.NOT_FOUND);
           }
-          // TODO: Add a check for number of borrows per sole
-          const bookLogRet = await this.booklogRepository.findOne({
-            // @ts-expect-error
-            where: {
-              borrowerUuid: student.studentUuid,
+          const bookLogRet = await this.booklogRepository
+            .createQueryBuilder('bookret')
+            .where('bookret."borrowerUuid" = :uuid', {
+              uuid: student.studentUuid,
+            })
+            .where('bookret."bookCopyUuid" = :bookCopyUuid', {
               bookCopyUuid: bookCopy.bookCopyUuid,
-            },
-          });
+            })
+            .orderBy('bookret."createdAt"', 'DESC') // Replace with actual column name
+            .getOne();
           if (!bookLogRet) {
             throw new HttpException(
               'Book isnt Borrowed by Student',
               HttpStatus.NOT_FOUND,
             );
           }
-          const borrowedRet = this.booklogRepository.create({
-            // @ts-expect-error
-            action: 'returned',
-            borrowerUuid: student.studentUuid,
-            bookCopyUuid: bookCopy.bookCopyUuid,
-            ipAddress,
-          });
-          const bookTitleSave =
-            await this.booktitleRepository.save(borrowedRet);
+          if(bookLogRet.expectedDate < new Date()) {
+            throw new HttpException(
+              'First pay the Penalty on the previous book',
+              HttpStatus.NOT_FOUND,
+            );
+          }
+          bookLogRet.isReturned = true;
+          await this.booklogRepository.save(bookLogRet);
           bookCopy.isAvailable = true;
           bookCopy.updatedAt = new Date();
-          await this.bookcopyRepository.save(bookCopy);
+          const newBookCopy2 = await this.bookcopyRepository.save(bookCopy);
           const bookTitleRet = await this.booktitleRepository.findOne({
             where: {
               bookUuid: bookCopy.bookTitleUuidRel,
@@ -991,8 +1046,19 @@ export class BooksV2Service {
           }
           bookTitleRet.availableCount += 1;
           bookTitleRet.updatedAt = new Date();
-          await this.booktitleRepository.save(bookTitleRet);
+          const newBookTitle2 =
+            await this.booktitleRepository.save(bookTitleRet);
 
+          const borrowedRet = this.booklogRepository.create({
+            action: 'returned',
+            borrowerUuid: student.studentUuid,
+            bookCopyUuid: bookCopy.bookCopyUuid,
+            ipAddress,
+            newBookCopy: newBookCopy2,
+            newBookTitle: newBookTitle2,
+            isReturned: true,
+          });
+          await this.booklogRepository.save(borrowedRet);
           break;
       }
 

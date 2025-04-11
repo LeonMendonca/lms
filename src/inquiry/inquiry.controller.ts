@@ -33,8 +33,7 @@ interface AuthenticatedRequest extends Request {
 @Controller('inquiry')
 export class InquiryController {
   constructor(
-    private readonly inquiryService: InquiryService,
-    private readonly notifyService: StudentNotifyService,
+    private readonly inquiryService: InquiryService
   ) {}
 
   @Post()
@@ -111,13 +110,6 @@ export class InquiryController {
         data,
         meta: { inquiryType, studentUuid },
       } = await this.inquiryService.update(updateInquiryDto);
-      await this.notifyService.createNotification(
-        studentUuid,
-        NotificationType.ACTIVITY_RESOLVED,
-        {
-          activityDescription: inquiryType,
-        },
-      );
       return {
         data,
         pagination: null,
