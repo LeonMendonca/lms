@@ -4,6 +4,7 @@ import { pool } from '../../pg.connect';
 import { TInsertResult } from '../worker-types/student-insert.type';
 import { studentObj } from 'src/students/students.entity';
 import { TCreateStudentDTO } from 'src/students/dto/student-create.dto';
+import { defaultStudentData } from 'src/students/entities/student.entity';
 
 let start = Date.now();
 let uniqueArray: TCreateStudentDTO[] = [];
@@ -30,17 +31,17 @@ console.log('Unique array done in', Date.now() - start, 'ms');
   //Select maximum ID in Table
   start = Date.now();
 
-  const bulkQuery1 = 'INSERT INTO students_table ';
+  const bulkQuery1 = 'INSERT INTO students_info ';
   let bulkQuery2 = '';
   let bulkQuery3 = '';
 
-  const insertObjectCol = studentObj;
+  const insertObjectCol = defaultStudentData;
   let key: keyof typeof insertObjectCol | '' = '';
 
   //Create columns with object keys
   bulkQuery2 += '(';
   for (key in insertObjectCol) {
-    bulkQuery2 = bulkQuery2.concat(`${key},`);
+    bulkQuery2 = bulkQuery2.concat(`"${key}",`);
   }
   bulkQuery2 = bulkQuery2.slice(0, -1);
   bulkQuery2 += ')';
@@ -56,7 +57,7 @@ console.log('Unique array done in', Date.now() - start, 'ms');
         if (typeof stuObj[key] === 'string') {
           bulkQuery3 += `'${stuObj[key]}',`;
         } else if (typeof stuObj[key] === 'number') {
-          bulkQuery3 += `${stuObj[key]},`;
+          bulkQuery3 += `'${stuObj[key]}',`;
         } else {
           bulkQuery3 += `'${JSON.stringify(stuObj[key])}',`;
         }
@@ -74,6 +75,8 @@ console.log('Unique array done in', Date.now() - start, 'ms');
     bulkQuery2 +
     bulkQuery3 +
     'ON CONFLICT (email) DO NOTHING RETURNING email';
+
+    console.log(finalQuery)
 
   try {
     start = Date.now();

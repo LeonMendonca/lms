@@ -176,6 +176,7 @@ export class StudentsController {
     }
   }
   
+  // # Admin Dashboard
   @Get('admin-dashboard')
   async adminDashboard(
     @Query('_institute_uuid') instituteUuid: string | null,
@@ -199,6 +200,7 @@ export class StudentsController {
     }
   }
   
+  // # Student Dashboard
   @Get('student-dashboard')
   @UseGuards(TokenAuthGuard)
   async studentDashboard(
@@ -494,7 +496,7 @@ export class StudentsController {
     }
   }
 
-
+  // # Student
   @Post('student-visit-key')
   @UseGuards(TokenAuthGuard)
   async studentVisitKey(

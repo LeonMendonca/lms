@@ -9,6 +9,7 @@ let countOfInvalidDataFormat = 0;
 
 workerData.oneDArray.forEach((item: any) => {
   let result = createStudentSchema.safeParse(item);
+  console.log(result)
   if (result.success) {
     newArr.push(result.data);
   }

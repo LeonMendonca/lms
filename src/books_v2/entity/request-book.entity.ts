@@ -8,7 +8,7 @@ import {
 
 @Entity('request_book_log')
 export class RequestBook {
-  @PrimaryGeneratedColumn('uuid',{ name: 'request_id' })
+  @PrimaryGeneratedColumn('uuid',{ name: 'requestId' })
   requestId: string;
 
   @Column({ name: 'studentUuid', type: 'varchar' })

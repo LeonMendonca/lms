@@ -685,14 +685,14 @@ export class BooksV2Service {
 
       const params: (string | number)[] = [];
 
+      // filter.push({
+      //   field: 'cr.instituteUuid',
+      //   value: instituteUuid,
+      //   operator: '=',
+      // });
+      filter.push({ field: 'cr."isArchived"', value: ['false'], operator: '=' });
       filter.push({
-        field: 'cr.instituteUuid',
-        value: instituteUuid,
-        operator: '=',
-      });
-      filter.push({ field: 'cr.is_archived', value: ['false'], operator: '=' });
-      filter.push({
-        field: 'cr.is_completed',
+        field: 'cr."isCompleted"',
         value: ['false'],
         operator: '=',
       });
@@ -705,86 +705,88 @@ export class BooksV2Service {
 
       const orderByQuery = this.queryBuilderService.buildOrderByClauses(
         asc,
-        dec.length > 0 ? dec : ['cr.created_at'],
+        dec.length > 0 ? dec : ['cr."createdAt"'],
       );
 
       const requests = await this.requestBooklogRepository.query(
         `
         SELECT * FROM (
           SELECT 
-            rb.requestType AS requestType, 
-            bc.bookCopyId AS bookCopyId, 
-            bt.bookTitle AS bookTitle, 
+            rb."requestType" AS "requestType", 
+            rb."bookCopyId" AS "bookCopyId", 
+            bt."bookTitle" AS "bookTitle", 
             bt.author1 AS author, 
             bt.edition AS edition, 
-            rb.requestId AS requestId,  
-            rb.createdAt AS createdAt, 
-            rb.studentUuid AS studentUuid, 
-            rb.isCompleted AS isCompleted, 
-            rb.instituteUuid AS instituteUuid, 
-            rb.isArchived AS isArchived
+            rb."requestId" AS "requestId",  
+            rb."createdAt" AS "createdAt", 
+            rb."studentUuid" AS "studentUuid", 
+            rb."isCompleted" AS "isCompleted", 
+            rb."instituteUuid"::text AS "instituteUuid", 
+            rb."isArchived" AS "isArchived"
           FROM request_book_log rb 
-          LEFT JOIN book_copies bc ON bc.bookCopyUuid = rb.bookCopyId
-          LEFT JOIN book_titles bt ON bc.bookTitleUuidRel = bt.bookUuid
+          LEFT JOIN book_copies bc ON bc."bookCopyUuid"::text = rb."bookCopyId"
+          LEFT JOIN book_titles bt ON bc."bookTitleUuidRel" = bt."bookUuid"
 
           UNION ALL
 
           SELECT 
-            'notes' as requestType,                     
-            n.noteResource as bookCopyId,    
-            n.noteTitle as bookTitle,                  
+            'notes' as "requestType",                     
+            n."noteResource" as "bookCopyId",    
+            n."noteTitle" as "bookTitle",                  
             n.author  as author, 
             NULL as edition,                     
-            n.notesUuid::text as requestId,                  
-            n.createdAt as createdAt,  
-            st.studentUuid as studentUuid,                
-            n.isApproved as isCompleted,
-            n.instituteUuid AS instituteUuid, 
-            n.isArchived AS isArchived            
+            n."notesUuid" as "requestId",                  
+            n."createdAt" as "createdAt",  
+            st."studentUuid"::text as "studentUuid",                
+            n."isApproved" as "isCompleted",
+            n."instituteUuid"::text AS "instituteUuid", 
+            n."isArchived" AS "isArchived"            
           FROM notes n 
-          LEFT JOIN students_info st ON st.studentUuid = n.studentUuid
+          LEFT JOIN students_info st ON st."studentUuid" = n."studentUuid"
         ) as cr
-        ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+        ${whereClauses} ${orderByQuery} LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+        `,
         [...params, limit, offset],
       );
 
       const total = await this.requestBooklogRepository.query(
         `
-        SELECT COUNT(*) FROM (
+       SELECT COUNT(*) FROM (
           SELECT 
-            rb.requestType AS requestType, 
-            bc.bookCopyId AS bookCopyId, 
-            bt.bookTitle AS bookTitle, 
+            rb."requestType" AS "requestType", 
+            rb."bookCopyId" AS "bookCopyId", 
+            bt."bookTitle" AS "bookTitle", 
             bt.author1 AS author, 
             bt.edition AS edition, 
-            rb.requestId AS requestId,  
-            rb.createdAt AS createdAt, 
-            rb.studentUuid AS studentUuid, 
-            rb.isCompleted AS isCompleted, 
-            rb.instituteUuid AS instituteUuid, 
-            rb.isArchived AS isArchived
+            rb."requestId" AS "requestId",  
+            rb."createdAt" AS "createdAt", 
+            rb."studentUuid" AS "studentUuid", 
+            rb."isCompleted" AS "isCompleted", 
+            rb."instituteUuid"::text AS "instituteUuid", 
+            rb."isArchived" AS "isArchived"
           FROM request_book_log rb 
-          LEFT JOIN book_copies bc ON bc.bookCopyUuid = rb.bookCopyId
-          LEFT JOIN book_titles bt ON bc.bookTitleUuidRel = bt.bookUuid
+          LEFT JOIN book_copies bc ON bc."bookCopyUuid"::text = rb."bookCopyId"
+          LEFT JOIN book_titles bt ON bc."bookTitleUuidRel" = bt."bookUuid"
 
           UNION ALL
 
           SELECT 
-            'notes' as requestType,                     
-            n.noteResource as bookCopyId,    
-            n.noteTitle as bookTitle,                  
+            'notes' as "requestType",                     
+            n."noteResource" as "bookCopyId",    
+            n."noteTitle" as "bookTitle",                  
             n.author  as author, 
             NULL as edition,                     
-            n.notesUuid::text as requestId,                  
-            n.createdAt as createdAt,  
-            st.studentUuid as studentUuid,                
-            n.isApproved as isCompleted,
-            n.instituteUuid AS instituteUuid, 
-            n.isArchived AS isArchived            
+            n."notesUuid" as "requestId",                  
+            n."createdAt" as "createdAt",  
+            st."studentUuid"::text as "studentUuid",                
+            n."isApproved" as "isCompleted",
+            n."instituteUuid"::text AS "instituteUuid", 
+            n."isArchived" AS "isArchived"            
           FROM notes n 
-          LEFT JOIN students_info st ON st.studentUuid = n.studentUuid
+          LEFT JOIN students_info st ON st."studentUuid" = n."studentUuid"
         ) as cr
-          ${whereClauses}`,
+        ${whereClauses}
+        `,
         params,
       );
       return {

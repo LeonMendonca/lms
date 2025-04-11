@@ -358,6 +358,7 @@ export class BooksV2Controller {
     }
   }
 
+  // # Admin
   @Get('request_booklog')
   async getRequestBooklog(
     @Query('_institute_uuid') instituteUuid: string,

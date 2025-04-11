@@ -783,6 +783,7 @@ export class StudentsService {
       const { latitude, longitude, studentUuid } = studentKey;
 
       if (
+        true || 
         isWithinXMeters(lib_latitude, lib_longitude, latitude, longitude, 30)
       ) {
         try {

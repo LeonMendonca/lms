@@ -38,6 +38,7 @@ export class NotesController {
     private readonly notifyService: StudentNotifyService,
   ) {}
 
+  // # Student
   @Post()
   @UseGuards(TokenAuthGuard)
   async create(
@@ -66,6 +67,7 @@ export class NotesController {
     }
   }
 
+  // # Student
   @Get('student')
   @UseGuards(TokenAuthGuard)
   async findAllNotesForStudent(
@@ -113,6 +115,7 @@ export class NotesController {
     }
   }
 
+  // # Student
   @Patch()
   async approveNotes(
     @Query('_notes_uuid') notesUuid: string,
